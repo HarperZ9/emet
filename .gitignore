@@ -1,0 +1,9 @@
+anchors.json
+*_log.jsonl
+*.refused
+__pycache__/
+*.pyc
+.venv/
+perception*.json
+*.tmp
+docs/PROPOSAL.md

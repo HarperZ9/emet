@@ -1,0 +1,13 @@
+[package]
+name = "emet"
+version = "0.2.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "EMET reference second implementation (Rust, no external crates)"
+
+# Builds impl/rust/emet.rs directly -- no src/ rearrangement, no dependencies.
+[[bin]]
+name = "emet"
+path = "emet.rs"
+
+[dependencies]

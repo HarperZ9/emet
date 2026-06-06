@@ -1,0 +1,29 @@
+name: conformance
+on: [push, pull_request]
+
+jobs:
+  python-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: behavior proof (10 tests)
+        run: python test_membrane.py
+      - name: conformance, reference implementation (expect 9 of 9)
+        run: python conformance/run.py membrane.py
+      - name: selftest re-derives own identity
+        run: python membrane.py selftest
+
+  rust-second-implementation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: build rust impl (rustc is preinstalled on ubuntu-latest)
+        run: rustc -O impl/rust/emet.rs -o impl/rust/emet
+      - name: conformance, rust second implementation (expect 9 of 9)
+        run: python conformance/run.py impl/rust/emet
