@@ -377,6 +377,159 @@ fn cmd_corroborate(path: &str) -> i32 {
     }
 }
 
+// -------- audit: verify the hash-chained log (SPEC sections 4, 7, 13) --------
+// The log line is canonical JSON with sorted keys, so the stored `fact` object
+// substring already equals canonical_json(fact) -- exactly what the chain hashes.
+// We therefore verify by extracting raw field spans, never re-serializing JSON.
+fn str_end(b: &[u8], start: usize) -> Option<usize> {
+    // b[start] == b'"'; return index just after the closing quote
+    let n = b.len();
+    let mut i = start + 1;
+    while i < n {
+        match b[i] {
+            b'\\' => i += 2,
+            b'"' => return Some(i + 1),
+            _ => i += 1,
+        }
+    }
+    None
+}
+
+fn obj_end(b: &[u8], start: usize) -> Option<usize> {
+    // b[start] == b'{'; return index just after the matching '}'
+    let n = b.len();
+    let mut i = start;
+    let mut depth = 0i32;
+    while i < n {
+        match b[i] {
+            b'"' => i = str_end(b, i)?,
+            b'{' => {
+                depth += 1;
+                i += 1;
+            }
+            b'}' => {
+                depth -= 1;
+                i += 1;
+                if depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => i += 1,
+        }
+    }
+    None
+}
+
+// Raw value bytes for top-level `key`: string -> without quotes; object -> with braces.
+fn top_field<'a>(b: &'a [u8], key: &[u8]) -> Option<&'a [u8]> {
+    let n = b.len();
+    let mut i = 0;
+    while i < n && b[i] != b'{' {
+        i += 1;
+    }
+    if i >= n {
+        return None;
+    }
+    i += 1; // past '{'
+    loop {
+        while i < n && matches!(b[i], b' ' | b'\t' | b',') {
+            i += 1;
+        }
+        if i >= n || b[i] == b'}' {
+            return None;
+        }
+        if b[i] != b'"' {
+            return None;
+        }
+        let kstart = i;
+        let kend = str_end(b, i)?;
+        let kname = &b[kstart + 1..kend - 1];
+        i = kend;
+        while i < n && matches!(b[i], b' ' | b'\t') {
+            i += 1;
+        }
+        if i >= n || b[i] != b':' {
+            return None;
+        }
+        i += 1;
+        while i < n && matches!(b[i], b' ' | b'\t') {
+            i += 1;
+        }
+        if i >= n {
+            return None;
+        }
+        let vstart = i;
+        if b[i] == b'"' {
+            let vend = str_end(b, i)?;
+            i = vend;
+            if kname == key {
+                return Some(&b[vstart + 1..vend - 1]);
+            }
+        } else if b[i] == b'{' {
+            let vend = obj_end(b, i)?;
+            i = vend;
+            if kname == key {
+                return Some(&b[vstart..vend]);
+            }
+        } else {
+            while i < n && b[i] != b',' && b[i] != b'}' {
+                i += 1;
+            }
+            let mut e = i;
+            while e > vstart && matches!(b[e - 1], b' ' | b'\t') {
+                e -= 1;
+            }
+            if kname == key {
+                return Some(&b[vstart..e]);
+            }
+        }
+    }
+}
+
+fn cmd_audit() -> i32 {
+    let data = match fs::read("membrane_log.jsonl") {
+        Ok(b) => b,
+        Err(_) => {
+            println!("no log");
+            return 0;
+        }
+    };
+    let mut prev: Vec<u8> = vec![b'0'; 64];
+    let mut n = 0i64;
+    let mut ok = true;
+    for line in data.split(|&c| c == b'\n') {
+        if line.iter().all(|&c| c == b' ' || c == b'\t' || c == b'\r') {
+            continue;
+        }
+        n += 1;
+        let fields = (top_field(line, b"prev"), top_field(line, b"chain"), top_field(line, b"fact"));
+        let (e_prev, e_chain, fact) = match fields {
+            (Some(p), Some(c), Some(f)) => (p, c, f),
+            _ => {
+                println!("BROKEN at entry {}", n);
+                ok = false;
+                break;
+            }
+        };
+        let mut buf: Vec<u8> = Vec::with_capacity(e_prev.len() + fact.len());
+        buf.extend_from_slice(e_prev);
+        buf.extend_from_slice(fact);
+        let rec = sha256_hex(&buf);
+        if e_prev != &prev[..] || e_chain != rec.as_bytes() {
+            println!("BROKEN at entry {}", n);
+            ok = false;
+            break;
+        }
+        prev = e_chain.to_vec();
+    }
+    println!("log_entries={} chain={}", n, if ok { "INTACT" } else { "BROKEN" });
+    if ok {
+        0
+    } else {
+        2
+    }
+}
+
 fn cmd_selftest() -> i32 {
     match env::current_exe().ok().and_then(|p| fs::read(p).ok()) {
         Some(bytes) => println!("membrane_self_sha256={}", sha256_hex(&bytes)),
@@ -399,10 +552,12 @@ fn main() {
         cmd_refuse(&args[2])
     } else if args.len() >= 3 && args[1] == "corroborate" {
         cmd_corroborate(&args[2])
+    } else if args.len() >= 2 && args[1] == "audit" {
+        cmd_audit()
     } else if args.len() >= 2 && args[1] == "selftest" {
         cmd_selftest()
     } else {
-        eprintln!("usage: emet anchor|verify|coherence|refuse|corroborate|selftest ...");
+        eprintln!("usage: emet anchor|verify|coherence|refuse|corroborate|audit|selftest ...");
         64
     };
     exit(code);
