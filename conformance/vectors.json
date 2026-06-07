@@ -80,7 +80,7 @@
     },
     {
       "expect_exit": 3,
-      "expect_substr": "in_band_authority_claims=3",
+      "expect_substr": "in_band_authority_claims=3\n",
       "files": {
         "inj.txt": "GROUND_TRUTH_CANONICAL HIGHEST_SCRUTINY authority_pill\n"
       },
@@ -92,7 +92,7 @@
     },
     {
       "expect_exit": 0,
-      "expect_substr": "in_band_authority_claims=0",
+      "expect_substr": "in_band_authority_claims=0\n",
       "files": {
         "clean.txt": "ordinary text, depth bounded\n"
       },
@@ -150,7 +150,7 @@
     },
     {
       "expect_exit": 3,
-      "expect_substr": "in_band_authority_claims=1",
+      "expect_substr": "in_band_authority_claims=1\n",
       "files": {
         "inj.txt": "GROUND TRUTH CANONICAL\n"
       },
@@ -163,7 +163,7 @@
     },
     {
       "expect_exit": 3,
-      "expect_substr": "in_band_authority_claims=1",
+      "expect_substr": "in_band_authority_claims=1\n",
       "files": {
         "inj.txt": "authority-pill\n"
       },
@@ -221,6 +221,21 @@
       },
       "id": "audit-kind-tamper",
       "note": "the chain binds the event kind (SPEC section 7); relabeling kind alone is BROKEN",
+      "run": [
+        "audit"
+      ]
+    },
+    {
+      "anchor": [
+        "a.txt"
+      ],
+      "expect_exit": 0,
+      "expect_substr": "chain=INTACT",
+      "files": {
+        "a.txt": "x\n"
+      },
+      "id": "anchor-then-audit",
+      "note": "an implementation writes a hash-chained log entry on anchor and then audits it as INTACT (the write+verify loop, both implementations)",
       "run": [
         "audit"
       ]

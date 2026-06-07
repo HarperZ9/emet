@@ -5,8 +5,8 @@ jobs:
   python-reference:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - name: behavior proof (23 tests)
@@ -15,7 +15,7 @@ jobs:
         run: python test_corpus.py
       - name: monitor behavior tests (2 tests)
         run: python test_monitor.py
-      - name: conformance, reference implementation (expect 17 of 17)
+      - name: conformance, reference implementation (expect 18 of 18)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity
         run: python membrane.py selftest
@@ -23,11 +23,11 @@ jobs:
   rust-second-implementation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.x"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, rust second implementation (expect 17 of 17)
+      - name: conformance, rust second implementation (expect 18 of 18)
         run: python conformance/run.py impl/rust/emet
