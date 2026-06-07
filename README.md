@@ -14,19 +14,19 @@ authority. The verdicts are `MATCH`, `DRIFT`, and `UNVERIFIABLE`; there is no
 
 ## What's here
 
-- A stdlib-only Python reference — `membrane.py` / `organs.py` / `monitor.py` / `corpus.py`, ~450 lines, no dependencies.
+- A stdlib-only Python reference — `membrane.py` / `organs.py` / `monitor.py` / `corpus.py`, ~520 lines, no dependencies.
 - A from-scratch Rust second implementation — `impl/rust/emet.rs`, no crates.
 - A normative draft spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) both implementations load and re-derive identically.
-- Both implementations pass the same 17 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain.
+- Both implementations pass the same 18 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain (write and verify).
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py           # reference implementation: 17/17
+python conformance/run.py membrane.py           # reference implementation: 18/18
 ( cd impl/rust && rustc -O emet.rs -o emet )    # build the second implementation
-python conformance/run.py impl/rust/emet        # second implementation: 17/17
+python conformance/run.py impl/rust/emet        # second implementation: 18/18
 ```
 
 ## Use it
@@ -51,8 +51,8 @@ Those constraints are the point, not limitations — see [SPEC.md](SPEC.md) §6.
 
 Pre-1.0; the spec is a draft (v0.2.0-draft). The byte-hash core, the marker path
 (a single versioned corpus matched identically by both implementations), and the
-audit chain all re-derive across two languages and are checked in CI (16
-conformance vectors, both implementations). Re-derivability is **not yet fully
+audit chain (write and verify) all re-derive across two languages and are checked
+in CI (18 conformance vectors, both implementations). Re-derivability is **not yet fully
 demonstrated** in one respect, stated plainly rather than papered over:
 
 - The Rust implementation is same-author and clean-room, not independent.

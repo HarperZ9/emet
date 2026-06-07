@@ -9,6 +9,8 @@
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::process::{exit, Command};
 
 // ---------------- SHA-256 ----------------
@@ -166,6 +168,111 @@ fn read_anchors() -> BTreeMap<String, String> {
     map
 }
 
+// -------- accountability log (write side; verify side is cmd_audit) --------
+// Canonical JSON matches Python json.dumps(sort_keys=True): ", " and ": "
+// separators, sorted keys, ensure_ascii escaping. A log written here re-derives the
+// same chain a reference auditor computes (SPEC section 7). The store is impl-private
+// (SPEC section 15); cmd_audit re-derives chains from the stored bytes regardless.
+enum JV {
+    S(String),
+    I(i64),
+    B(bool),
+    Null,
+}
+
+fn json_str(s: &str) -> String {
+    let mut o = String::from("\"");
+    for c in s.chars() {
+        let u = c as u32;
+        match u {
+            0x22 => o.push_str("\\\""),
+            0x5c => o.push_str("\\\\"),
+            0x0a => o.push_str("\\n"),
+            0x0d => o.push_str("\\r"),
+            0x09 => o.push_str("\\t"),
+            0x08 => o.push_str("\\b"),
+            0x0c => o.push_str("\\f"),
+            _ if u < 0x20 => o.push_str(&format!("\\u{:04x}", u)),
+            _ if u < 0x7f => o.push(c),
+            _ if u <= 0xffff => o.push_str(&format!("\\u{:04x}", u)),
+            _ => {
+                let v = u - 0x10000;
+                o.push_str(&format!("\\u{:04x}\\u{:04x}", 0xd800 + (v >> 10), 0xdc00 + (v & 0x3ff)));
+            }
+        }
+    }
+    o.push('"');
+    o
+}
+
+fn jv_str(v: &JV) -> String {
+    match v {
+        JV::S(s) => json_str(s),
+        JV::I(i) => i.to_string(),
+        JV::B(b) => (if *b { "true" } else { "false" }).to_string(),
+        JV::Null => "null".to_string(),
+    }
+}
+
+fn canonical_fact(pairs: &mut Vec<(&str, JV)>) -> String {
+    pairs.sort_by(|a, b| a.0.cmp(b.0));
+    let mut o = String::from("{");
+    for (idx, pair) in pairs.iter().enumerate() {
+        if idx > 0 {
+            o.push_str(", ");
+        }
+        o.push_str(&json_str(pair.0));
+        o.push_str(": ");
+        o.push_str(&jv_str(&pair.1));
+    }
+    o.push('}');
+    o
+}
+
+fn last_chain() -> String {
+    let zeros = "0".repeat(64);
+    let data = match fs::read("membrane_log.jsonl") {
+        Ok(b) => b,
+        Err(_) => return zeros,
+    };
+    let mut last = zeros;
+    for line in data.split(|&c| c == b'\n') {
+        if line.iter().all(|&c| c == b' ' || c == b'\t' || c == b'\r') {
+            continue;
+        }
+        if let Some(ch) = top_field(line, b"chain") {
+            last = String::from_utf8_lossy(ch).to_string();
+        }
+    }
+    last
+}
+
+fn record(kind: &str, mut fact: Vec<(&str, JV)>) {
+    let prev = last_chain();
+    let factjson = canonical_fact(&mut fact);
+    let mut buf: Vec<u8> = Vec::new();
+    buf.extend_from_slice(prev.as_bytes());
+    buf.extend_from_slice(kind.as_bytes());
+    buf.extend_from_slice(factjson.as_bytes());
+    let chain = sha256_hex(&buf);
+    // entry keys sorted: chain, fact, kind, prev
+    let line = format!(
+        "{{{}: {}, {}: {}, {}: {}, {}: {}}}",
+        json_str("chain"),
+        json_str(&chain),
+        json_str("fact"),
+        factjson,
+        json_str("kind"),
+        json_str(kind),
+        json_str("prev"),
+        json_str(&prev),
+    );
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open("membrane_log.jsonl") {
+        let _ = f.write_all(line.as_bytes());
+        let _ = f.write_all(b"\n");
+    }
+}
+
 // -------- marker corpus (loaded from a versioned data artifact) --------
 fn corpus_path() -> Option<String> {
     if let Ok(p) = env::var("EMET_CORPUS") {
@@ -241,6 +348,7 @@ fn cmd_anchor(paths: &[String]) -> i32 {
     for p in paths {
         if let Some(h) = sha_of_file(p) {
             println!("anchored {} sha256={}", p, h);
+            record("anchor", vec![("path", JV::S(p.clone())), ("sha256", JV::S(h.clone()))]);
             map.insert(p.clone(), h);
         }
     }
@@ -260,13 +368,16 @@ fn cmd_verify(paths: &[String]) -> i32 {
             Some(want) => match sha_of_file(p) {
                 None => {
                     println!("UNVERIFIABLE {} (unreadable)", p);
+                    record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("UNVERIFIABLE".to_string()))]);
                     bad += 1;
                 }
                 Some(got) => {
                     if &got == want {
                         println!("MATCH {} want={} got={}", p, pre(want), pre(&got));
+                        record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("MATCH".to_string()))]);
                     } else {
                         println!("DRIFT {} want={} got={}", p, pre(want), pre(&got));
+                        record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("DRIFT".to_string()))]);
                         bad += 1;
                     }
                 }
@@ -287,14 +398,17 @@ fn cmd_coherence(src: &str, view: &str) -> i32 {
             println!("view  ={}", v);
             if s == v {
                 println!("result=COHERENT");
+                record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("COHERENT".to_string()))]);
                 0
             } else {
                 println!("result=VIEW_DIFFERS_FROM_SOURCE");
+                record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("VIEW_DIFFERS_FROM_SOURCE".to_string()))]);
                 2
             }
         }
         _ => {
             println!("result=UNVERIFIABLE");
+            record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("UNVERIFIABLE".to_string()))]);
             2
         }
     }
@@ -305,6 +419,7 @@ fn cmd_refuse(path: &str) -> i32 {
         Ok(b) => b,
         Err(_) => {
             println!("UNVERIFIABLE {} reason=E_NOT_FOUND", path);
+            record("refuse", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NOT_FOUND".to_string()))]);
             return 2;
         }
     };
@@ -312,6 +427,7 @@ fn cmd_refuse(path: &str) -> i32 {
         Ok(c) => c,
         Err(reason) => {
             println!("UNVERIFIABLE {} reason={}", path, reason);
+            record("refuse", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S(reason.to_string()))]);
             return 2;
         }
     };
@@ -337,6 +453,7 @@ fn cmd_refuse(path: &str) -> i32 {
     println!("corpus_sha256={}", csha);
     println!("in_band_authority_claims={}", n);
     println!("clean_copy={}.refused  (claims neutralized; obeyed: none)", path);
+    record("refuse", vec![("path", JV::S(path.to_string())), ("refused", JV::I(n as i64)), ("corpus_version", JV::I(version))]);
     if n == 0 {
         0
     } else {
@@ -351,6 +468,7 @@ fn cmd_corroborate(path: &str) -> i32 {
             println!("open_rb=unavailable:E_NOT_FOUND");
             println!("read_paths_agree=False");
             println!("result=UNVERIFIABLE reason=E_NOT_FOUND");
+            record("corroborate", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NOT_FOUND".to_string()))]);
             return 2;
         }
     };
@@ -374,14 +492,17 @@ fn cmd_corroborate(path: &str) -> i32 {
         // only open_rb succeeded: no independent read path to corroborate against.
         println!("read_paths_agree=False");
         println!("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
+        record("corroborate", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NO_SECOND_READ_PATH".to_string()))]);
         return 2;
     }
     println!("read_paths_agree={}", if agree { "True" } else { "False" });
     if agree {
         println!("result=CORROBORATED");
+        record("corroborate", vec![("path", JV::S(path.to_string())), ("agree", JV::B(true)), ("git", JV::Null)]);
         0
     } else {
         println!("result=QUARANTINE_READ_PATH_DIVERGENCE");
+        record("corroborate", vec![("path", JV::S(path.to_string())), ("agree", JV::B(false)), ("git", JV::Null)]);
         2
     }
 }

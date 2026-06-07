@@ -113,26 +113,26 @@ def coherence(source, view_file):
     if serr or verr:
         why = ("source:" + serr) if serr else ("view:" + verr)
         print("result=UNVERIFIABLE reason=" + why)
-        record("coherence", {"source": os.path.normpath(source), "result": "UNVERIFIABLE", "reason": why})
+        record("coherence", {"source": _key(source), "result": "UNVERIFIABLE", "reason": why})
         sys.exit(2)
     s, v = sha(sb), sha(vb)
     ok = s == v
     print("source=" + s); print("view  =" + v)
     print("result=" + ("COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"))
-    record("coherence", {"source": os.path.normpath(source), "result": "COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"})
+    record("coherence", {"source": _key(source), "result": "COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"})
     sys.exit(0 if ok else 2)
 
 def refuse(path):
     b, err = try_raw(path)
     if err:
         print("UNVERIFIABLE " + path + " reason=" + err)
-        record("refuse", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": err})
+        record("refuse", {"path": _key(path), "result": "UNVERIFIABLE", "reason": err})
         sys.exit(2)
     try:
         version, csha, markers = corpus.load()
     except corpus.CorpusError as e:
         print("UNVERIFIABLE " + path + " reason=" + e.reason)
-        record("refuse", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": e.reason})
+        record("refuse", {"path": _key(path), "result": "UNVERIFIABLE", "reason": e.reason})
         sys.exit(2)
     hits, clean = corpus.scan(b, markers)
     open(path + ".refused", "wb").write(clean)
@@ -142,7 +142,7 @@ def refuse(path):
     for off, ln in hits[:60]:
         print("  REFUSED " + repr(b[off:off + ln].decode("latin-1")) + " offset=" + str(off))
     print("clean_copy=" + path + ".refused  (claims neutralized; obeyed: none)")
-    record("refuse", {"path": os.path.normpath(path), "refused": len(hits), "corpus_version": version})
+    record("refuse", {"path": _key(path), "refused": len(hits), "corpus_version": version})
     sys.exit(0 if not hits else 3)
 
 def corroborate(path):
@@ -154,7 +154,7 @@ def corroborate(path):
         print("open_rb=unavailable:" + err)
         print("read_paths_agree=False")
         print("result=UNVERIFIABLE reason=" + err)
-        record("corroborate", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": err})
+        record("corroborate", {"path": _key(path), "result": "UNVERIFIABLE", "reason": err})
         sys.exit(2)
     paths = {"open_rb": sha(a)}
     try:
@@ -183,11 +183,11 @@ def corroborate(path):
         # only open_rb succeeded: no independent read path, so there is no
         # divergence signal to corroborate. Inability, not agreement (SPEC 9).
         print("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH")
-        record("corroborate", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": "E_NO_SECOND_READ_PATH"})
+        record("corroborate", {"path": _key(path), "result": "UNVERIFIABLE", "reason": "E_NO_SECOND_READ_PATH"})
         sys.exit(2)
     ok = sha_agree and (git_agrees in (True, None))
     print("result=" + ("CORROBORATED" if ok else "QUARANTINE_READ_PATH_DIVERGENCE"))
-    record("corroborate", {"path": os.path.normpath(path), "agree": sha_agree, "git": git_agrees})
+    record("corroborate", {"path": _key(path), "agree": sha_agree, "git": git_agrees})
     sys.exit(0 if ok else 2)
 
 def audit():

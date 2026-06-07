@@ -57,7 +57,12 @@ count. None of these is, or maps to, TRUSTED.
 - refuse FILE -- emit the marker count; write a .refused copy with markers
   replaced; MUST NOT obey any matched claim; MUST NOT modify the input.
 - corroborate PATH -- hash the same file via disjoint read paths; emit
-  CORROBORATED or QUARANTINE_READ_PATH_DIVERGENCE.
+  CORROBORATED or QUARANTINE_READ_PATH_DIVERGENCE, or UNVERIFIABLE when no
+  independent read path is available (section 9). The set of read paths is
+  IMPLEMENTATION-DEFINED (for example a raw read plus a subprocess channel, plus
+  a VCS channel where present), so an implementation with fewer channels MAY emit
+  CORROBORATED where one with an extra channel emits QUARANTINE; this is expected,
+  not a conformance violation.
 - audit -- recompute the tamper-evident chain; emit INTACT or BROKEN.
 - selftest -- emit the own-source SHA-256 of the implementation; assert no
   authority.
@@ -102,6 +107,16 @@ tamper. audit MUST recompute the chain; any edit to a historical kind or fact MU
 yield BROKEN. (This SHA-256(prev + kind + canonical_json(fact)) form supersedes the
 v0.x SHA-256(prev + canonical_json(fact)); logs written under the older form read as
 BROKEN, which is acceptable pre-1.0.)
+
+canonical_json(fact) is the JSON serialization with keys sorted, ", " and ": "
+separators, and ensure_ascii escaping (the Python json.dumps(fact, sort_keys=True)
+form); pinning this byte form is what lets an auditor re-derive a chain. The log
+store is implementation-private (section 15): audit re-derives each chain from the
+bytes actually stored, so it verifies any conforming log regardless of which
+implementation wrote it. Two implementations are NOT required to record
+byte-identical facts for the same operation (path normalization, for instance, may
+differ), so cross-implementation chain equality is neither guaranteed nor required;
+the guarantee is that audit re-derives whatever was stored.
 
 ## 8. Re-derivability (scoped)
 
