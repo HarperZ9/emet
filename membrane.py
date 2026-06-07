@@ -71,7 +71,7 @@ def _last_chain():
 def record(kind, fact):
     prev = _last_chain()
     e = {"kind": kind, "fact": fact, "prev": prev}
-    e["chain"] = sha((prev + json.dumps(fact, sort_keys=True)).encode())
+    e["chain"] = sha((prev + kind + json.dumps(fact, sort_keys=True)).encode())
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps(e, sort_keys=True) + "\n")
 
@@ -183,7 +183,9 @@ def audit():
     for line in open(LOG, encoding="utf-8"):
         if not line.strip(): continue
         e = json.loads(line); n += 1
-        if e["prev"] != prev or e["chain"] != sha((e["prev"] + json.dumps(e["fact"], sort_keys=True)).encode()):
+        if not all(k in e for k in ("kind", "fact", "prev", "chain")) \
+           or e["prev"] != prev \
+           or e["chain"] != sha((e["prev"] + e["kind"] + json.dumps(e["fact"], sort_keys=True)).encode()):
             print("BROKEN at entry " + str(n)); ok = False; break
         prev = e["chain"]
     print("log_entries=" + str(n) + " chain=" + ("INTACT" if ok else "BROKEN")); sys.exit(0 if ok else 2)

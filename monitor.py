@@ -41,7 +41,7 @@ def _last(logp):
 def _record(manifest, kind, fact):
     logp = _logp(manifest); prev = _last(logp)
     e = {"kind": kind, "fact": fact, "prev": prev}
-    e["chain"] = sha((prev + json.dumps(fact, sort_keys=True)).encode())
+    e["chain"] = sha((prev + kind + json.dumps(fact, sort_keys=True)).encode())
     with open(logp, "a", encoding="utf-8") as f:
         f.write(json.dumps(e, sort_keys=True) + "\n")
 

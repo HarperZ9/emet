@@ -502,17 +502,24 @@ fn cmd_audit() -> i32 {
             continue;
         }
         n += 1;
-        let fields = (top_field(line, b"prev"), top_field(line, b"chain"), top_field(line, b"fact"));
-        let (e_prev, e_chain, fact) = match fields {
-            (Some(p), Some(c), Some(f)) => (p, c, f),
+        let fields = (
+            top_field(line, b"prev"),
+            top_field(line, b"chain"),
+            top_field(line, b"kind"),
+            top_field(line, b"fact"),
+        );
+        let (e_prev, e_chain, e_kind, fact) = match fields {
+            (Some(p), Some(c), Some(k), Some(f)) => (p, c, k, f),
             _ => {
                 println!("BROKEN at entry {}", n);
                 ok = false;
                 break;
             }
         };
-        let mut buf: Vec<u8> = Vec::with_capacity(e_prev.len() + fact.len());
+        // chain = SHA-256(prev + kind + canonical_json(fact))  (SPEC section 7)
+        let mut buf: Vec<u8> = Vec::with_capacity(e_prev.len() + e_kind.len() + fact.len());
         buf.extend_from_slice(e_prev);
+        buf.extend_from_slice(e_kind);
         buf.extend_from_slice(fact);
         let rec = sha256_hex(&buf);
         if e_prev != &prev[..] || e_chain != rec.as_bytes() {

@@ -9,13 +9,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: behavior proof (19 tests)
+      - name: behavior proof (20 tests)
         run: python test_membrane.py
       - name: corpus unit tests (6 tests)
         run: python test_corpus.py
       - name: monitor behavior tests (2 tests)
         run: python test_monitor.py
-      - name: conformance, reference implementation (expect 16 of 16)
+      - name: conformance, reference implementation (expect 17 of 17)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity
         run: python membrane.py selftest
@@ -29,5 +29,5 @@ jobs:
           python-version: "3.x"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, rust second implementation (expect 16 of 16)
+      - name: conformance, rust second implementation (expect 17 of 17)
         run: python conformance/run.py impl/rust/emet

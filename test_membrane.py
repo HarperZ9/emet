@@ -82,6 +82,19 @@ class MembraneBehavior(unittest.TestCase):
         code, out = run(["audit"], self.tmp)
         self.assertIn("BROKEN", out); self.assertEqual(code, 2)
 
+    def test_audit_binds_kind_field(self):
+        # Relabeling an entry's kind (e.g. anchor -> something else) while leaving
+        # fact/prev/chain intact MUST break the chain (SPEC section 7 binds kind).
+        import json as _json
+        f = self.w("a.txt", b"x\n"); run(["anchor", f], self.tmp)
+        logp = os.path.join(self.tmp, "membrane_log.jsonl")
+        with open(logp) as fh: e = _json.loads(fh.read().strip())
+        self.assertEqual(e["kind"], "anchor")
+        e["kind"] = "FORGED_KIND"
+        with open(logp, "w") as fh: fh.write(_json.dumps(e, sort_keys=True) + "\n")
+        code, out = run(["audit"], self.tmp)
+        self.assertIn("BROKEN", out); self.assertEqual(code, 2)
+
     def test_selftest_hash_is_reproducible(self):
         code, out = run(["selftest"], self.tmp); self.assertEqual(code, 0)
         printed = [l for l in out.splitlines()

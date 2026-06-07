@@ -95,9 +95,13 @@ consumers MUST treat the v1.0 codes as authoritative.
 ## 7. Audit chain
 
 The tamper-evident log is JSONL. Each entry MUST be the object with keys kind,
-fact, prev, and chain, where chain = SHA-256(prev + canonical_json(fact)), prev =
-the chain value of the prior entry, and the genesis prev = 64 zeros. audit MUST
-recompute the chain; any edit to a historical fact MUST yield BROKEN.
+fact, prev, and chain, where chain = SHA-256(prev + kind + canonical_json(fact)),
+prev = the chain value of the prior entry, and the genesis prev = 64 zeros. Binding
+kind means relabeling an entry's operation (for example anchor -> refuse) is itself
+tamper. audit MUST recompute the chain; any edit to a historical kind or fact MUST
+yield BROKEN. (This SHA-256(prev + kind + canonical_json(fact)) form supersedes the
+v0.x SHA-256(prev + canonical_json(fact)); logs written under the older form read as
+BROKEN, which is acceptable pre-1.0.)
 
 ## 8. Re-derivability (scoped)
 
