@@ -22,14 +22,8 @@ or flagged - the account stays legible.
 Log: monitor_log.jsonl, hash-chained (the accountability history is tamper-evident).
 Facts and advice only. Reads raw bytes. Never edits the target.
 """
-import sys, os, json, re, hashlib
-
-MARKERS = [
-    rb"GROUND[_ ]?TRUTH[_ ]?CANONICAL", rb"HIGHEST[_ ]?SCRUTINY", rb"\[SCOPE CONTEXT\]",
-    rb"authority[_-]?pill", rb"canonical[_ ]recipients", rb"frame_injected",
-    rb"consulting register", rb"semantic_modulat", rb"compound_rewrites",
-    rb"density_restructured",
-]
+import sys, os, json, hashlib
+import corpus
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -51,25 +45,31 @@ def _record(manifest, kind, fact):
     with open(logp, "a", encoding="utf-8") as f:
         f.write(json.dumps(e, sort_keys=True) + "\n")
 
-def _markers(b):
-    return sum(len(re.findall(p, b, re.IGNORECASE)) for p in MARKERS)
-
 def report(manifest):
     db = json.load(open(manifest, encoding="utf-8"))
+    try:
+        version, csha, markers = corpus.load()
+    except corpus.CorpusError as e:
+        print("=== EXTERNAL ACCOUNTABILITY REPORT ===")
+        print("baseline: " + manifest)
+        print("corpus=UNVERIFIABLE reason=" + e.reason)
+        _record(manifest, "report", {"result": "UNVERIFIABLE", "reason": e.reason})
+        sys.exit(2)
     drift = missing = total = 0
     print("=== EXTERNAL ACCOUNTABILITY REPORT ===")
     print("baseline: " + manifest)
+    print("corpus_version=" + str(version) + " corpus_sha256=" + csha)
     for p in sorted(db):
         want = db[p]
         if not os.path.isfile(p):
             print("MISSING  markers=  -  " + p.split(chr(92))[-1]); missing += 1; continue
-        b = open(p, "rb").read(); got = sha(b); hits = _markers(b); total += hits
+        b = open(p, "rb").read(); got = sha(b); hits = corpus.count(b, markers); total += hits
         st = "MATCH " if got == want else "DRIFT "
         if got != want: drift += 1
         print(st + " markers=" + str(hits).rjust(3) + "  " + p.split(chr(92))[-1])
     verdict = "INTACT" if drift == 0 and missing == 0 else "CHANGED"
     print("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
-    _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict})
+    _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict, "corpus_version": version})
     sys.exit(0 if verdict == "INTACT" else 2)
 
 def reanchor(manifest):

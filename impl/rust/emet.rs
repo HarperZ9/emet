@@ -166,31 +166,73 @@ fn read_anchors() -> BTreeMap<String, String> {
     map
 }
 
-// -------- markers (literal, case-insensitive; corpus semantics deferred) --------
-const MARKERS: [&str; 10] = [
-    "ground_truth_canonical",
-    "highest_scrutiny",
-    "[scope context]",
-    "authority_pill",
-    "canonical recipients",
-    "frame_injected",
-    "consulting register",
-    "semantic_modulat",
-    "compound_rewrites",
-    "density_restructured",
-];
+// -------- marker corpus (loaded from a versioned data artifact) --------
+fn corpus_path() -> Option<String> {
+    if let Ok(p) = env::var("EMET_CORPUS") {
+        return Some(p);
+    }
+    let exe = env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    Some(dir.join("markers.corpus").to_string_lossy().to_string())
+}
 
-fn count_markers(bytes: &[u8]) -> usize {
-    let s = String::from_utf8_lossy(bytes).to_lowercase();
-    let mut n = 0usize;
-    for &m in MARKERS.iter() {
-        let mut start = 0;
-        while let Some(pos) = s[start..].find(m) {
-            n += 1;
-            start += pos + m.len();
+fn load_corpus() -> Result<(i64, String, Vec<Vec<u8>>), &'static str> {
+    let path = corpus_path().ok_or("E_NO_CORPUS")?;
+    let data = fs::read(&path).map_err(|_| "E_NO_CORPUS")?;
+    let sha = sha256_hex(&data);
+    let mut version: Option<i64> = None;
+    let mut markers: Vec<Vec<u8>> = Vec::new();
+    for raw in data.split(|&b| b == b'\n') {
+        let line: &[u8] = if raw.last() == Some(&b'\r') { &raw[..raw.len() - 1] } else { raw };
+        if line.first() == Some(&b'#') {
+            let meta: Vec<u8> = line[1..]
+                .iter()
+                .cloned()
+                .skip_while(|&c| c == b' ' || c == b'\t')
+                .collect();
+            let lower: Vec<u8> = meta.iter().map(|b| b.to_ascii_lowercase()).collect();
+            if version.is_none() && lower.starts_with(b"corpus_version:") {
+                let rest = String::from_utf8_lossy(&meta[b"corpus_version:".len()..]);
+                if let Ok(v) = rest.trim().parse::<i64>() {
+                    version = Some(v);
+                }
+            }
+            continue;
+        }
+        if line.iter().all(|&c| c == b' ' || c == b'\t') {
+            continue;
+        }
+        markers.push(line.iter().map(|b| b.to_ascii_lowercase()).collect());
+    }
+    match version {
+        Some(v) => Ok((v, sha, markers)),
+        None => Err("E_NO_CORPUS_VERSION"),
+    }
+}
+
+// Markers are pure ASCII, so match case-insensitively over RAW BYTES. This avoids
+// char::to_lowercase being length-changing (e.g. U+212A KELVIN -> 'k', 3 bytes ->
+// 1), which made a byte offset found in a lowercased String invalid as an index
+// into the original-case String -- a panic/corruption hazard on non-ASCII input.
+fn matches_marker_at(hay: &[u8], i: usize, m: &[u8]) -> bool {
+    if i + m.len() > hay.len() {
+        return false;
+    }
+    for j in 0..m.len() {
+        if hay[i + j].to_ascii_lowercase() != m[j] {
+            return false;
         }
     }
-    n
+    true
+}
+
+fn marker_len_at(bytes: &[u8], i: usize, markers: &[Vec<u8>]) -> usize {
+    for m in markers {
+        if matches_marker_at(bytes, i, m) {
+            return m.len();
+        }
+    }
+    0
 }
 
 // ---------------- commands ----------------
@@ -262,22 +304,37 @@ fn cmd_refuse(path: &str) -> i32 {
     let bytes = match fs::read(path) {
         Ok(b) => b,
         Err(_) => {
-            println!("UNVERIFIABLE (unreadable)");
+            println!("UNVERIFIABLE {} reason=E_NOT_FOUND", path);
             return 2;
         }
     };
-    let n = count_markers(&bytes);
-    let mut text = String::from_utf8_lossy(&bytes).to_string();
-    for &m in MARKERS.iter() {
-        loop {
-            let pos = text.to_lowercase().find(m);
-            match pos {
-                Some(p) => text.replace_range(p..p + m.len(), "[REFUSED-IN-BAND-AUTHORITY]"),
-                None => break,
-            }
+    let (version, csha, markers) = match load_corpus() {
+        Ok(c) => c,
+        Err(reason) => {
+            println!("UNVERIFIABLE {} reason={}", path, reason);
+            return 2;
+        }
+    };
+    // Rewrite over raw bytes so non-ASCII content is preserved and never
+    // mis-indexed; replace each matched marker with the refusal sentinel.
+    let repl = b"[REFUSED-IN-BAND-AUTHORITY]";
+    let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+    let mut n = 0usize;
+    let mut i = 0;
+    while i < bytes.len() {
+        let hit = marker_len_at(&bytes, i, &markers);
+        if hit > 0 {
+            out.extend_from_slice(repl);
+            i += hit;
+            n += 1;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
         }
     }
-    let _ = fs::write(format!("{}.refused", path), text.as_bytes());
+    let _ = fs::write(format!("{}.refused", path), &out);
+    println!("corpus_version={}", version);
+    println!("corpus_sha256={}", csha);
     println!("in_band_authority_claims={}", n);
     println!("clean_copy={}.refused  (claims neutralized; obeyed: none)", path);
     if n == 0 {

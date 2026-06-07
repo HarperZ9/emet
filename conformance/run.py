@@ -22,6 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "membrane.py"))
 VECT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "vectors.json")
 SUBCMDS = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit", "selftest")
+CORPUS = os.path.abspath(os.path.join(HERE, "markers.corpus"))
 
 def invoke(tool):
     return [sys.executable, tool] if tool.endswith(".py") else [tool]
@@ -36,13 +37,14 @@ def main():
             for name, content in v.get("files", {}).items():
                 with open(os.path.join(tmp, name), "w", encoding="utf-8", newline="") as fh:
                     fh.write(content)
+            env = dict(os.environ); env["EMET_CORPUS"] = CORPUS; env.update(v.get("env", {}))
             for name in v.get("anchor", []):
-                subprocess.run(invoke(TOOL) + ["anchor", os.path.join(tmp, name)], cwd=tmp, capture_output=True)
+                subprocess.run(invoke(TOOL) + ["anchor", os.path.join(tmp, name)], cwd=tmp, capture_output=True, env=env)
             for name, extra in v.get("append", {}).items():
                 with open(os.path.join(tmp, name), "a", encoding="utf-8", newline="") as fh:
                     fh.write(extra)
             args = [a if a in SUBCMDS else os.path.join(tmp, a) for a in v["run"]]
-            p = subprocess.run(invoke(TOOL) + args, cwd=tmp, capture_output=True, text=True)
+            p = subprocess.run(invoke(TOOL) + args, cwd=tmp, capture_output=True, text=True, env=env)
             ok = (v["expect_substr"] in p.stdout) and (p.returncode == v["expect_exit"])
             print(("PASS " if ok else "FAIL ") + v["id"] + " exit=" + str(p.returncode) + " want=" + str(v["expect_exit"]))
             if not ok:
