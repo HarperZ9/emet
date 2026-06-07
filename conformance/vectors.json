@@ -193,7 +193,7 @@
       "expect_exit": 0,
       "expect_substr": "chain=INTACT",
       "files": {
-        "membrane_log.jsonl": "{\"chain\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\", \"fact\": {\"path\": \"a.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"chain\": \"ae9a48eed49c3afb3199e9ed45d4eb99dfdf26616765b1188d97f8f945e46502\", \"fact\": {\"path\": \"b.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\"}\n"
+        "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"chain\": \"60c91198dd5a3d2e0ccc2e5d15448fdc965c81c845724246863ea51ecd74e869\", \"fact\": {\"path\": \"b.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\"}\n"
       },
       "id": "audit-intact",
       "note": "recompute the hash-chained log; a valid chain is INTACT (SPEC sections 7, 13)",
@@ -205,10 +205,22 @@
       "expect_exit": 2,
       "expect_substr": "chain=BROKEN",
       "files": {
-        "membrane_log.jsonl": "{\"chain\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\", \"fact\": {\"path\": \"a.txt\", \"result\": \"DRIFT\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+        "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"DRIFT\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
       },
       "id": "audit-broken",
       "note": "a tampered fact whose stored chain no longer recomputes is BROKEN",
+      "run": [
+        "audit"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "chain=BROKEN",
+      "files": {
+        "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"MATCH\"}, \"kind\": \"FORGED\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+      },
+      "id": "audit-kind-tamper",
+      "note": "the chain binds the event kind (SPEC section 7); relabeling kind alone is BROKEN",
       "run": [
         "audit"
       ]

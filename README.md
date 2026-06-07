@@ -18,15 +18,15 @@ authority. The verdicts are `MATCH`, `DRIFT`, and `UNVERIFIABLE`; there is no
 - A from-scratch Rust second implementation — `impl/rust/emet.rs`, no crates.
 - A normative draft spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) both implementations load and re-derive identically.
-- Both implementations pass the same 16 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain.
+- Both implementations pass the same 17 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain.
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py           # reference implementation: 16/16
+python conformance/run.py membrane.py           # reference implementation: 17/17
 ( cd impl/rust && rustc -O emet.rs -o emet )    # build the second implementation
-python conformance/run.py impl/rust/emet        # second implementation: 16/16
+python conformance/run.py impl/rust/emet        # second implementation: 17/17
 ```
 
 ## Use it
