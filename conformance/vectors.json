@@ -188,6 +188,30 @@
         "refuse",
         "inj.txt"
       ]
+    },
+    {
+      "expect_exit": 0,
+      "expect_substr": "chain=INTACT",
+      "files": {
+        "membrane_log.jsonl": "{\"chain\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\", \"fact\": {\"path\": \"a.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n{\"chain\": \"ae9a48eed49c3afb3199e9ed45d4eb99dfdf26616765b1188d97f8f945e46502\", \"fact\": {\"path\": \"b.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\"}\n"
+      },
+      "id": "audit-intact",
+      "note": "recompute the hash-chained log; a valid chain is INTACT (SPEC sections 7, 13)",
+      "run": [
+        "audit"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "chain=BROKEN",
+      "files": {
+        "membrane_log.jsonl": "{\"chain\": \"d8b1bb206c6efd037d5a67f312e49639c214814249dfa7011d357a75f3015612\", \"fact\": {\"path\": \"a.txt\", \"result\": \"DRIFT\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+      },
+      "id": "audit-broken",
+      "note": "a tampered fact whose stored chain no longer recomputes is BROKEN",
+      "run": [
+        "audit"
+      ]
     }
   ]
 }

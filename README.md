@@ -18,15 +18,15 @@ authority. The verdicts are `MATCH`, `DRIFT`, and `UNVERIFIABLE`; there is no
 - A from-scratch Rust second implementation — `impl/rust/emet.rs`, no crates.
 - A normative draft spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) both implementations load and re-derive identically.
-- Both implementations pass the same 14 conformance vectors in CI on every push — this covers the byte-hash core; it does not yet cover the marker path (see Status).
+- Both implementations pass the same 16 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain.
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py           # reference implementation: 14/14
+python conformance/run.py membrane.py           # reference implementation: 16/16
 ( cd impl/rust && rustc -O emet.rs -o emet )    # build the second implementation
-python conformance/run.py impl/rust/emet        # second implementation: 14/14
+python conformance/run.py impl/rust/emet        # second implementation: 16/16
 ```
 
 ## Use it
@@ -38,6 +38,7 @@ python membrane.py verify  <path>...            # MATCH / DRIFT / UNVERIFIABLE
 python membrane.py coherence <source> <view>    # is a presented view faithful to source?
 python membrane.py refuse  <file>               # detect + strip in-band authority claims
 python membrane.py corroborate <path>           # read-path-diverse agreement
+python membrane.py audit                        # recompute the tamper-evident log chain
 ```
 
 ## What it won't do
@@ -48,15 +49,12 @@ Those constraints are the point, not limitations — see [SPEC.md](SPEC.md) §6.
 
 ## Status
 
-Pre-1.0; the spec is a draft (v0.2.0-draft). The byte-hash core re-derives
-identically across two languages and is checked in CI. Re-derivability is **not yet
-fully demonstrated**, and this section says where the gap is rather than papering
-over it:
+Pre-1.0; the spec is a draft (v0.2.0-draft). The byte-hash core, the marker path
+(a single versioned corpus matched identically by both implementations), and the
+audit chain all re-derive across two languages and are checked in CI (16
+conformance vectors, both implementations). Re-derivability is **not yet fully
+demonstrated** in one respect, stated plainly rather than papered over:
 
-- The two implementations still diverge on the marker path — the Python core uses
-  flexible-separator regexes, the Rust impl uses literal strings, and the current
-  vectors don't exercise the difference (so both pass 14/14 while disagreeing on
-  inputs the vectors avoid).
 - The Rust implementation is same-author and clean-room, not independent.
 - SPEC §12's actual bar — an *independent, different-author* implementation passing
   the vectors — is not yet met, and per §12 no party should treat re-derivability
