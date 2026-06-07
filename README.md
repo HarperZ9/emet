@@ -64,6 +64,27 @@ That different-author implementation is the next step, and the spec says so (§1
 For a tool whose only credential is reproduction, an inflated claim would refute
 itself — so the claim is scoped to exactly what CI reproduces today.
 
+## Call for an independent implementation
+
+EMET's only credential is reproduction: same bytes, same verdict. Two
+implementations (Python reference + Rust) already agree on all 18 conformance
+vectors in CI — but they share an author, so that agreement shows the spec is
+*implementable*, not yet that it is *independently re-derivable*.
+
+The highest-leverage contribution is a **third implementation, written from
+[SPEC.md](SPEC.md) alone** (not by reading the existing code), in any language,
+that passes `conformance/vectors.json`:
+
+```sh
+# build your implementation, then:
+python conformance/run.py ./your-emet     # expected: CONFORMANCE 18/18
+```
+
+Where your implementation and the spec disagree, **the spec is wrong** — open an
+issue; those divergences are the point. A different-author implementation is what
+converts re-derivability from *asserted* to *demonstrated* (SPEC §12). Claim a
+language in [Discussions](../../discussions) so effort isn't duplicated.
+
 ## Docs
 
 [SPEC.md](SPEC.md) · [conformance/](conformance/) · [THREAT-MODEL.md](THREAT-MODEL.md) · [COVERAGE.json](COVERAGE.json) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
