@@ -75,11 +75,16 @@ def record(kind, fact):
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(json.dumps(e, sort_keys=True) + "\n")
 
+def _key(p):
+    # Anchor-store key: normalize and use forward slashes so anchors.json is
+    # portable across platforms (a Windows backslash key would miss on Linux).
+    return os.path.normpath(p).replace(os.sep, "/")
+
 def anchor(paths):
     db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
     bad = 0
     for p in paths:
-        p = os.path.normpath(p); b, err = try_raw(p)
+        p = _key(p); b, err = try_raw(p)
         if err:
             print("UNVERIFIABLE " + p + " reason=" + err); bad += 1; continue
         h = sha(b); db[p] = h
@@ -91,7 +96,7 @@ def verify(paths):
     db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
     bad = 0
     for p in paths:
-        p = os.path.normpath(p); want = db.get(p)
+        p = _key(p); want = db.get(p)
         if want is None:
             print("UNVERIFIABLE " + p + " reason=E_NO_ANCHOR"); bad += 1; continue
         b, err = try_raw(p)
@@ -114,7 +119,7 @@ def coherence(source, view_file):
     ok = s == v
     print("source=" + s); print("view  =" + v)
     print("result=" + ("COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"))
-    record("coherence", {"source": os.path.normpath(source), "result": "COHERENT" if ok else "DRIFT"})
+    record("coherence", {"source": os.path.normpath(source), "result": "COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"})
     sys.exit(0 if ok else 2)
 
 def refuse(path):
@@ -172,6 +177,14 @@ def corroborate(path):
     for k, v in sorted(paths.items()): print(k + "=" + v)
     print("read_paths_agree=" + str(sha_agree))
     print("git_read_agrees_with_open=" + str(git_agrees))
+    cat_ok = ":" not in paths.get("cat_subproc", ":")
+    git_ok = git_agrees is not None
+    if not (cat_ok or git_ok):
+        # only open_rb succeeded: no independent read path, so there is no
+        # divergence signal to corroborate. Inability, not agreement (SPEC 9).
+        print("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH")
+        record("corroborate", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": "E_NO_SECOND_READ_PATH"})
+        sys.exit(2)
     ok = sha_agree and (git_agrees in (True, None))
     print("result=" + ("CORROBORATED" if ok else "QUARANTINE_READ_PATH_DIVERGENCE"))
     record("corroborate", {"path": os.path.normpath(path), "agree": sha_agree, "git": git_agrees})

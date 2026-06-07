@@ -62,11 +62,11 @@ def report(manifest):
     for p in sorted(db):
         want = db[p]
         if not os.path.isfile(p):
-            print("MISSING  markers=  -  " + p.split(chr(92))[-1]); missing += 1; continue
+            print("MISSING  markers=  -  " + os.path.basename(p)); missing += 1; continue
         b = open(p, "rb").read(); got = sha(b); hits = corpus.count(b, markers); total += hits
         st = "MATCH " if got == want else "DRIFT "
         if got != want: drift += 1
-        print(st + " markers=" + str(hits).rjust(3) + "  " + p.split(chr(92))[-1])
+        print(st + " markers=" + str(hits).rjust(3) + "  " + os.path.basename(p))
     verdict = "INTACT" if drift == 0 and missing == 0 else "CHANGED"
     print("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
     _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict, "corpus_version": version})

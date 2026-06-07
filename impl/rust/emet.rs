@@ -348,15 +348,18 @@ fn cmd_corroborate(path: &str) -> i32 {
     let primary = match fs::read(path) {
         Ok(b) => sha256_hex(&b),
         Err(_) => {
+            println!("open_rb=unavailable:E_NOT_FOUND");
             println!("read_paths_agree=False");
-            println!("result=QUARANTINE_READ_PATH_DIVERGENCE");
+            println!("result=UNVERIFIABLE reason=E_NOT_FOUND");
             return 2;
         }
     };
     println!("open_rb={}", primary);
+    let mut cat_ok = false;
     let mut agree = true;
     match Command::new("cat").arg(path).output() {
         Ok(o) if o.status.success() => {
+            cat_ok = true;
             let cat_hash = sha256_hex(&o.stdout);
             println!("cat_subproc={}", cat_hash);
             if cat_hash != primary {
@@ -366,6 +369,12 @@ fn cmd_corroborate(path: &str) -> i32 {
         _ => {
             println!("cat_subproc=unavailable");
         }
+    }
+    if !cat_ok {
+        // only open_rb succeeded: no independent read path to corroborate against.
+        println!("read_paths_agree=False");
+        println!("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
+        return 2;
     }
     println!("read_paths_agree={}", if agree { "True" } else { "False" });
     if agree {

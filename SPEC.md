@@ -181,7 +181,8 @@ implementation MUST emit a line CONTAINING the stated token:
   containing corpus_version=N and SHOULD emit a line containing
   corpus_sha256=<hex> (section 8).
 - corroborate: a line containing result=CORROBORATED or
-  result=QUARANTINE_READ_PATH_DIVERGENCE.
+  result=QUARANTINE_READ_PATH_DIVERGENCE, or result=UNVERIFIABLE with a reason
+  code when there is no independent read path to corroborate against (section 9).
 - audit: a line containing chain=INTACT or chain=BROKEN.
 - selftest: a line beginning with membrane_self_sha256= followed by the
   artifact-of-record hash (section 14).

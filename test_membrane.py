@@ -179,5 +179,40 @@ class MembraneBehavior(unittest.TestCase):
         self.assertIn("reason=E_NO_CORPUS", p.stdout)
         self.assertEqual(p.returncode, 2)
 
+    def test_coherence_logs_aux_token(self):
+        # the audit log records the coherence aux verdict, not the verify-lattice DRIFT
+        import json as _json
+        s = self.w("s", b"depth\n"); v = self.w("v", b"depth X\n")
+        run(["coherence", s, v], self.tmp)
+        logp = os.path.join(self.tmp, "membrane_log.jsonl")
+        with open(logp) as fh:
+            entries = [_json.loads(l) for l in fh if l.strip()]
+        coh = [e for e in entries if e["kind"] == "coherence"][-1]
+        self.assertEqual(coh["fact"]["result"], "VIEW_DIFFERS_FROM_SOURCE")
+
+    def test_corroborate_no_second_path_is_unverifiable(self):
+        # with no cat and no git available, corroborate has only one read path and
+        # MUST NOT claim CORROBORATED; read-path diversity is absent -> UNVERIFIABLE.
+        f = self.w("c.txt", b"x\n")
+        env = dict(os.environ); env["PATH"] = ""
+        p = subprocess.run([sys.executable, MEMBRANE, "corroborate", f],
+                           cwd=self.tmp, capture_output=True, text=True, env=env)
+        self.assertIn("UNVERIFIABLE", p.stdout)
+        self.assertNotIn("CORROBORATED", p.stdout)
+        self.assertEqual(p.returncode, 2)
+
+    def test_anchor_key_is_portable(self):
+        # anchor keys use forward slashes so anchors.json is portable across OS,
+        # and verify re-derives the same key.
+        import json as _json
+        os.makedirs(os.path.join(self.tmp, "sub"))
+        with open(os.path.join(self.tmp, "sub", "a.txt"), "wb") as fh: fh.write(b"x\n")
+        run(["anchor", "sub/a.txt"], self.tmp)
+        with open(os.path.join(self.tmp, "anchors.json")) as fh: db = _json.load(fh)
+        self.assertIn("sub/a.txt", db)
+        self.assertNotIn("sub\\a.txt", db)
+        code, out = run(["verify", "sub/a.txt"], self.tmp)
+        self.assertIn("MATCH", out); self.assertEqual(code, 0)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
