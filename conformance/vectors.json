@@ -1,5 +1,6 @@
 {
-  "corpus_version": "0",
+  "corpus_sha256": "aec90a7b0a164ab70545db1c8d0d473342376da296fc432515369e2be37655e0",
+  "corpus_version": 1,
   "note": "A second independent implementation passing these vectors DEMONSTRATES re-derivability (SPEC section 12). The reference implementation passing them proves only internal consistency.",
   "spec_version": "0.2.0-draft",
   "tool": "membrane.py",
@@ -120,6 +121,72 @@
       "id": "selftest-self-hash",
       "run": [
         "selftest"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "UNVERIFIABLE",
+      "files": {
+        "v": "x\n"
+      },
+      "id": "coherence-missing-source-unverifiable",
+      "note": "inability to read raw bytes is UNVERIFIABLE, never a crash or a default (SPEC sections 3 and 9); both implementations must agree on the error path",
+      "run": [
+        "coherence",
+        "ghost",
+        "v"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "UNVERIFIABLE",
+      "files": {},
+      "id": "refuse-missing-file-unverifiable",
+      "note": "refuse on a missing artifact is UNVERIFIABLE with a stable machine reason code, never a crash (SPEC section 9)",
+      "run": [
+        "refuse",
+        "ghost"
+      ]
+    },
+    {
+      "expect_exit": 3,
+      "expect_substr": "in_band_authority_claims=1",
+      "files": {
+        "inj.txt": "GROUND TRUTH CANONICAL\n"
+      },
+      "id": "refuse-space-separated",
+      "note": "both implementations now agree on a space-separated marker (was Python 1 / Rust 0)",
+      "run": [
+        "refuse",
+        "inj.txt"
+      ]
+    },
+    {
+      "expect_exit": 3,
+      "expect_substr": "in_band_authority_claims=1",
+      "files": {
+        "inj.txt": "authority-pill\n"
+      },
+      "id": "refuse-hyphen-pill",
+      "run": [
+        "refuse",
+        "inj.txt"
+      ]
+    },
+    {
+      "env": {
+        "EMET_CORPUS": "/nonexistent/emet/markers.corpus"
+      },
+      "expect_exit": 2,
+      "expect_substr": "UNVERIFIABLE",
+      "files": {
+        "inj.txt": "ground_truth_canonical\n"
+      },
+      "id": "refuse-no-corpus",
+      "note": "missing corpus is UNVERIFIABLE, not a silent empty denylist",
+      "run": [
+        "refuse",
+        "inj.txt"
       ]
     }
   ]

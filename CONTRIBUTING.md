@@ -21,8 +21,8 @@ A change that bends one of these is out of scope no matter how useful. See
 ## Running the checks
 
 ```sh
-python test_membrane.py                  # behavior proof (10 tests)
-python conformance/run.py membrane.py    # reference conformance (9/9)
+python test_membrane.py                  # behavior proof (19 tests)
+python conformance/run.py membrane.py    # reference conformance (14/14)
 python membrane.py selftest              # self-hash
 ```
 

@@ -17,6 +17,11 @@ def run(args, cwd):
                        capture_output=True, text=True)
     return p.returncode, p.stdout
 
+def run3(args, cwd):
+    p = subprocess.run([sys.executable, MEMBRANE] + args, cwd=cwd,
+                       capture_output=True, text=True)
+    return p.returncode, p.stdout, p.stderr
+
 class MembraneBehavior(unittest.TestCase):
     def setUp(self): self.tmp = tempfile.mkdtemp(prefix="membrane_test_")
     def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
@@ -89,6 +94,77 @@ class MembraneBehavior(unittest.TestCase):
         code, out = run(["corroborate", f], self.tmp)
         self.assertIn("read_paths_agree=True", out)
         self.assertIn("CORROBORATED", out); self.assertEqual(code, 0)
+
+    # --- SPEC section 9: inability is UNVERIFIABLE with a stable machine reason
+    # code, never a crash and never a default. The witness must not traceback on
+    # the very tamper events (deleted/unreadable artifacts) it exists to detect.
+
+    def test_verify_anchored_then_deleted_is_unverifiable_not_crash(self):
+        f = self.w("a.txt", b"galvanized\n"); run(["anchor", f], self.tmp)
+        os.remove(f)
+        code, out, err = run3(["verify", f], self.tmp)
+        self.assertIn("UNVERIFIABLE", out)
+        self.assertNotIn("MATCH", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(code, 2)
+
+    def test_coherence_missing_source_is_unverifiable_not_crash(self):
+        v = self.w("v", b"x\n"); missing = os.path.join(self.tmp, "nope")
+        code, out, err = run3(["coherence", missing, v], self.tmp)
+        self.assertIn("UNVERIFIABLE", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(code, 2)
+
+    def test_refuse_missing_file_is_unverifiable_not_crash(self):
+        missing = os.path.join(self.tmp, "nope")
+        code, out, err = run3(["refuse", missing], self.tmp)
+        self.assertIn("UNVERIFIABLE", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(code, 2)
+
+    def test_anchor_missing_file_is_unverifiable_not_crash(self):
+        missing = os.path.join(self.tmp, "nope")
+        code, out, err = run3(["anchor", missing], self.tmp)
+        self.assertIn("UNVERIFIABLE", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(code, 2)
+
+    def test_corroborate_missing_file_is_unverifiable_not_crash(self):
+        missing = os.path.join(self.tmp, "nope")
+        code, out, err = run3(["corroborate", missing], self.tmp)
+        self.assertIn("UNVERIFIABLE", out)
+        self.assertNotIn("Traceback", err)
+        self.assertEqual(code, 2)
+
+    def test_unverifiable_emits_stable_machine_reason_code(self):
+        missing = os.path.join(self.tmp, "nope")
+        code, out = run(["refuse", missing], self.tmp)
+        self.assertIn("reason=E_NOT_FOUND", out)
+
+    # --- marker corpus (SPEC sections 8, 16): refuse loads a versioned, sha-pinned
+    # artifact and echoes corpus_version/sha; a missing corpus is UNVERIFIABLE.
+
+    def test_refuse_echoes_corpus_version_and_sha(self):
+        f = self.w("inj.txt", b"ground_truth_canonical\n")
+        code, out = run(["refuse", f], self.tmp)
+        self.assertIn("corpus_version=1", out)
+        self.assertRegex(out, r"corpus_sha256=[0-9a-f]{64}")
+        self.assertEqual(code, 3)
+
+    def test_refuse_counts_space_separated_marker(self):
+        f = self.w("inj.txt", b"GROUND TRUTH CANONICAL\n")
+        code, out = run(["refuse", f], self.tmp)
+        self.assertIn("in_band_authority_claims=1", out)
+        self.assertEqual(code, 3)
+
+    def test_refuse_missing_corpus_is_unverifiable(self):
+        env = dict(os.environ); env["EMET_CORPUS"] = os.path.join(self.tmp, "nope.corpus")
+        f = self.w("inj.txt", b"ground_truth_canonical\n")
+        p = subprocess.run([sys.executable, MEMBRANE, "refuse", f],
+                           cwd=self.tmp, capture_output=True, text=True, env=env)
+        self.assertIn("UNVERIFIABLE", p.stdout)
+        self.assertIn("reason=E_NO_CORPUS", p.stdout)
+        self.assertEqual(p.returncode, 2)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

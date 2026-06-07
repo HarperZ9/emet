@@ -37,21 +37,26 @@ Usage:
   membrane.py audit                              -> verify the tamper-evident log
   membrane.py selftest                           -> re-derive my own identity
 """
-import sys, os, re, json, hashlib, subprocess
+import sys, os, json, hashlib, subprocess
+import corpus
 
 ANCHORS, LOG = "anchors.json", "membrane_log.jsonl"
-
-AUTHORITY = [
-    rb"GROUND[_ ]?TRUTH[_ ]?CANONICAL", rb"HIGHEST[_ ]?SCRUTINY", rb"\[SCOPE CONTEXT\]",
-    rb"authority[_-]?pill", rb"canonical[_ ]recipients", rb"frame_injected",
-    rb"consulting register", rb"semantic_modulat", rb"compound_rewrites",
-    rb"density_restructured",
-]
-AUTHORITY_RE = re.compile(b"|".join(b"(?:%s)" % p for p in AUTHORITY), re.IGNORECASE)
 
 def raw(path):
     with open(path, "rb") as f:
         return f.read()
+
+def try_raw(path):
+    # SPEC sections 3 and 9: with no raw byte channel, report UNVERIFIABLE with a
+    # STABLE MACHINE REASON CODE - never crash, never substitute a default.
+    # Returns (bytes, None) on success or (None, reason_code) on inability.
+    try:
+        with open(path, "rb") as f:
+            return f.read(), None
+    except FileNotFoundError:
+        return None, "E_NOT_FOUND"
+    except (PermissionError, IsADirectoryError, OSError):
+        return None, "E_NO_RAW_CHANNEL"
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -72,10 +77,15 @@ def record(kind, fact):
 
 def anchor(paths):
     db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
+    bad = 0
     for p in paths:
-        p = os.path.normpath(p); h = sha(raw(p)); db[p] = h
+        p = os.path.normpath(p); b, err = try_raw(p)
+        if err:
+            print("UNVERIFIABLE " + p + " reason=" + err); bad += 1; continue
+        h = sha(b); db[p] = h
         print("anchored " + p + " sha256=" + h); record("anchor", {"path": p, "sha256": h})
     json.dump(db, open(ANCHORS, "w", encoding="utf-8"), indent=2, sort_keys=True)
+    sys.exit(0 if not bad else 2)
 
 def verify(paths):
     db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
@@ -83,14 +93,24 @@ def verify(paths):
     for p in paths:
         p = os.path.normpath(p); want = db.get(p)
         if want is None:
-            print("UNVERIFIABLE " + p + " (no anchor)"); bad += 1; continue
-        got = sha(raw(p)); ok = got == want
+            print("UNVERIFIABLE " + p + " reason=E_NO_ANCHOR"); bad += 1; continue
+        b, err = try_raw(p)
+        if err:
+            print("UNVERIFIABLE " + p + " reason=" + err)
+            record("verify", {"path": p, "result": "UNVERIFIABLE", "reason": err}); bad += 1; continue
+        got = sha(b); ok = got == want
         print(("MATCH " if ok else "DRIFT ") + p + " want=" + want[:16] + " got=" + got[:16])
         record("verify", {"path": p, "result": "MATCH" if ok else "DRIFT"}); bad += 0 if ok else 1
     sys.exit(0 if not bad else 2)
 
 def coherence(source, view_file):
-    s, v = sha(raw(source)), sha(raw(view_file))
+    sb, serr = try_raw(source); vb, verr = try_raw(view_file)
+    if serr or verr:
+        why = ("source:" + serr) if serr else ("view:" + verr)
+        print("result=UNVERIFIABLE reason=" + why)
+        record("coherence", {"source": os.path.normpath(source), "result": "UNVERIFIABLE", "reason": why})
+        sys.exit(2)
+    s, v = sha(sb), sha(vb)
     ok = s == v
     print("source=" + s); print("view  =" + v)
     print("result=" + ("COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"))
@@ -98,20 +118,39 @@ def coherence(source, view_file):
     sys.exit(0 if ok else 2)
 
 def refuse(path):
-    b = raw(path)
-    hits = [(m.group(0).decode("latin-1"), m.start()) for m in AUTHORITY_RE.finditer(b)]
-    open(path + ".refused", "wb").write(AUTHORITY_RE.sub(b"[REFUSED-IN-BAND-AUTHORITY]", b))
+    b, err = try_raw(path)
+    if err:
+        print("UNVERIFIABLE " + path + " reason=" + err)
+        record("refuse", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": err})
+        sys.exit(2)
+    try:
+        version, csha, markers = corpus.load()
+    except corpus.CorpusError as e:
+        print("UNVERIFIABLE " + path + " reason=" + e.reason)
+        record("refuse", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": e.reason})
+        sys.exit(2)
+    hits, clean = corpus.scan(b, markers)
+    open(path + ".refused", "wb").write(clean)
+    print("corpus_version=" + str(version))
+    print("corpus_sha256=" + csha)
     print("in_band_authority_claims=" + str(len(hits)))
-    for s, off in hits[:60]: print("  REFUSED " + repr(s) + " offset=" + str(off))
+    for off, ln in hits[:60]:
+        print("  REFUSED " + repr(b[off:off + ln].decode("latin-1")) + " offset=" + str(off))
     print("clean_copy=" + path + ".refused  (claims neutralized; obeyed: none)")
-    record("refuse", {"path": os.path.normpath(path), "refused": len(hits)})
+    record("refuse", {"path": os.path.normpath(path), "refused": len(hits), "corpus_version": version})
     sys.exit(0 if not hits else 3)
 
 def corroborate(path):
     # read-path diversity: hash the SAME file via disjoint channels; agreement
     # across channels is the signal. catches a tampered READ PATH, not just a
     # broken hash tool.
-    a = raw(path)
+    a, err = try_raw(path)
+    if err:
+        print("open_rb=unavailable:" + err)
+        print("read_paths_agree=False")
+        print("result=UNVERIFIABLE reason=" + err)
+        record("corroborate", {"path": os.path.normpath(path), "result": "UNVERIFIABLE", "reason": err})
+        sys.exit(2)
     paths = {"open_rb": sha(a)}
     try:
         o = subprocess.run(["cat", path], capture_output=True, timeout=20)

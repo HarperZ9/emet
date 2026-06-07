@@ -11,7 +11,7 @@ vectors -- which is what converts re-derivability from asserted to demonstrated
   rustc -O emet.rs -o emet
   python ../../conformance/run.py ./emet
 
-Expected: CONFORMANCE 9/9 vectors pass.
+Expected: CONFORMANCE 14/14 vectors pass.
 
 ## Status
 

@@ -111,6 +111,15 @@ attributable to corpus drift versus artifact drift. The byte-hash core (anchor,
 verify, coherence, corroborate, audit) depends only on SHA-256 and exact bytes;
 no corpus, no key, no clock.
 
+The corpus is the plain-text artifact conformance/markers.corpus: a
+`# corpus_version: N` header line, `#` comment lines, blank lines ignored, and one
+literal marker per remaining line. corpus_sha256 is SHA-256 over the whole file.
+Matching is literal ASCII-case-insensitive substring over raw bytes (no regex), so
+two implementations re-derive identical marker counts from the same corpus. The
+corpus is resolved from the EMET_CORPUS environment variable if set, otherwise a
+default path relative to the implementation; a missing corpus is reported
+UNVERIFIABLE with reason E_NO_CORPUS (section 9), never a silent empty denylist.
+
 ## 9. UNVERIFIABLE, never TRUSTED
 
 If an implementation cannot obtain raw bytes, find an anchor, or complete a check,
@@ -120,9 +129,9 @@ never trust.
 
 ## 10. Trusted Computing Base
 
-The core (membrane, organs, monitor) MUST depend only on the language runtime and
-standard library (reference: CPython plus hashlib, json, re, os, subprocess) and
-MUST add no third-party runtime dependency. Optional adapters (signing, SARIF or
+The core (membrane, organs, monitor, corpus) MUST depend only on the language
+runtime and standard library (reference: CPython plus hashlib, json, os,
+subprocess) and MUST add no third-party runtime dependency. Optional adapters (signing, SARIF or
 in-toto emission, fuzzing) MAY pull additional dependencies but MUST live in
 separate packages; the minimal-TCB guarantee applies to the NAMED CORE only.
 
@@ -164,7 +173,9 @@ implementation MUST emit a line CONTAINING the stated token:
   UNVERIFIABLE, followed by the path.
 - coherence: a line containing result=COHERENT or result=VIEW_DIFFERS_FROM_SOURCE.
 - refuse: a line containing in_band_authority_claims=N, where N is the
-  non-negative integer marker count.
+  non-negative integer marker count. An implementation MUST also emit a line
+  containing corpus_version=N and SHOULD emit a line containing
+  corpus_sha256=<hex> (section 8).
 - corroborate: a line containing result=CORROBORATED or
   result=QUARANTINE_READ_PATH_DIVERGENCE.
 - audit: a line containing chain=INTACT or chain=BROKEN.
@@ -195,6 +206,10 @@ implementation anchor-exchange format is deferred to a future version.
 
 ## 16. Marker corpus (normative reference)
 
-The marker set used by refuse is a corpus-defined, versioned denylist (sections 8
-and 11), not enumerated here. Conformance pins specific counts for specific inputs
-(see conformance/vectors.json); the corpus itself is a separate governed artifact.
+The marker set used by refuse and the monitor census is the governed, versioned
+denylist conformance/markers.corpus (sections 8 and 11): a plain-text file with a
+`# corpus_version: N` header, `#` comment lines, and one literal marker per line,
+matched as literal ASCII-case-insensitive substrings over raw bytes. It is not
+enumerated here. Conformance pins specific counts for specific inputs at a stated
+corpus_version (see conformance/vectors.json). Absence of a marker is never absence
+of injection (section 11).
