@@ -19,6 +19,8 @@ jobs:
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity
         run: python membrane.py selftest
+      - name: rationale walkthrough transcript is re-derivable (2 tests)
+        run: python test_walkthrough.py
 
   rust-second-implementation:
     runs-on: ubuntu-latest
