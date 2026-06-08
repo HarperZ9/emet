@@ -207,7 +207,7 @@ there is nothing for any codepath to return when it wants to express trust. The
 discipline is structural, not behavioral.
 
 The reference implementation makes the closure visible at the point of decision.
-In `membrane.py`, the `verify` path (lines 95–109) is a closed three-way fork and
+In `membrane.py`, the `verify()` function is a closed three-way fork and
 nothing else:
 
 ```python
@@ -295,7 +295,7 @@ itself emitting authority, but the family resemblance is not accidental.)
 No-aseity is reflexive, and an honest treatment of it has to turn the principle
 on its own product. This essay has no aseity. Its conclusions do not stand on
 their own footing; they stand on the re-derivation above, on `SPEC.md` §2 and §9,
-on the closed fork in `membrane.py:95–109`. Its standing is conferred by the
+on the closed fork in `membrane.py`'s `verify()` function. Its standing is conferred by the
 argument, not asserted by the document — which is exactly why the framing note at
 the top says that if `SPEC.md` and this essay disagree, the essay is wrong. An
 essay arguing "no value may assert self-standing authority" would refute itself

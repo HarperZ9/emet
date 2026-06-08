@@ -23,6 +23,19 @@ row→essay table and lists every essay in order.
 - [07 — Worked Example: Authority Injection Through EMET](./07-walkthrough.md): the runnable transcript essay, annotating each command as the philosophy made operative — EMET as the antidote to its own operating context.
 - [08 — Membrane Taxonomy: Where EMET Sits](./08-taxonomy.md): EMET placed as a *literal* engineered membrane in the authentication register, among literal / isomorphic / lineage membranes.
 
+## New development (09 → 14)
+
+The witness thesis made explicit. These essays do not restate 00–08; they develop
+the material the [top index](../CURATION-INDEX.md) states in its §1 and §3 — the
+witness, the coordinate singularity, the atlas, spiral time, and the two truths.
+
+- [09 — Witnesses: Independence, One Witness Thrice](./09-witnesses.md): nothing is its own independent witness — the compromised-substrate and same-author cases generalized; integrity is *witnessed*, not self-attested.
+- [10 — The Seam as a Coordinate Singularity](./10-coordinate-singularity.md): every single chart leaves a singularity it cannot see from inside itself; the self-audit's blind spot is structural, not a bug to patch.
+- [11 — The Atlas: No Single Chart Covers the Manifold](./11-the-atlas.md): truth is two-or-three *independent* charts whose overlap is the only place a fact is witnessed.
+- [12 — Spiral Time: Circular, Linear, the Spiral](./12-spiral-time.md): re-derivation is not a line but a return — the verdict is re-conferred per operation, never held.
+- [13 — Two Truths: the Absolute and the Relative](./13-two-truths.md): the conventional register (the `MATCH` that is real and usable) and the ultimate register (no `MATCH` is self-standing); both true, at their own levels, without collapse.
+- [14 — Witness Walkthrough: The Witness Arc Made Runnable](./14-witness-walkthrough.md): the witness arc made runnable end to end — the structural gate, the run as the independent witness, the located seam; the runnable companion to [07](./07-walkthrough.md).
+
 ## Map: EMET element → law → essay
 
 The same eight rows as the [spine](../../RATIONALE.md), each linking the essay

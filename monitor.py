@@ -24,6 +24,7 @@ Facts and advice only. Reads raw bytes. Never edits the target.
 """
 import sys, os, json, hashlib
 import corpus
+from verdict import governed, LATTICE, MONITOR_FILE, MONITOR_BASELINE
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -52,7 +53,7 @@ def report(manifest):
     except corpus.CorpusError as e:
         print("=== EXTERNAL ACCOUNTABILITY REPORT ===")
         print("baseline: " + manifest)
-        print("corpus=UNVERIFIABLE reason=" + e.reason)
+        print("corpus=" + governed(LATTICE, "UNVERIFIABLE") + " reason=" + e.reason)
         _record(manifest, "report", {"result": "UNVERIFIABLE", "reason": e.reason})
         sys.exit(2)
     drift = missing = total = 0
@@ -62,12 +63,12 @@ def report(manifest):
     for p in sorted(db):
         want = db[p]
         if not os.path.isfile(p):
-            print("MISSING  markers=  -  " + os.path.basename(p)); missing += 1; continue
+            print(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p)); missing += 1; continue
         b = open(p, "rb").read(); got = sha(b); hits = corpus.count(b, markers); total += hits
-        st = "MATCH " if got == want else "DRIFT "
+        st = governed(MONITOR_FILE, "MATCH" if got == want else "DRIFT") + " "
         if got != want: drift += 1
         print(st + " markers=" + str(hits).rjust(3) + "  " + os.path.basename(p))
-    verdict = "INTACT" if drift == 0 and missing == 0 else "CHANGED"
+    verdict = governed(MONITOR_BASELINE, "INTACT" if drift == 0 and missing == 0 else "CHANGED")
     print("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
     _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict, "corpus_version": version})
     sys.exit(0 if verdict == "INTACT" else 2)

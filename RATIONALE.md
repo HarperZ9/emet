@@ -112,6 +112,10 @@ center; the walkthrough (07) is where the philosophy is shown actually running.
   literal, isomorphic, and lineage "membranes," and exactly how much is claimed
   versus illustrated.
 
+Top map: [docs/CURATION-INDEX.md](docs/CURATION-INDEX.md) — the top map tying this
+philosophy layer to the scope-discipline engineering layer (and the new essays
+09–14).
+
 Supporting documents: the [Index](docs/rationale/INDEX.md) (this reading order
 plus the map-row → essay table) and the [Glossary](docs/rationale/GLOSSARY.md)
 (every corpus term defined, each with a provenance pointer).
