@@ -229,7 +229,18 @@ implementation anchor-exchange format is deferred to a future version.
 The marker set used by refuse and the monitor census is the governed, versioned
 denylist conformance/markers.corpus (sections 8 and 11): a plain-text file with a
 `# corpus_version: N` header, `#` comment lines, and one literal marker per line,
-matched as literal ASCII-case-insensitive substrings over raw bytes. It is not
-enumerated here. Conformance pins specific counts for specific inputs at a stated
+matched as literal ASCII-case-insensitive substrings over raw bytes.
+
+The marker COUNT is pinned: an implementation MUST count by a NON-OVERLAPPING
+LEFTMOST scan in corpus order -- scanning the target's raw bytes left to right, at
+each position testing the markers in corpus order, taking the first that matches
+there, emitting one count and advancing past the matched span; on no match it
+advances one byte. A repeated marker therefore counts ONCE PER OCCURRENCE, and
+overlapping candidates resolve to the first match in corpus order. (This scan was
+previously left implicit; an independent reimplementation surfaced that "count"
+was unpinned -- vectors refuse-three-markers and
+refuse-repeated-marker-occurrence-count together pin it.)
+
+The corpus is not enumerated here. Conformance pins specific counts for specific inputs at a stated
 corpus_version (see conformance/vectors.json). Absence of a marker is never absence
 of injection (section 11).

@@ -25,7 +25,11 @@ SUBCMDS = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit", "s
 CORPUS = os.path.abspath(os.path.join(HERE, "markers.corpus"))
 
 def invoke(tool):
-    return [sys.executable, tool] if tool.endswith(".py") else [tool]
+    if tool.endswith(".py"):
+        return [sys.executable, tool]
+    if tool.endswith((".js", ".mjs")):
+        return ["node", tool]
+    return [tool]
 
 def main():
     spec = json.load(open(VECT, encoding="utf-8"))
