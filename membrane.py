@@ -39,6 +39,7 @@ Usage:
 """
 import sys, os, json, hashlib, subprocess
 import corpus
+from verdict import governed, LATTICE, COHERENCE, CORROBORATE, AUDIT
 
 ANCHORS, LOG = "anchors.json", "membrane_log.jsonl"
 
@@ -86,7 +87,7 @@ def anchor(paths):
     for p in paths:
         p = _key(p); b, err = try_raw(p)
         if err:
-            print("UNVERIFIABLE " + p + " reason=" + err); bad += 1; continue
+            print(governed(LATTICE, "UNVERIFIABLE") + " " + p + " reason=" + err); bad += 1; continue
         h = sha(b); db[p] = h
         print("anchored " + p + " sha256=" + h); record("anchor", {"path": p, "sha256": h})
     json.dump(db, open(ANCHORS, "w", encoding="utf-8"), indent=2, sort_keys=True)
@@ -98,13 +99,13 @@ def verify(paths):
     for p in paths:
         p = _key(p); want = db.get(p)
         if want is None:
-            print("UNVERIFIABLE " + p + " reason=E_NO_ANCHOR"); bad += 1; continue
+            print(governed(LATTICE, "UNVERIFIABLE") + " " + p + " reason=E_NO_ANCHOR"); bad += 1; continue
         b, err = try_raw(p)
         if err:
-            print("UNVERIFIABLE " + p + " reason=" + err)
+            print(governed(LATTICE, "UNVERIFIABLE") + " " + p + " reason=" + err)
             record("verify", {"path": p, "result": "UNVERIFIABLE", "reason": err}); bad += 1; continue
         got = sha(b); ok = got == want
-        print(("MATCH " if ok else "DRIFT ") + p + " want=" + want[:16] + " got=" + got[:16])
+        print(governed(LATTICE, "MATCH" if ok else "DRIFT") + " " + p + " want=" + want[:16] + " got=" + got[:16])
         record("verify", {"path": p, "result": "MATCH" if ok else "DRIFT"}); bad += 0 if ok else 1
     sys.exit(0 if not bad else 2)
 
@@ -112,26 +113,26 @@ def coherence(source, view_file):
     sb, serr = try_raw(source); vb, verr = try_raw(view_file)
     if serr or verr:
         why = ("source:" + serr) if serr else ("view:" + verr)
-        print("result=UNVERIFIABLE reason=" + why)
+        print("result=" + governed(COHERENCE, "UNVERIFIABLE") + " reason=" + why)
         record("coherence", {"source": _key(source), "result": "UNVERIFIABLE", "reason": why})
         sys.exit(2)
     s, v = sha(sb), sha(vb)
     ok = s == v
     print("source=" + s); print("view  =" + v)
-    print("result=" + ("COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"))
+    print("result=" + governed(COHERENCE, "COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"))
     record("coherence", {"source": _key(source), "result": "COHERENT" if ok else "VIEW_DIFFERS_FROM_SOURCE"})
     sys.exit(0 if ok else 2)
 
 def refuse(path):
     b, err = try_raw(path)
     if err:
-        print("UNVERIFIABLE " + path + " reason=" + err)
+        print(governed(LATTICE, "UNVERIFIABLE") + " " + path + " reason=" + err)
         record("refuse", {"path": _key(path), "result": "UNVERIFIABLE", "reason": err})
         sys.exit(2)
     try:
         version, csha, markers = corpus.load()
     except corpus.CorpusError as e:
-        print("UNVERIFIABLE " + path + " reason=" + e.reason)
+        print(governed(LATTICE, "UNVERIFIABLE") + " " + path + " reason=" + e.reason)
         record("refuse", {"path": _key(path), "result": "UNVERIFIABLE", "reason": e.reason})
         sys.exit(2)
     hits, clean = corpus.scan(b, markers)
@@ -153,7 +154,7 @@ def corroborate(path):
     if err:
         print("open_rb=unavailable:" + err)
         print("read_paths_agree=False")
-        print("result=UNVERIFIABLE reason=" + err)
+        print("result=" + governed(CORROBORATE, "UNVERIFIABLE") + " reason=" + err)
         record("corroborate", {"path": _key(path), "result": "UNVERIFIABLE", "reason": err})
         sys.exit(2)
     paths = {"open_rb": sha(a)}
@@ -182,11 +183,11 @@ def corroborate(path):
     if not (cat_ok or git_ok):
         # only open_rb succeeded: no independent read path, so there is no
         # divergence signal to corroborate. Inability, not agreement (SPEC 9).
-        print("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH")
+        print("result=" + governed(CORROBORATE, "UNVERIFIABLE") + " reason=E_NO_SECOND_READ_PATH")
         record("corroborate", {"path": _key(path), "result": "UNVERIFIABLE", "reason": "E_NO_SECOND_READ_PATH"})
         sys.exit(2)
     ok = sha_agree and (git_agrees in (True, None))
-    print("result=" + ("CORROBORATED" if ok else "QUARANTINE_READ_PATH_DIVERGENCE"))
+    print("result=" + governed(CORROBORATE, "CORROBORATED" if ok else "QUARANTINE_READ_PATH_DIVERGENCE"))
     record("corroborate", {"path": _key(path), "agree": sha_agree, "git": git_agrees})
     sys.exit(0 if ok else 2)
 
@@ -199,9 +200,9 @@ def audit():
         if not all(k in e for k in ("kind", "fact", "prev", "chain")) \
            or e["prev"] != prev \
            or e["chain"] != sha((e["prev"] + e["kind"] + json.dumps(e["fact"], sort_keys=True)).encode()):
-            print("BROKEN at entry " + str(n)); ok = False; break
+            print(governed(AUDIT, "BROKEN") + " at entry " + str(n)); ok = False; break
         prev = e["chain"]
-    print("log_entries=" + str(n) + " chain=" + ("INTACT" if ok else "BROKEN")); sys.exit(0 if ok else 2)
+    print("log_entries=" + str(n) + " chain=" + governed(AUDIT, "INTACT" if ok else "BROKEN")); sys.exit(0 if ok else 2)
 
 def selftest():
     print("membrane_self_sha256=" + sha(raw(__file__)))

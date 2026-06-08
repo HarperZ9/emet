@@ -15,10 +15,14 @@ jobs:
         run: python test_corpus.py
       - name: monitor behavior tests (2 tests)
         run: python test_monitor.py
-      - name: conformance, reference implementation (expect 18 of 18)
+      - name: organs behavior tests
+        run: python test_organs.py
+      - name: conformance, reference implementation (expect 19 of 19)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity
         run: python membrane.py selftest
+      - name: rationale walkthrough transcript is re-derivable (2 tests)
+        run: python test_walkthrough.py
 
   rust-second-implementation:
     runs-on: ubuntu-latest
@@ -29,5 +33,18 @@ jobs:
           python-version: "3.x"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, rust second implementation (expect 18 of 18)
+      - name: conformance, rust second implementation (expect 19 of 19)
         run: python conformance/run.py impl/rust/emet
+
+  js-third-implementation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: conformance, node.js third implementation (expect 19 of 19)
+        run: python conformance/run.py impl/js/emet.js

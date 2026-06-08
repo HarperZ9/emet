@@ -16,17 +16,19 @@ authority. The verdicts are `MATCH`, `DRIFT`, and `UNVERIFIABLE`; there is no
 
 - A stdlib-only Python reference — `membrane.py` / `organs.py` / `monitor.py` / `corpus.py`, ~520 lines, no dependencies.
 - A from-scratch Rust second implementation — `impl/rust/emet.rs`, no crates.
+- A clean-room Node.js third implementation — `impl/js/emet.js`, built-in modules only (no npm).
 - A normative draft spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
-- A versioned marker corpus (`conformance/markers.corpus`) both implementations load and re-derive identically.
-- Both implementations pass the same 18 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain (write and verify).
+- A versioned marker corpus (`conformance/markers.corpus`) all three implementations load and re-derive identically.
+- All three implementations pass the same 19 conformance vectors in CI on every push — byte-hash core, marker path, and audit chain (write and verify).
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py           # reference implementation: 18/18
+python conformance/run.py membrane.py           # reference implementation: 19/19
 ( cd impl/rust && rustc -O emet.rs -o emet )    # build the second implementation
-python conformance/run.py impl/rust/emet        # second implementation: 18/18
+python conformance/run.py impl/rust/emet        # second implementation: 19/19
+python conformance/run.py impl/js/emet.js       # third implementation (Node.js): 19/19
 ```
 
 ## Use it
@@ -50,12 +52,12 @@ Those constraints are the point, not limitations — see [SPEC.md](SPEC.md) §6.
 ## Status
 
 Pre-1.0; the spec is a draft (v0.2.0-draft). The byte-hash core, the marker path
-(a single versioned corpus matched identically by both implementations), and the
-audit chain (write and verify) all re-derive across two languages and are checked
-in CI (18 conformance vectors, both implementations). Re-derivability is **not yet fully
+(a single versioned corpus matched identically across the implementations), and the
+audit chain (write and verify) all re-derive across three languages and are checked
+in CI (19 conformance vectors, all three implementations). Re-derivability is **not yet fully
 demonstrated** in one respect, stated plainly rather than papered over:
 
-- The Rust implementation is same-author and clean-room, not independent.
+- The Rust and Node.js implementations are same-author and clean-room, not independent.
 - SPEC §12's actual bar — an *independent, different-author* implementation passing
   the vectors — is not yet met, and per §12 no party should treat re-derivability
   as proven until it is.
@@ -66,27 +68,31 @@ itself — so the claim is scoped to exactly what CI reproduces today.
 
 ## Call for an independent implementation
 
-EMET's only credential is reproduction: same bytes, same verdict. Two
-implementations (Python reference + Rust) already agree on all 18 conformance
-vectors in CI — but they share an author, so that agreement shows the spec is
-*implementable*, not yet that it is *independently re-derivable*.
+EMET's only credential is reproduction: same bytes, same verdict. Three
+implementations (Python reference + Rust + Node.js) already agree on all 19
+conformance vectors in CI — but they all share an author, so that agreement shows
+the spec is *implementable* (in three languages, from its text alone), not yet
+that it is *independently re-derivable*.
 
-The highest-leverage contribution is a **third implementation, written from
-[SPEC.md](SPEC.md) alone** (not by reading the existing code), in any language,
-that passes `conformance/vectors.json`:
+The highest-leverage contribution is therefore not another language but a
+**different-author implementation, written from [SPEC.md](SPEC.md) alone** (not by
+reading the existing code), in any language, that passes `conformance/vectors.json`:
 
 ```sh
 # build your implementation, then:
-python conformance/run.py ./your-emet     # expected: CONFORMANCE 18/18
+python conformance/run.py ./your-emet     # expected: CONFORMANCE 19/19
 ```
 
 Where your implementation and the spec disagree, **the spec is wrong** — open an
-issue; those divergences are the point. A different-author implementation is what
+issue; those divergences are the point. (The Node.js implementation already did
+exactly this: building it from the spec alone surfaced that the marker *count* was
+unpinned — SPEC §16 and the `refuse-repeated-marker-occurrence-count` vector now
+pin it.) A different-author implementation is what
 converts re-derivability from *asserted* to *demonstrated* (SPEC §12). Claim a
 language in [Discussions](../../discussions) so effort isn't duplicated.
 
 ## Docs
 
-[SPEC.md](SPEC.md) · [conformance/](conformance/) · [THREAT-MODEL.md](THREAT-MODEL.md) · [COVERAGE.json](COVERAGE.json) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
+[SPEC.md](SPEC.md) · [RATIONALE.md](RATIONALE.md) (why EMET is shaped the way it is, derived from first principles) · [conformance/](conformance/) · [THREAT-MODEL.md](THREAT-MODEL.md) · [COVERAGE.json](COVERAGE.json) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 MPL-2.0.

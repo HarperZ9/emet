@@ -11,19 +11,24 @@ no third:
     watch    <manifest> <path>...   open eyes: anchor + logical stamp
     observe  <manifest> <path>...   report UNCHANGED / DRIFTED / NEW / GONE
     confirm  <manifest> <path>...   witness what an operator action changed
-  IMPEDANCE - verify a proposed OPERATOR action is reversible and witnessed
-    BEFORE it lands; emit ALLOW / BLOCK plus the revert recipe. Performs nothing.
+  IMPEDANCE - report the re-derivable FACT of whether a proposed OPERATOR action
+    has a clean VCS revert path BEFORE it lands; emit REVERTIBLE / NOT_REVERTIBLE
+    plus the revert recipe. This is a FACT (a clean revert path exists), NEVER a
+    permission to act. Performs nothing; grants nothing.
     gate     <path>...              pre-action check (clean VCS revert path?)
 
 Invariants (the membrane, unchanged):
   * actuates ZERO. The single actuator is the operator. organs only witness and
-    advise. gate never edits, never backs up, never reverts - it verifies the
-    operator already HAS a clean revert path (committed VCS state) and records
-    the pre-state hash. The operator VCS is the reversibility; organs confirm it
-    exists before greenlighting. Many eyes, one hand, the hand is the operator.
+    advise. gate never edits, never backs up, never reverts - it reports the
+    FACT that the operator already HAS a clean revert path (committed VCS state)
+    and records the pre-state hash. The operator VCS is the reversibility; organs
+    only report whether it exists. REVERTIBLE is a re-derivable fact, not a
+    permission; organs grant nobody the authority to act. Many eyes, one hand,
+    the hand is the operator.
   * facts and advice only. Every line is re-derivable; decides no safety question.
 """
 import sys, os, json, subprocess, hashlib
+import verdict
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -56,14 +61,14 @@ def observe(manifest, paths):
     for p in paths:
         p = os.path.normpath(p)
         if not os.path.isfile(p):
-            print("GONE      " + p); changed += 1; continue
+            print(verdict.governed(verdict.PERCEPTION, "GONE") + "      " + p); changed += 1; continue
         cur = sha(raw(p)); was = known.get(p)
         if was is None:
-            print("NEW       " + p); changed += 1
+            print(verdict.governed(verdict.PERCEPTION, "NEW") + "       " + p); changed += 1
         elif cur == was:
-            print("UNCHANGED " + p)
+            print(verdict.governed(verdict.PERCEPTION, "UNCHANGED") + " " + p)
         else:
-            print("DRIFTED   " + p + " was=" + was[:12] + " now=" + cur[:12]); changed += 1
+            print(verdict.governed(verdict.PERCEPTION, "DRIFTED") + "   " + p + " was=" + was[:12] + " now=" + cur[:12]); changed += 1
     print("since=" + db.get("at", "?") + " changed=" + str(changed))
     sys.exit(0 if changed == 0 else 2)
 
@@ -82,17 +87,19 @@ def revertible(p):
 
 def gate(paths):
     print("PRE-ACTION IMPEDANCE GATE (organs perform nothing; the operator acts)")
-    allow = True
+    revertible_all = True
     for p in paths:
         p = os.path.normpath(p)
         if os.path.isfile(p):
             pre = sha(raw(p))[:12]; ok, why = revertible(p)
         else:
             pre = "absent"; ok, why = (True, "new file - revert = delete")
-        print(("ALLOW " if ok else "BLOCK ") + p + " pre=" + pre + " revert=[" + why + "]")
-        allow = allow and ok
-    print("decision=" + ("ALLOW" if allow else "BLOCK") + "  (advisory; the operator decides and acts)")
-    sys.exit(0 if allow else 2)
+        token = verdict.governed(verdict.REVERT, "REVERTIBLE" if ok else "NOT_REVERTIBLE")
+        print(token + " " + p + " pre=" + pre + " revert=[" + why + "]")
+        revertible_all = revertible_all and ok
+    gate_token = verdict.governed(verdict.REVERT, "REVERTIBLE" if revertible_all else "NOT_REVERTIBLE")
+    print("gate=" + gate_token + "  (advisory fact; the operator decides and acts)")
+    sys.exit(0 if revertible_all else 2)
 
 def main():
     a = sys.argv
