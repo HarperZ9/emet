@@ -41,7 +41,19 @@ operator, the external verifier of record, or the mathematics of SHA-256.
   EMET ASSERT authority, adjudicate a model decision, or run inside the audited
   system would convert the witness into an authority. The six boundaries
   (SPEC section 6) exist to make this structurally impossible: the verdict
-  lattice cannot express TRUSTED, EMET holds no key, and EMET performs no action.
+  lattice cannot express TRUSTED, EMET holds no key, and EMET takes no action on
+  the audited target of its own accord.
+
+  CORRECTION (self-correcting register; SPEC governs): an earlier phrasing here
+  read "EMET performs no action," which was overstated. EMET does write to its
+  own implementation-private stores -- the anchor store (anchors.json), the
+  hash-chained accountability log, the <file>.refused copy, and, on
+  operator-authorized reanchor, the baseline manifest. The precise, scoped claim
+  (SPEC section 6 boundary 6) is that EMET MUST NOT write to, edit, sign, back
+  up, or revert the AUDITED TARGET -- the artifact under judgement -- of its own
+  accord. None of the stores it does write is the target. "Zero actuation" means
+  zero actuation ON THE AUDITED TARGET; the single actuator over the world is the
+  operator.
 
 ## Residual attack surface (the honest part)
 

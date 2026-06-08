@@ -37,5 +37,30 @@ class MonitorBehavior(unittest.TestCase):
         self.assertIn("reason=E_NO_CORPUS", out)
         self.assertEqual(code, 2)
 
+    def test_report_governs_match_drift_missing_and_baseline_changed(self):
+        # The governed monitor tokens (SPEC s.2): a manifest mixing a matching,
+        # a drifted, and a missing file emits per-file MATCH / DRIFT / MISSING and
+        # the per-baseline CHANGED summary, with exit 2.
+        mfile = os.path.join(self.tmp, "match.txt"); dfile = os.path.join(self.tmp, "drift.txt")
+        gone = os.path.join(self.tmp, "gone.txt")
+        with open(mfile, "wb") as f: f.write(b"alpha\n")
+        with open(dfile, "wb") as f: f.write(b"beta\n")
+        man = {mfile: hashlib.sha256(b"alpha\n").hexdigest(),
+               dfile: hashlib.sha256(b"NOT-beta\n").hexdigest(),
+               gone: hashlib.sha256(b"x\n").hexdigest()}
+        mp = os.path.join(self.tmp, "mix.json")
+        with open(mp, "w", encoding="utf-8") as f: json.dump(man, f)
+        code, out = self.run_mon(["report", mp])
+        self.assertRegex(out, r"(?m)^MATCH ")
+        self.assertRegex(out, r"(?m)^DRIFT ")
+        self.assertRegex(out, r"(?m)^MISSING ")
+        self.assertIn("baseline=CHANGED", out)
+        self.assertEqual(code, 2)
+
+    def test_report_all_match_is_baseline_intact(self):
+        code, out = self.run_mon(["report", self.manifest])
+        self.assertIn("baseline=INTACT", out)
+        self.assertEqual(code, 0)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

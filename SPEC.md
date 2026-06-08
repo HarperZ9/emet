@@ -34,7 +34,25 @@ is boundary 1 -- facts, not authority -- encoded in the output type itself.
 Auxiliary judgements are likewise closed: coherence emits COHERENT or
 VIEW_DIFFERS_FROM_SOURCE; corroboration emits CORROBORATED or
 QUARANTINE_READ_PATH_DIVERGENCE; a marker scan emits a non-negative integer
-count. None of these is, or maps to, TRUSTED.
+count. The monitor report (the report command of the Python-core monitor) is
+likewise a governed, closed auxiliary judgement: per baseline it emits exactly
+INTACT or CHANGED, and per file it emits exactly MATCH, DRIFT, or MISSING. None
+of these is, or maps to, TRUSTED. The monitor is Python-core tooling governed by
+this spec plus test_monitor.py; it is not exercised by the cross-language
+conformance vectors (section 12), so these auxiliary tokens are pinned here, not
+in conformance/vectors.json.
+
+The organs (the observe, watch, confirm, and gate commands of the Python-core
+organs) are likewise governed, closed auxiliary judgements. Perception (observe,
+watch, confirm) emits per path exactly one of UNCHANGED, DRIFTED, NEW, or GONE.
+Impedance (gate) emits per path and per summary exactly REVERTIBLE or
+NOT_REVERTIBLE -- the re-derivable FACT that a clean operator revert path exists,
+explicitly NOT a permission to act. None of these is, or maps to, TRUSTED or any
+authority or permission word; in particular gate reports a fact, never grants
+authority. organs is Python-core tooling governed by this spec plus
+test_organs.py; it is not exercised by the cross-language conformance vectors
+(section 12), so these auxiliary tokens are pinned here, not in
+conformance/vectors.json.
 
 ## 3. Hashing and identity
 
@@ -94,8 +112,14 @@ consumers MUST treat the v1.0 codes as authoritative.
    allow, deny, block, or enforce of its own accord.
 5. Re-derivable -- every verdict MUST be reproducible from the same spec_version
    plus corpus_version plus bytes (section 8); no secret, no held key.
-6. Zero actuation -- EMET MUST NOT edit, write to, back up, sign, or revert a
-   target. The single actuator is the operator.
+6. Zero actuation on the audited target -- EMET MUST NOT write to, edit, sign,
+   back up, or revert the AUDITED TARGET (the artifact under judgement). EMET
+   DOES write to its own implementation-private stores -- the anchor store
+   (anchors.json), the hash-chained log (membrane_log.jsonl / monitor_log.jsonl),
+   the <file>.refused copy, and, on operator-authorized reanchor, the baseline
+   manifest -- none of which is the target. "Zero actuation" therefore means zero
+   actuation ON THE AUDITED TARGET of EMET's own accord; the single actuator over
+   the world is the operator.
 
 ## 7. Audit chain
 
@@ -148,8 +172,8 @@ never trust.
 
 ## 10. Trusted Computing Base
 
-The core (membrane, organs, monitor, corpus) MUST depend only on the language
-runtime and standard library (reference: CPython plus hashlib, json, os,
+The core (membrane, organs, monitor, corpus, verdict) MUST depend only on the
+language runtime and standard library (reference: CPython plus hashlib, json, os,
 subprocess) and MUST add no third-party runtime dependency. Optional adapters (signing, SARIF or
 in-toto emission, fuzzing) MAY pull additional dependencies but MUST live in
 separate packages; the minimal-TCB guarantee applies to the NAMED CORE only.
@@ -166,7 +190,16 @@ separate packages; the minimal-TCB guarantee applies to the NAMED CORE only.
   where it cannot read raw bytes it reports UNVERIFIABLE.
 - Byte and provenance, not semantic -- EMET judges bytes and provenance, never
   meaning; semantic safety is out of scope (see COVERAGE.json).
-- Single-actuator assumption -- a coerced operator is out of model by design.
+- Single-actuator assumption -- the single actuator over the audited target is
+  the operator, and a coerced operator is out of model by design. "Zero
+  actuation" (section 6, boundary 6) is scoped to the audited target: EMET MUST
+  NOT write to, edit, sign, back up, or revert the artifact under judgement of
+  its own accord, but EMET DOES write to its own implementation-private stores --
+  the anchor store, the hash-chained log, the <file>.refused copy, and, on
+  operator-authorized reanchor, the baseline manifest -- none of which is the
+  target. Earlier blanket phrasings ("EMET performs no action"; "boundary 6 is
+  the absence of a write call") were overstated and are corrected to this scoped
+  form.
 - Advisory unless owner-enforced -- enforcement is a downstream decision on
   owner-controlled infrastructure under an externally-rooted license.
 
@@ -201,6 +234,21 @@ implementation MUST emit a line CONTAINING the stated token:
 - audit: a line containing chain=INTACT or chain=BROKEN.
 - selftest: a line beginning with membrane_self_sha256= followed by the
   artifact-of-record hash (section 14).
+- monitor report: per file, a line beginning with exactly one of MATCH, DRIFT,
+  or MISSING, followed by the marker census and the file's basename; and a
+  per-baseline summary line containing baseline=INTACT or baseline=CHANGED.
+  These are the governed auxiliary tokens of section 2. The monitor is
+  Python-core tooling governed by this spec plus test_monitor.py, not by the
+  cross-language conformance vectors (section 12).
+- organs observe (and confirm): per path, a line beginning with exactly one of
+  UNCHANGED, DRIFTED, NEW, or GONE, followed by the path. organs gate: per path,
+  a line beginning with exactly one of REVERTIBLE or NOT_REVERTIBLE, followed by
+  the path, the pre-state hash, and the revert recipe; and a summary line
+  containing gate=REVERTIBLE or gate=NOT_REVERTIBLE. REVERTIBLE is the
+  re-derivable fact that a clean operator revert path exists, never a permission
+  to act. These are the governed auxiliary tokens of section 2. organs is
+  Python-core tooling governed by this spec plus test_organs.py, not by the
+  cross-language conformance vectors (section 12).
 
 A future machine-readable JSON envelope (the v1 target) supersedes this grammar
 for programmatic consumers; the tokens above remain for human and CI use.
@@ -229,7 +277,18 @@ implementation anchor-exchange format is deferred to a future version.
 The marker set used by refuse and the monitor census is the governed, versioned
 denylist conformance/markers.corpus (sections 8 and 11): a plain-text file with a
 `# corpus_version: N` header, `#` comment lines, and one literal marker per line,
-matched as literal ASCII-case-insensitive substrings over raw bytes. It is not
-enumerated here. Conformance pins specific counts for specific inputs at a stated
+matched as literal ASCII-case-insensitive substrings over raw bytes.
+
+The marker COUNT is pinned: an implementation MUST count by a NON-OVERLAPPING
+LEFTMOST scan in corpus order -- scanning the target's raw bytes left to right, at
+each position testing the markers in corpus order, taking the first that matches
+there, emitting one count and advancing past the matched span; on no match it
+advances one byte. A repeated marker therefore counts ONCE PER OCCURRENCE, and
+overlapping candidates resolve to the first match in corpus order. (This scan was
+previously left implicit; an independent reimplementation surfaced that "count"
+was unpinned -- vectors refuse-three-markers and
+refuse-repeated-marker-occurrence-count together pin it.)
+
+The corpus is not enumerated here. Conformance pins specific counts for specific inputs at a stated
 corpus_version (see conformance/vectors.json). Absence of a marker is never absence
 of injection (section 11).
