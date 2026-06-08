@@ -36,6 +36,10 @@ witness, the coordinate singularity, the atlas, spiral time, and the two truths.
 - [13 — Two Truths: the Absolute and the Relative](./13-two-truths.md): the conventional register (the `MATCH` that is real and usable) and the ultimate register (no `MATCH` is self-standing); both true, at their own levels, without collapse.
 - [14 — Witness Walkthrough: The Witness Arc Made Runnable](./14-witness-walkthrough.md): the witness arc made runnable end to end — the structural gate, the run as the independent witness, the located seam; the runnable companion to [07](./07-walkthrough.md).
 
+## Lineage (where the membrane came from)
+
+- [GENESIS.md](./GENESIS.md): EMET distilled from RAW's **coherence-membrane** oracle (a D3D11 ground-truth layer for an LLM's state-blindness) and the wider QUANTA-UNIVERSE ecosystem. The genesis doctrine — *"observe inputs, reason locally, measure outputs; never assert runtime state, instrument it"* — is mapped concept-by-concept onto EMET's six boundaries, and the origin documents are **anchored and re-derived (`MATCH`)** as a provenance pin. Clean-room: an idea re-stated in EMET's own words, no proprietary or reverse-engineered material incorporated.
+
 ## Map: EMET element → law → essay
 
 The same eight rows as the [spine](../../RATIONALE.md), each linking the essay
