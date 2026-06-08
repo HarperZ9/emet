@@ -164,7 +164,7 @@ about it).
 *Further reading (lineage, never warrant):* L6 and the *Intrinsic-over-Extrinsic*
 abstract in `research/CATALOG.md`; the engineering
 lineage is the Merkle / content-addressing tradition (Merkle 1979; git's object
-model). Read against `SPEC.md` §3 and `membrane.py:61-62`, where the warrant
+model). Read against `SPEC.md` §3 and the `sha()` function in `membrane.py`, where the warrant
 actually lives, in [`03-occasionalism.md`](./03-occasionalism.md).
 
 ### literal / isomorphic / lineage
@@ -251,7 +251,7 @@ load-bearing** (recompute-every-call, store-no-verdict is the mechanism; a cache
 verdict surviving between runs would refute it).
 *Further reading (lineage, never warrant):* L11 in
 `research/CATALOG.md`, read against `SPEC.md` §8 and
-`membrane.py:95-109` in [`03-occasionalism.md`](./03-occasionalism.md).
+the `verify()` function in `membrane.py` in [`03-occasionalism.md`](./03-occasionalism.md).
 
 ### proper function (Millikan)
 

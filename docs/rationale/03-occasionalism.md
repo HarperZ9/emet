@@ -91,7 +91,7 @@ recomputed.
 > entries in `research/CATALOG.md`; the cryptographic primitive is SHA-256 and
 > the Merkle/content-addressing lineage (Merkle, 1979; git's object model is the
 > familiar engineering instance). Again: lineage, not authority. The warrant is
-> `membrane.py:61-62` and SPEC §3, read below.
+> the `sha` function in `membrane.py` and SPEC §3, read below.
 
 ---
 
@@ -170,7 +170,7 @@ actual bytes and its specification and finding that they implement exactly this
 process-not-property, intrinsic-not-extrinsic shape. Two SPEC sections and two
 spans of `membrane.py` do the deciding.
 
-### 4.1 Identity is intrinsic — SHA-256 over the exact raw bytes (SPEC §3; `membrane.py:61-62`)
+### 4.1 Identity is intrinsic — SHA-256 over the exact raw bytes (SPEC §3; the `sha` function in `membrane.py`)
 
 SPEC §3 is unambiguous: the identity of an artifact MUST be SHA-256 over its
 **exact raw bytes**. An implementation MUST NOT normalize, transcode, or
@@ -187,22 +187,22 @@ def sha(b):
     return hashlib.sha256(b).hexdigest()
 ```
 
-That is `membrane.py:61-62`. There is no preprocessing. The argument `b` is the
+That is the `sha` function in `membrane.py`. There is no preprocessing. The argument `b` is the
 raw bytes returned by `try_raw`, which opens the path `"rb"` — binary — and
 returns the bytes verbatim or a stable reason code on inability
-(`membrane.py:53-59`). The name of an artifact, in EMET, is just `sha(those
+(the `try_raw` function in `membrane.py`). The name of an artifact, in EMET, is just `sha(those
 bytes)`. This is L6 made literal: **the name is the hash**, and the existence of
 the name *entails* what an extrinsic certificate would have had to assert
 separately — namely, "these are those bytes." There is nothing to forge between
 the bytes and their name, because there is nothing between them.
 
-> **Mapping status: load-bearing.** L6 → SPEC §3 → `membrane.py:61-62` is a
+> **Mapping status: load-bearing.** L6 → SPEC §3 → the `sha` function in `membrane.py` is a
 > mechanism, not an illustration. Remove the intrinsic-identity property — let
 > EMET compare against a stored certificate, or hash a normalized view — and the
 > re-derivability claim of §4.2 collapses, because the thing being re-derived
 > would no longer *be* the artifact's identity.
 
-### 4.2 Verdicts are re-derived per operation — no cache, no key (SPEC §8; `membrane.py:95-109`)
+### 4.2 Verdicts are re-derived per operation — no cache, no key (SPEC §8; the `verify` function in `membrane.py`)
 
 SPEC §8 scopes re-derivability precisely. A verdict is reproducible given the
 same artifact bytes, the same `spec_version`, and — for marker-dependent output
@@ -232,7 +232,7 @@ def verify(paths):
     sys.exit(0 if not bad else 2)
 ```
 
-That is `membrane.py:95-109`. Three observations carry the whole thesis, and each
+That is the `verify` function in `membrane.py`. Three observations carry the whole thesis, and each
 is checkable against those exact lines:
 
 1. **What is stored is an anchor, not a verdict.** The anchor store `db` maps a
@@ -268,7 +268,7 @@ emits **UNVERIFIABLE**, never a substituted default and never a trust assertion
 trust is the no-aseity discipline and the process-over-property discipline
 meeting at the same line of code.
 
-> **Mapping status: load-bearing.** L11 → SPEC §8 → `membrane.py:95-109` is the
+> **Mapping status: load-bearing.** L11 → SPEC §8 → the `verify` function in `membrane.py` is the
 > mechanism by which EMET is a process and not a property. It is not an
 > illustration of occasionalism; it is per-operation re-conferral implemented.
 > The occasionalist *vocabulary* (re-conferral, no aseity-of-the-perimeter) is
@@ -294,7 +294,7 @@ across implementations (SPEC §12) would be lost. Detecting a CRLF rewrite is a
 *feature* (SPEC §3) precisely because the absence of normalization is what keeps
 identity intrinsic. Show EMET normalizing a target before `sha`, and the L6
 mapping is refuted. (Note the one *permitted* normalization is the anchor-store
-*key* — `_key` at `membrane.py:78-81` forward-slashes the path so `anchors.json`
+*key* — the `_key` function in `membrane.py` forward-slashes the path so `anchors.json`
 is portable across platforms. That normalizes the *lookup key*, never the
 *bytes hashed*; the byte channel `try_raw` feeds `sha` raw. The distinction is
 the whole point: identity is intrinsic, addressing is conventional.)
@@ -342,8 +342,8 @@ seam carries nothing further, so it stops here.
 ## 7. Self-application
 
 This essay is itself a process, not a property. Its standing is not held; it is
-re-derived each time a reader runs the argument — reads `membrane.py:61-62` and
-`95-109`, checks SPEC §3, §8, §9, and confirms that no verdict is cached and no
+re-derived each time a reader runs the argument — reads the `sha` and
+`verify` functions in `membrane.py`, checks SPEC §3, §8, §9, and confirms that no verdict is cached and no
 byte is normalized. If you do not re-run it, the essay confers nothing; it is
 not a certificate of correctness you can cite, only a derivation you can repeat.
 That is the same shape as the thing it describes, and it is deliberate: a

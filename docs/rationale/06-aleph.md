@@ -97,11 +97,30 @@ EMET's *quality*, but to its *category*:
   [§3](./03-occasionalism.md): the verdict persists by no construction; it is
   re-conferred per operation, nothing cached.)
 
-- **Boundary 6 (zero actuation).** EMET must not edit, write to, back up, sign,
-  or revert a target; the single actuator is the operator (SPEC §6.6). Remove
-  this wall and EMET becomes a second hand on the world, which is to say a
-  second author of the *for*. (This is the load-bearing derivation of
-  [§4](./04-spoken-for.md): potential without intent.)
+- **Boundary 6 (zero actuation).** EMET must not write to, edit, sign, back up,
+  or revert *the audited target* — the artifact under judgement; the single
+  actuator is the operator (SPEC §6.6). Remove this wall and EMET becomes a
+  second hand on the world, which is to say a second author of the *for*. (This
+  is the load-bearing derivation of [§4](./04-spoken-for.md): potential without
+  intent.)
+
+  > **Correction (self-correcting register; SPEC governs, the essay was wrong
+  > on this detail).** Two phrasings in earlier drafts of this essay —
+  > "Boundary 6 is the absence of a write call" and, in the Close, "an absent
+  > write call" — were overstated, and a scope-discipline review was right to
+  > flag them. EMET *does* write: to its own implementation-private stores —
+  > the anchor store (`anchors.json`), the hash-chained log, the `<file>.refused`
+  > copy, and, on operator-authorized reanchor, the baseline manifest
+  > (verified in code: `membrane.py` writes `anchors.json` in `anchor`, the
+  > hash-chained log in `record`, and the `.refused` copy in `refuse`;
+  > `monitor.py` rewrites the manifest in `reanchor`). None of those is the
+  > target. The precise claim, and the one Boundary 6 actually
+  > makes (SPEC §6.6), is the absence of a write call *to the audited target*
+  > of EMET's own accord. The aleph point survives intact and is in fact
+  > sharpened: the near-nothing edge is not "EMET writes nothing" (false) but
+  > "EMET writes nothing *to the thing it judges*" — the withheld capability is
+  > precisely actuation on the target, and that withholding is what keeps EMET
+  > a witness rather than a second author of the *for*.
 
 Notice what this enumeration shows. Each boundary, removed, does not degrade
 EMET along some continuous axis of goodness. Each removal moves EMET across the
@@ -116,7 +135,8 @@ crosses.** [Status: this structural claim is **load-bearing**.]
 A second feature of the enumeration is worth naming, because it is the thing
 that makes the edge *small*. None of these walls is a heavy mechanism. Boundary
 1 is a closed enum — three values and a refusal to define a fourth. Boundary 6
-is the absence of a write call. Boundary 5 is the absence of a stored secret.
+is the absence of a write call *to the audited target*. Boundary 5 is the
+absence of a stored secret.
 The edge is built almost entirely out of *refusals* — out of capabilities
 withheld — and a refusal has nearly no substance. It is, in the most literal
 engineering sense, almost nothing. And yet it is the entire difference between
@@ -192,7 +212,7 @@ the second borrow the credibility of the first is the precise error to avoid.
 **The byte-seam reading is LITERAL.** When EMET emits `MATCH` or `DRIFT`, it
 genuinely decides 1|0 over raw bytes. There is no metaphor in it: SHA-256 over
 the exact raw bytes of the target either re-derives the anchored value or it
-does not (SPEC §3; `membrane.py:106-108`). A single flipped bit — a CRLF
+does not (SPEC §3; the `verify` function in `membrane.py`). A single flipped bit — a CRLF
 rewrite, a re-encoding, one changed character — yields a different hash and a
 `DRIFT`. This is a real, engineered, substrate-independent membrane at the
 byte-integrity seam: built to be a deciding permeable boundary, with no
@@ -336,7 +356,8 @@ let the image smuggle in an argument.
 ## Close
 
 The six boundaries are one edge. The edge is built almost entirely out of
-refusals — a closed enum, an absent write call, an unstored key — so it has
+refusals — a closed enum, an absent write call *to the audited target*, an
+unstored key — so it has
 nearly no substance, and yet it is the entire difference between a tool that
 reports facts and a tool that asserts authority. That an edgeless authorization
 is a contradiction — an *aleph* with no edge is just *met* — is the figure that

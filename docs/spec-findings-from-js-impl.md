@@ -20,7 +20,7 @@ catch. It is fixed; the rest are recommendations.
 whether `N` is the number of **distinct** corpus entries that match, or the number of
 **occurrences**. The four refuse vectors (counts 3/0/1/1) do **not** discriminate: no marker
 repeats and none is a substring of another. The clean-room reader chose *distinct*; the
-reference (`corpus.py:73`, a non-overlapping leftmost scan) counts *occurrences*. They
+reference (`corpus.py`'s `scan()`, a non-overlapping leftmost scan) counts *occurrences*. They
 diverge on a repeated marker — e.g. `authority_pill authority_pill` is **2** (reference) vs
 **1** (distinct). An invisible re-derivability gap.
 
@@ -56,7 +56,7 @@ historical `kind`/`fact` yields BROKEN. It does **not** explicitly require `audi
 that each stored `prev` equals the prior recomputed/stored chain (a *linkage* check) in
 addition to recomputing each entry's own chain. Recompute-from-stored-prev alone passes every
 pinned vector; a separate linkage check additionally catches a forged-but-self-consistent
-re-chained suffix. The reference (`membrane.py:199-201`) and the Node.js impl both do linkage.
+re-chained suffix. The reference (`membrane.py`'s `audit()`) and the Node.js impl both do linkage.
 Recommend §7 state the linkage requirement explicitly so an independent impl cannot legally
 omit it.
 

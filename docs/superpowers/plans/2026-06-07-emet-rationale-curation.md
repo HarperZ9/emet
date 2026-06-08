@@ -133,7 +133,7 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
   - **Teleosemantic-deflationist register:** concede functional content (does the byte re-derive — a proper-function success-condition), deny *for*-ness.
   - **Refuter:** a `MATCH` that ever entailed a permission with no authored policy crosses the seam and refutes the claim.
   - **Status:** load-bearing.
-- [ ] **Step 2: Verify** against the skeleton + Conventions checklist (objection answered; deflation stated; refuter present; status marked; `refuse` derivation correct per `membrane.py:125-146`).
+- [ ] **Step 2: Verify** against the skeleton + Conventions checklist (objection answered; deflation stated; refuter present; status marked; `refuse` derivation correct per the `refuse` function in `membrane.py`).
 - [ ] **Step 3: Commit** `git add docs/rationale/01-is-ought-seam.md && git commit -m "docs(rationale): §1 the is/ought seam — facts, not authority"`
 
 ---
@@ -146,7 +146,7 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
   - **Thesis:** trust has no *svabhāva*; the verdict lattice is closed and cannot emit `TRUSTED`.
   - **Law + provenance:** L1 No-Aseity — nothing exists on its own footing; to exist is to be conferred, relationally. Provenance: Nāgārjuna (emptiness, no *svabhāva*), Westerhoff (*The Non-Existence of the Real World*), Aquinas (*esse ab alio*).
   - **Objection → answer:** "no-aseity collapses to 'nothing is trustworthy' — everything UNVERIFIABLE." Answer: hard nihilism is self-refuting; no-*aseity* is conferral-dependence, not non-existence; `MATCH` is real and conferred — hence "no `TRUSTED`," not "no verdict."
-  - **EMET element:** SPEC §2 closed lattice {MATCH, DRIFT, UNVERIFIABLE}; absence of DRIFT is MATCH or UNVERIFIABLE, never trust (`membrane.py:95-109`).
+  - **EMET element:** SPEC §2 closed lattice {MATCH, DRIFT, UNVERIFIABLE}; absence of DRIFT is MATCH or UNVERIFIABLE, never trust (the `verify` function in `membrane.py`).
   - **Refuter:** any codepath that emits a verdict outside the lattice, or any value asserting authority.
   - **Status:** load-bearing.
 - [ ] **Step 2: Verify** against skeleton + Conventions (the self-refutation guard is explicit; the conferral-dependence ≠ nihilism distinction is the load-bearing move).
@@ -162,7 +162,7 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
   - **Thesis:** a verdict persists by no construction; it is re-derived per operation, nothing cached, no held key — and identity is intrinsic (the name is the hash).
   - **Law + provenance:** L11 Process over Property + L6 Intrinsic Substitution. Provenance: al-Ghazālī (occasionalism — each occasion re-conferred), content-addressing/Merkle (the name is the hash).
   - **Objection → answer:** the substrate-tempo correction — "re-spoken each instant is false; membranes hold across many spikes." Answer: concede the biological tempo (through-line §2 struck per-instant occasionalism); EMET is the clean *engineered* case where per-**operation** re-conferral is literally exact.
-  - **EMET element:** SPEC §8 re-derivability (bytes + spec_version + corpus_version; no secret, no key); SHA-256 over **exact raw bytes** (SPEC §3); "UNVERIFIABLE, never TRUSTED" (SPEC §9). `membrane.py:61-62, 95-109`.
+  - **EMET element:** SPEC §8 re-derivability (bytes + spec_version + corpus_version; no secret, no key); SHA-256 over **exact raw bytes** (SPEC §3); "UNVERIFIABLE, never TRUSTED" (SPEC §9). See the `sha` and `verify` functions in `membrane.py`.
   - **Refuter:** any normalization before hashing (CRLF/encoding/whitespace) makes identity extrinsic and breaks re-derivation; any cached verdict survives between runs.
   - **Status:** load-bearing (covers two map rows: re-derivability + L6).
 - [ ] **Step 2: Verify** against skeleton + Conventions (per-operation tempo, not "each instant"; both the re-derivability and L6 rows derived).
@@ -194,7 +194,7 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 - [ ] **Step 1: Write the essay** to this skeleton:
   - **Thesis:** EMET cannot be its own root of trust; an external verifier is the check of record. Integrity is *esse ab alio*.
   - **Law + provenance:** L1 reflexive + the authored-root regress (through-line §4: relay of authority presupposes authority to relay; the terminus is the first fold, not a signal it authenticated). Provenance: Aquinas (*esse ab alio*), L10 (trust–attack duality: self-agreement carries zero independent weight).
-  - **Objection → answer:** "selftest could ground EMET in itself." Answer: a compromised substrate re-derives a compromised self-hash consistently (`membrane.py:206-209`, SPEC §11) — the authored root cannot be a signal it authenticated.
+  - **Objection → answer:** "selftest could ground EMET in itself." Answer: a compromised substrate re-derives a compromised self-hash consistently (the `selftest` function in `membrane.py`, SPEC §11) — the authored root cannot be a signal it authenticated.
   - **EMET element:** SPEC §11 trust-root regress; selftest emits its hash and asserts no authority.
   - **Bridge:** to the README "call for an independent implementation" — a different-author impl is what converts re-derivability from asserted to demonstrated (SPEC §12); L10 explains why self-agreement (Python+Rust, same author) is not enough.
   - **Refuter:** authentication-all-the-way-down — if every root derived its authority from a prior verified signal, there is no authored root, only relay.
