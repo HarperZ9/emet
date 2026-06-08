@@ -174,6 +174,19 @@
       ]
     },
     {
+      "expect_exit": 3,
+      "expect_substr": "in_band_authority_claims=2\n",
+      "files": {
+        "inj.txt": "authority_pill authority_pill\n"
+      },
+      "id": "refuse-repeated-marker-occurrence-count",
+      "note": "a repeated marker counts once per non-overlapping occurrence (SPEC s.16); distinguishes occurrence-counting from distinct-entry counting, which the other refuse vectors do not -- surfaced by the Node.js clean-room implementation",
+      "run": [
+        "refuse",
+        "inj.txt"
+      ]
+    },
+    {
       "env": {
         "EMET_CORPUS": "/nonexistent/emet/markers.corpus"
       },

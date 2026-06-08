@@ -240,9 +240,9 @@ authored-root argument stops being a caveat and becomes a research program.
 
 ### 5.1 Why self-agreement carries zero independent weight (L10)
 
-The README is blunt about its own current state: the project ships two
-implementations — the Python reference and a from-scratch Rust port — that agree
-on all 18 conformance vectors in CI. And it immediately refuses to over-claim from
+The README is blunt about its own current state: the project ships three
+implementations — the Python reference, a from-scratch Rust port, and a Node.js port — that agree
+on all 19 conformance vectors in CI. And it immediately refuses to over-claim from
 that agreement:
 
 > *"they share an author, so that agreement shows the spec is implementable, not
