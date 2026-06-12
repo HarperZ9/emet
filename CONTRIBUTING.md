@@ -2,7 +2,7 @@
 
 EMET is a re-derivability-based integrity verifier. Its value is that every verdict it
 emits can be reproduced, and that it refuses to become an authority. Contributions are
-welcome — within the boundaries below, which are not negotiable.
+welcome - within the boundaries below, which are not negotiable.
 
 ## The boundaries a change must respect
 
@@ -27,14 +27,14 @@ python membrane.py selftest              # self-hash
 ```
 
 Both implementations must pass the conformance vectors. If a change alters behavior,
-update [SPEC.md](SPEC.md) and `conformance/vectors.json` **together** — the spec is
+update [SPEC.md](SPEC.md) and `conformance/vectors.json` **together** - the spec is
 normative, and the vectors are how an independent implementation reproduces it.
 
 ## The most valuable contribution: another implementation
 
 An **independent implementation written against `SPEC.md` alone** (not by reading
 existing code), in any language, is the highest-leverage contribution. When it passes
-`conformance/vectors.json`, re-derivability gains another witness — and a
+`conformance/vectors.json`, re-derivability gains another witness - and a
 *different-author* witness is exactly what the project still needs. Where your
 implementation and the spec disagree, **fix the spec**: those divergences are the point.
 
