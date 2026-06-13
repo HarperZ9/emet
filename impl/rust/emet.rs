@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::process::{exit, Command};
+use std::process::{exit, Command, Stdio};
 
 // ---------------- SHA-256 ----------------
 const K: [u32; 64] = [
@@ -27,8 +27,8 @@ const K: [u32; 64] = [
 
 fn sha256_hex(msg: &[u8]) -> String {
     let mut h: [u32; 8] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
     ];
     let ml: u64 = (msg.len() as u64).wrapping_mul(8);
     let mut m: Vec<u8> = msg.to_vec();
@@ -48,7 +48,10 @@ fn sha256_hex(msg: &[u8]) -> String {
         for j in 16..64 {
             let s0 = w[j - 15].rotate_right(7) ^ w[j - 15].rotate_right(18) ^ (w[j - 15] >> 3);
             let s1 = w[j - 2].rotate_right(17) ^ w[j - 2].rotate_right(19) ^ (w[j - 2] >> 10);
-            w[j] = w[j - 16].wrapping_add(s0).wrapping_add(w[j - 7]).wrapping_add(s1);
+            w[j] = w[j - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[j - 7])
+                .wrapping_add(s1);
         }
         let mut a = h[0];
         let mut b = h[1];
@@ -97,6 +100,36 @@ fn sha256_hex(msg: &[u8]) -> String {
 
 fn sha_of_file(path: &str) -> Option<String> {
     fs::read(path).ok().map(|b| sha256_hex(&b))
+}
+
+fn git_hash_object_path(path: &str) -> Option<String> {
+    let out = Command::new("git")
+        .args(["hash-object", "--no-filters", path])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    stdout.split_whitespace().next().map(str::to_string)
+}
+
+fn git_hash_object_stdin(bytes: &[u8]) -> Option<String> {
+    let mut child = Command::new("git")
+        .args(["hash-object", "--no-filters", "--stdin"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .ok()?;
+    let mut stdin = child.stdin.take()?;
+    stdin.write_all(bytes).ok()?;
+    drop(stdin);
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    stdout.split_whitespace().next().map(str::to_string)
 }
 
 fn pre(s: &str) -> &str {
@@ -197,7 +230,11 @@ fn json_str(s: &str) -> String {
             _ if u <= 0xffff => o.push_str(&format!("\\u{:04x}", u)),
             _ => {
                 let v = u - 0x10000;
-                o.push_str(&format!("\\u{:04x}\\u{:04x}", 0xd800 + (v >> 10), 0xdc00 + (v & 0x3ff)));
+                o.push_str(&format!(
+                    "\\u{:04x}\\u{:04x}",
+                    0xd800 + (v >> 10),
+                    0xdc00 + (v & 0x3ff)
+                ));
             }
         }
     }
@@ -267,7 +304,11 @@ fn record(kind: &str, mut fact: Vec<(&str, JV)>) {
         json_str("prev"),
         json_str(&prev),
     );
-    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open("membrane_log.jsonl") {
+    if let Ok(mut f) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("membrane_log.jsonl")
+    {
         let _ = f.write_all(line.as_bytes());
         let _ = f.write_all(b"\n");
     }
@@ -290,7 +331,11 @@ fn load_corpus() -> Result<(i64, String, Vec<Vec<u8>>), &'static str> {
     let mut version: Option<i64> = None;
     let mut markers: Vec<Vec<u8>> = Vec::new();
     for raw in data.split(|&b| b == b'\n') {
-        let line: &[u8] = if raw.last() == Some(&b'\r') { &raw[..raw.len() - 1] } else { raw };
+        let line: &[u8] = if raw.last() == Some(&b'\r') {
+            &raw[..raw.len() - 1]
+        } else {
+            raw
+        };
         if line.first() == Some(&b'#') {
             let meta: Vec<u8> = line[1..]
                 .iter()
@@ -348,7 +393,10 @@ fn cmd_anchor(paths: &[String]) -> i32 {
     for p in paths {
         if let Some(h) = sha_of_file(p) {
             println!("anchored {} sha256={}", p, h);
-            record("anchor", vec![("path", JV::S(p.clone())), ("sha256", JV::S(h.clone()))]);
+            record(
+                "anchor",
+                vec![("path", JV::S(p.clone())), ("sha256", JV::S(h.clone()))],
+            );
             map.insert(p.clone(), h);
         }
     }
@@ -368,16 +416,34 @@ fn cmd_verify(paths: &[String]) -> i32 {
             Some(want) => match sha_of_file(p) {
                 None => {
                     println!("UNVERIFIABLE {} (unreadable)", p);
-                    record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("UNVERIFIABLE".to_string()))]);
+                    record(
+                        "verify",
+                        vec![
+                            ("path", JV::S(p.clone())),
+                            ("result", JV::S("UNVERIFIABLE".to_string())),
+                        ],
+                    );
                     bad += 1;
                 }
                 Some(got) => {
                     if &got == want {
                         println!("MATCH {} want={} got={}", p, pre(want), pre(&got));
-                        record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("MATCH".to_string()))]);
+                        record(
+                            "verify",
+                            vec![
+                                ("path", JV::S(p.clone())),
+                                ("result", JV::S("MATCH".to_string())),
+                            ],
+                        );
                     } else {
                         println!("DRIFT {} want={} got={}", p, pre(want), pre(&got));
-                        record("verify", vec![("path", JV::S(p.clone())), ("result", JV::S("DRIFT".to_string()))]);
+                        record(
+                            "verify",
+                            vec![
+                                ("path", JV::S(p.clone())),
+                                ("result", JV::S("DRIFT".to_string())),
+                            ],
+                        );
                         bad += 1;
                     }
                 }
@@ -398,17 +464,35 @@ fn cmd_coherence(src: &str, view: &str) -> i32 {
             println!("view  ={}", v);
             if s == v {
                 println!("result=COHERENT");
-                record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("COHERENT".to_string()))]);
+                record(
+                    "coherence",
+                    vec![
+                        ("source", JV::S(src.to_string())),
+                        ("result", JV::S("COHERENT".to_string())),
+                    ],
+                );
                 0
             } else {
                 println!("result=VIEW_DIFFERS_FROM_SOURCE");
-                record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("VIEW_DIFFERS_FROM_SOURCE".to_string()))]);
+                record(
+                    "coherence",
+                    vec![
+                        ("source", JV::S(src.to_string())),
+                        ("result", JV::S("VIEW_DIFFERS_FROM_SOURCE".to_string())),
+                    ],
+                );
                 2
             }
         }
         _ => {
             println!("result=UNVERIFIABLE");
-            record("coherence", vec![("source", JV::S(src.to_string())), ("result", JV::S("UNVERIFIABLE".to_string()))]);
+            record(
+                "coherence",
+                vec![
+                    ("source", JV::S(src.to_string())),
+                    ("result", JV::S("UNVERIFIABLE".to_string())),
+                ],
+            );
             2
         }
     }
@@ -419,7 +503,14 @@ fn cmd_refuse(path: &str) -> i32 {
         Ok(b) => b,
         Err(_) => {
             println!("UNVERIFIABLE {} reason=E_NOT_FOUND", path);
-            record("refuse", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NOT_FOUND".to_string()))]);
+            record(
+                "refuse",
+                vec![
+                    ("path", JV::S(path.to_string())),
+                    ("result", JV::S("UNVERIFIABLE".to_string())),
+                    ("reason", JV::S("E_NOT_FOUND".to_string())),
+                ],
+            );
             return 2;
         }
     };
@@ -427,7 +518,14 @@ fn cmd_refuse(path: &str) -> i32 {
         Ok(c) => c,
         Err(reason) => {
             println!("UNVERIFIABLE {} reason={}", path, reason);
-            record("refuse", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S(reason.to_string()))]);
+            record(
+                "refuse",
+                vec![
+                    ("path", JV::S(path.to_string())),
+                    ("result", JV::S("UNVERIFIABLE".to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
             return 2;
         }
     };
@@ -452,8 +550,18 @@ fn cmd_refuse(path: &str) -> i32 {
     println!("corpus_version={}", version);
     println!("corpus_sha256={}", csha);
     println!("in_band_authority_claims={}", n);
-    println!("clean_copy={}.refused  (claims neutralized; obeyed: none)", path);
-    record("refuse", vec![("path", JV::S(path.to_string())), ("refused", JV::I(n as i64)), ("corpus_version", JV::I(version))]);
+    println!(
+        "clean_copy={}.refused  (claims neutralized; obeyed: none)",
+        path
+    );
+    record(
+        "refuse",
+        vec![
+            ("path", JV::S(path.to_string())),
+            ("refused", JV::I(n as i64)),
+            ("corpus_version", JV::I(version)),
+        ],
+    );
     if n == 0 {
         0
     } else {
@@ -462,18 +570,27 @@ fn cmd_refuse(path: &str) -> i32 {
 }
 
 fn cmd_corroborate(path: &str) -> i32 {
-    let primary = match fs::read(path) {
-        Ok(b) => sha256_hex(&b),
+    let primary_bytes = match fs::read(path) {
+        Ok(b) => b,
         Err(_) => {
             println!("open_rb=unavailable:E_NOT_FOUND");
             println!("read_paths_agree=False");
             println!("result=UNVERIFIABLE reason=E_NOT_FOUND");
-            record("corroborate", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NOT_FOUND".to_string()))]);
+            record(
+                "corroborate",
+                vec![
+                    ("path", JV::S(path.to_string())),
+                    ("result", JV::S("UNVERIFIABLE".to_string())),
+                    ("reason", JV::S("E_NOT_FOUND".to_string())),
+                ],
+            );
             return 2;
         }
     };
+    let primary = sha256_hex(&primary_bytes);
     println!("open_rb={}", primary);
     let mut cat_ok = false;
+    let mut git_agrees: Option<bool> = None;
     let mut agree = true;
     match Command::new("cat").arg(path).output() {
         Ok(o) if o.status.success() => {
@@ -488,21 +605,65 @@ fn cmd_corroborate(path: &str) -> i32 {
             println!("cat_subproc=unavailable");
         }
     }
-    if !cat_ok {
+    match (
+        git_hash_object_path(path),
+        git_hash_object_stdin(&primary_bytes),
+    ) {
+        (Some(path_hash), Some(open_hash)) => {
+            let git_ok = path_hash == open_hash;
+            println!("git_read={}", path_hash);
+            println!(
+                "git_read_agrees_with_open={}",
+                if git_ok { "True" } else { "False" }
+            );
+            git_agrees = Some(git_ok);
+            if !git_ok {
+                agree = false;
+            }
+        }
+        _ => {
+            println!("git_read=unavailable");
+            println!("git_read_agrees_with_open=None");
+        }
+    }
+    if !cat_ok && git_agrees.is_none() {
         // only open_rb succeeded: no independent read path to corroborate against.
         println!("read_paths_agree=False");
         println!("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
-        record("corroborate", vec![("path", JV::S(path.to_string())), ("result", JV::S("UNVERIFIABLE".to_string())), ("reason", JV::S("E_NO_SECOND_READ_PATH".to_string()))]);
+        record(
+            "corroborate",
+            vec![
+                ("path", JV::S(path.to_string())),
+                ("result", JV::S("UNVERIFIABLE".to_string())),
+                ("reason", JV::S("E_NO_SECOND_READ_PATH".to_string())),
+            ],
+        );
         return 2;
     }
     println!("read_paths_agree={}", if agree { "True" } else { "False" });
     if agree {
         println!("result=CORROBORATED");
-        record("corroborate", vec![("path", JV::S(path.to_string())), ("agree", JV::B(true)), ("git", JV::Null)]);
+        let git = git_agrees.map(JV::B).unwrap_or(JV::Null);
+        record(
+            "corroborate",
+            vec![
+                ("path", JV::S(path.to_string())),
+                ("agree", JV::B(true)),
+                ("git", git),
+            ],
+        );
         0
     } else {
         println!("result=QUARANTINE_READ_PATH_DIVERGENCE");
-        record("corroborate", vec![("path", JV::S(path.to_string())), ("agree", JV::B(false)), ("git", JV::Null)]);
+        let git = git_agrees.map(JV::B).unwrap_or(JV::Null);
+        record(
+            "corroborate",
+            vec![
+                ("path", JV::S(path.to_string())),
+                ("agree", JV::B(false)),
+                ("git", git),
+            ],
+        );
         2
     }
 }
@@ -659,7 +820,11 @@ fn cmd_audit() -> i32 {
         }
         prev = e_chain.to_vec();
     }
-    println!("log_entries={} chain={}", n, if ok { "INTACT" } else { "BROKEN" });
+    println!(
+        "log_entries={} chain={}",
+        n,
+        if ok { "INTACT" } else { "BROKEN" }
+    );
     if ok {
         0
     } else {
