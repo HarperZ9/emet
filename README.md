@@ -2,15 +2,18 @@
 
 [![conformance](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
 
-A small integrity verifier for AI oversight. It checks that the bytes reaching a
-model match their source, and flags three things build-provenance tools (in-toto,
-SLSA, Sigstore, C2PA) don't: a system vouching for itself in-band, a presented view
-that differs from its source, and a monitor reading a different file than the one
-that runs. Trust comes from re-derivation - same bytes, same answer - not from
-authority. The verdicts are `MATCH`, `DRIFT`, and `UNVERIFIABLE`; there is no
-`TRUSTED`.
+EMET is a small external witness for AI oversight and source/view consistency.
+It checks whether bytes reaching a model still match the source they claim to
+represent, then reports one of three deliberately limited verdicts: `MATCH`,
+`DRIFT`, or `UNVERIFIABLE`.
 
-*emet (אמת) is Hebrew for "truth."*
+It exists for the gap build-provenance tools do not cover by themselves: a
+system vouching for itself in-band, a presented view drifting away from source,
+or a monitor reading a different file than the one that actually runs. Trust
+comes from re-derivation - same bytes, same answer - not from authority. There
+is no `TRUSTED` verdict.
+
+`emet` is Hebrew for "truth."
 
 ## What's here
 
@@ -76,7 +79,7 @@ or actuation boundaries.
 
 It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model is
 safe, runs outside whatever it audits, and never edits, signs, or blocks anything.
-Those constraints are the point, not limitations - see [SPEC.md](SPEC.md) §6.
+Those constraints are the point, not limitations - see [SPEC.md](SPEC.md) section 6.
 
 ## Status
 
@@ -87,11 +90,11 @@ in CI (19 conformance vectors, all three implementations). Re-derivability is **
 demonstrated** in one respect, stated plainly rather than papered over:
 
 - The Rust and Node.js implementations are same-author and clean-room, not independent.
-- SPEC §12's actual bar - an *independent, different-author* implementation passing
-  the vectors - is not yet met, and per §12 no party should treat re-derivability
+- SPEC section 12's actual bar - an *independent, different-author* implementation passing
+  the vectors - is not yet met, and per section 12 no party should treat re-derivability
   as proven until it is.
 
-That different-author implementation is the next step, and the spec says so (§12).
+That different-author implementation is the next step, and the spec says so (section 12).
 For a tool whose only credential is reproduction, an inflated claim would refute
 itself - so the claim is scoped to exactly what CI reproduces today.
 
@@ -115,9 +118,9 @@ python conformance/run.py ./your-emet     # expected: CONFORMANCE 19/19
 Where your implementation and the spec disagree, **the spec is wrong** - open an
 issue; those divergences are the point. (The Node.js implementation already did
 exactly this: building it from the spec alone surfaced that the marker *count* was
-unpinned - SPEC §16 and the `refuse-repeated-marker-occurrence-count` vector now
+unpinned - SPEC section 16 and the `refuse-repeated-marker-occurrence-count` vector now
 pin it.) A different-author implementation is what
-converts re-derivability from *asserted* to *demonstrated* (SPEC §12). Claim a
+converts re-derivability from *asserted* to *demonstrated* (SPEC section 12). Claim a
 language in [Discussions](../../discussions) so effort isn't duplicated.
 
 ## Docs
