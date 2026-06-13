@@ -1,4 +1,5 @@
 anchors.json
+receipt.json
 *_log.jsonl
 *.refused
 __pycache__/
