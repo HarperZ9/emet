@@ -43,6 +43,30 @@ python membrane.py corroborate <path>           # read-path-diverse agreement
 python membrane.py audit                        # recompute the tamper-evident log chain
 ```
 
+## Proof-surface use
+
+EMET is the witness point in a proof-surface pipeline:
+
+```text
+source bytes -> presented view -> witness verdict -> reviewer handoff
+```
+
+Use it when a repo, report, model-facing prompt, or generated view needs a
+small external check that the presented material still matches the source it
+claims to represent.
+
+Fast reviewer checklist:
+
+- `MATCH` means the checked material re-derived to the expected byte-level
+  result.
+- `DRIFT` means the presented view or checked bytes changed.
+- `UNVERIFIABLE` means the witness cannot make the comparison.
+- There is no `TRUSTED` verdict.
+
+This makes EMET useful as a release-readiness and diligence artifact: it can
+show what was compared and what verdict was produced without asking the witness
+to become an authority.
+
 ## What it won't do
 
 It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model is
