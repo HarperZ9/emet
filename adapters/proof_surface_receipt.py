@@ -96,8 +96,9 @@ def receipt(check, subjects, result):
             "stdout_verdict_line": line,
         },
         "notes": (
-            "EMET emits witness facts only. The receipt carries no TRUSTED, "
-            "APPROVED, SAFE, or authority verdict."
+            "EMET emits witness facts only. The receipt preserves the closed "
+            "verdict lattice and carries no authority, permission, or release "
+            "decision."
         ),
     }
 
