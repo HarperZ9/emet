@@ -67,6 +67,11 @@ This makes EMET useful as a release-readiness and diligence artifact: it can
 show what was compared and what verdict was produced without asking the witness
 to become an authority.
 
+The optional `adapters/proof_surface_receipt.py` adapter emits compact JSON
+witness receipts for proof-index and release-readiness workflows. It lives
+outside the EMET core and does not change governed stdout, signing, enforcement,
+or actuation boundaries.
+
 ## What it won't do
 
 It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model is
