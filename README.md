@@ -73,7 +73,8 @@ to become an authority.
 The optional `adapters/proof_surface_receipt.py` adapter emits compact JSON
 witness receipts for proof-index and release-readiness workflows. It lives
 outside the EMET core and does not change governed stdout, signing, enforcement,
-or actuation boundaries.
+or actuation boundaries. The adapter only accepts governed verdict tokens as
+whole tokens and refuses authority-shaped stdout before it enters a receipt.
 
 ## What it won't do
 

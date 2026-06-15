@@ -22,6 +22,8 @@ yet staffed; do not assume a CVE will be issued before that is in place.
 
 - A way to make EMET emit a verdict outside the closed lattice (SPEC section 2),
   in particular anything that reads as TRUSTED.
+- A way to make `adapters/proof_surface_receipt.py` carry an authority-shaped
+  core stdout token into a proof-surface receipt.
 - A way to make verify, coherence, corroborate, or audit report a false MATCH,
   COHERENT, CORROBORATED, or INTACT on tampered input.
 - A way to make EMET act on a target (write, sign, enforce) -- a boundary 6

@@ -17,6 +17,7 @@ Usage:
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -31,6 +32,16 @@ VERDICT_TOKENS = [
     "VIEW_DIFFERS_FROM_SOURCE",
     "CORROBORATED",
     "QUARANTINE_READ_PATH_DIVERGENCE",
+]
+FORBIDDEN_TOKENS = [
+    "TRUSTED",
+    "APPROVED",
+    "SAFE",
+    "ALLOWED",
+    "PERMITTED",
+    "AUTHORIZED",
+    "CERTIFIED",
+    "COMPLIANT",
 ]
 
 
@@ -58,10 +69,17 @@ def tool_version():
 
 def verdict_line(stdout):
     for line in stdout.splitlines():
+        for token in FORBIDDEN_TOKENS:
+            if _token_present(token, line):
+                return "UNVERIFIABLE", "authority token refused by receipt adapter"
         for token in VERDICT_TOKENS:
-            if token in line:
+            if _token_present(token, line):
                 return token, line
     return "UNVERIFIABLE", ""
+
+
+def _token_present(token, line):
+    return re.search(r"(?<![A-Z0-9_])" + re.escape(token) + r"(?![A-Z0-9_])", line) is not None
 
 
 def subject(path):
