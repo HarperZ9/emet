@@ -35,19 +35,31 @@ def _logp(manifest):
 def _last(logp):
     last = "0" * 64
     if os.path.exists(logp):
-        for line in open(logp, encoding="utf-8"):
-            if line.strip(): last = json.loads(line)["chain"]
+        with open(logp, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    last = json.loads(line)["chain"]
+                except (json.JSONDecodeError, KeyError, ValueError):
+                    raise corpus.CorpusError("E_LOG_CORRUPT")
     return last
 
 def _record(manifest, kind, fact):
-    logp = _logp(manifest); prev = _last(logp)
+    logp = _logp(manifest)
+    try:
+        prev = _last(logp)
+    except corpus.CorpusError as e:
+        sys.stderr.write("monitor: not extending a corrupt log (" + e.reason + ")\n")
+        return
     e = {"kind": kind, "fact": fact, "prev": prev}
     e["chain"] = sha((prev + kind + json.dumps(fact, sort_keys=True)).encode())
     with open(logp, "a", encoding="utf-8") as f:
         f.write(json.dumps(e, sort_keys=True) + "\n")
 
 def report(manifest):
-    db = json.load(open(manifest, encoding="utf-8"))
+    with open(manifest, encoding="utf-8") as f:
+        db = json.load(f)
     try:
         version, csha, markers = corpus.load()
     except corpus.CorpusError as e:
@@ -64,7 +76,12 @@ def report(manifest):
         want = db[p]
         if not os.path.isfile(p):
             print(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p)); missing += 1; continue
-        b = open(p, "rb").read(); got = sha(b); hits = corpus.count(b, markers); total += hits
+        try:
+            with open(p, "rb") as fh:
+                b = fh.read()
+        except OSError:
+            print(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p) + " reason=E_NO_RAW_CHANNEL"); missing += 1; continue
+        got = sha(b); hits = corpus.count(b, markers); total += hits
         st = governed(MONITOR_FILE, "MATCH" if got == want else "DRIFT") + " "
         if got != want: drift += 1
         print(st + " markers=" + str(hits).rjust(3) + "  " + os.path.basename(p))
@@ -74,16 +91,21 @@ def report(manifest):
     sys.exit(0 if verdict == "INTACT" else 2)
 
 def reanchor(manifest):
-    db = json.load(open(manifest, encoding="utf-8"))
+    with open(manifest, encoding="utf-8") as f:
+        db = json.load(f)
     changed = 0; new = {}
     for p in sorted(db):
-        if os.path.isfile(p):
-            h = sha(open(p, "rb").read())
-            if h != db[p]: changed += 1
-            new[p] = h
-        else:
-            print("skip MISSING " + p)
-    json.dump(new, open(manifest, "w", encoding="utf-8"), indent=2, sort_keys=True)
+        if not os.path.isfile(p):
+            print("skip MISSING " + p); continue
+        try:
+            with open(p, "rb") as fh:
+                h = sha(fh.read())
+        except OSError:
+            print("skip UNREADABLE " + p + " reason=E_NO_RAW_CHANNEL"); continue
+        if h != db[p]: changed += 1
+        new[p] = h
+    with open(manifest, "w", encoding="utf-8") as f:
+        json.dump(new, f, indent=2, sort_keys=True)
     print("reanchored=" + str(len(new)) + " updated=" + str(changed) + " (operator authorized current state as baseline)")
     _record(manifest, "reanchor", {"reanchored": len(new), "updated": changed})
 

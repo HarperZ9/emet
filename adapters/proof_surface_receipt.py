@@ -46,8 +46,12 @@ FORBIDDEN_TOKENS = [
 
 
 def sha256(path):
-    with open(path, "rb") as handle:
-        return hashlib.sha256(handle.read()).hexdigest()
+    # Missing/unreadable file -> None (reported as a verdict, never a traceback).
+    try:
+        with open(path, "rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()
+    except OSError:
+        return None
 
 
 def run_core(args, cwd=None):
@@ -83,9 +87,11 @@ def _token_present(token, line):
 
 
 def subject(path):
+    h = sha256(path)
+    digest = {"sha256": h} if h is not None else {"unavailable": "E_NOT_FOUND"}
     return {
         "name": os.path.basename(path),
-        "digest": {"sha256": sha256(path)},
+        "digest": digest,
     }
 
 
