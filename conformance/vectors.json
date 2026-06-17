@@ -52,7 +52,7 @@
     },
     {
       "expect_exit": 0,
-      "expect_substr": "COHERENT",
+      "expect_substr": "result=COHERENT",
       "files": {
         "s": "same\n",
         "v": "same\n"
@@ -66,7 +66,7 @@
     },
     {
       "expect_exit": 2,
-      "expect_substr": "VIEW_DIFFERS_FROM_SOURCE",
+      "expect_substr": "result=VIEW_DIFFERS_FROM_SOURCE",
       "files": {
         "s": "depth\n",
         "v": "depth INJECTED\n"
@@ -104,7 +104,7 @@
     },
     {
       "expect_exit": 0,
-      "expect_substr": "CORROBORATED",
+      "expect_substr": "result=CORROBORATED",
       "files": {
         "c.txt": "corroborate me\n"
       },

@@ -16,7 +16,7 @@ Usage: python run.py [path-to-tool] [path-to-vectors.json]
   path-to-tool may be a .py script (run via this interpreter) OR any executable
   binary (run directly) -- so a Rust or Go build is tested the same way as Python.
 """
-import os, sys, json, tempfile, shutil, subprocess
+import os, sys, json, tempfile, shutil, subprocess, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "membrane.py"))
@@ -32,7 +32,20 @@ def invoke(tool):
     return [tool]
 
 def main():
-    spec = json.load(open(VECT, encoding="utf-8"))
+    with open(VECT, encoding="utf-8") as f:
+        spec = json.load(f)
+    # Fail-closed on a drifted corpus: SPEC s.8 pins re-derivability to
+    # spec_version + corpus_version + bytes. A mismatched corpus invalidates
+    # every vector, so abort rather than silently run against the wrong data.
+    pinned = spec.get("corpus_sha256")
+    if pinned:
+        with open(CORPUS, "rb") as f:
+            actual = hashlib.sha256(f.read()).hexdigest()
+        if actual != pinned:
+            sys.exit(
+                "ABORT: corpus hash mismatch\n  file:   " + CORPUS
+                + "\n  actual: " + actual + "\n  pinned: " + pinned
+            )
     vectors = spec["vectors"]
     npass = 0
     for v in vectors:
