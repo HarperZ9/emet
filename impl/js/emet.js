@@ -179,19 +179,23 @@ function saveAnchors(anchors) {
 function cmdAnchor(paths) {
   if (paths.length === 0) return EXIT_USAGE;
   const anchors = loadAnchors();
+  let anyFail = false;
   for (const p of paths) {
     const hex = hashFileRaw(p);
     if (hex === null) {
       // No raw byte channel -> UNVERIFIABLE (SPEC s.3/s.9), stable reason code.
+      // Continue the batch and persist what anchored (parity with membrane.py),
+      // rather than aborting and discarding earlier anchors.
       process.stdout.write(`UNVERIFIABLE ${p} reason=E_NO_RAW_CHANNEL\n`);
-      return EXIT_FAIL;
+      anyFail = true;
+      continue;
     }
     anchors[p] = { sha256: hex };
     appendLogEntry("anchor", { path: p, sha256: hex });
     process.stdout.write(`ANCHORED ${p}\n`);
   }
   saveAnchors(anchors);
-  return EXIT_OK;
+  return anyFail ? EXIT_FAIL : EXIT_OK;
 }
 
 // verify PATH... -- per path emit MATCH / DRIFT / UNVERIFIABLE vs the anchor.

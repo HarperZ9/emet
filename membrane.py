@@ -62,15 +62,36 @@ def try_raw(path):
 def sha(b):
     return hashlib.sha256(b).hexdigest()
 
+def _load_json(path):
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
 def _last_chain():
     last = "0" * 64
     if os.path.exists(LOG):
-        for line in open(LOG, encoding="utf-8"):
-            if line.strip(): last = json.loads(line)["chain"]
+        with open(LOG, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    last = json.loads(line)["chain"]
+                except (json.JSONDecodeError, KeyError, ValueError):
+                    # A corrupt log line is a tamper event, not a crash. Refuse to
+                    # chain off corruption; record() handles this controlled error.
+                    raise corpus.CorpusError("E_LOG_CORRUPT")
     return last
 
 def record(kind, fact):
-    prev = _last_chain()
+    # Best-effort tamper-evident logging. If the log is already corrupt, refuse to
+    # extend it (chaining off a break would hide it) and warn out-of-band; the
+    # primary verdict was already emitted and stands. `audit` surfaces the break.
+    try:
+        prev = _last_chain()
+    except corpus.CorpusError as e:
+        sys.stderr.write("membrane: not extending a corrupt log (" + e.reason + ")\n")
+        return
     e = {"kind": kind, "fact": fact, "prev": prev}
     e["chain"] = sha((prev + kind + json.dumps(fact, sort_keys=True)).encode())
     with open(LOG, "a", encoding="utf-8") as f:
@@ -82,7 +103,7 @@ def _key(p):
     return os.path.normpath(p).replace(os.sep, "/")
 
 def anchor(paths):
-    db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
+    db = _load_json(ANCHORS)
     bad = 0
     for p in paths:
         p = _key(p); b, err = try_raw(p)
@@ -90,11 +111,12 @@ def anchor(paths):
             print(governed(LATTICE, "UNVERIFIABLE") + " " + p + " reason=" + err); bad += 1; continue
         h = sha(b); db[p] = h
         print("anchored " + p + " sha256=" + h); record("anchor", {"path": p, "sha256": h})
-    json.dump(db, open(ANCHORS, "w", encoding="utf-8"), indent=2, sort_keys=True)
+    with open(ANCHORS, "w", encoding="utf-8") as f:
+        json.dump(db, f, indent=2, sort_keys=True)
     sys.exit(0 if not bad else 2)
 
 def verify(paths):
-    db = json.load(open(ANCHORS, encoding="utf-8")) if os.path.exists(ANCHORS) else {}
+    db = _load_json(ANCHORS)
     bad = 0
     for p in paths:
         p = _key(p); want = db.get(p)
@@ -136,7 +158,8 @@ def refuse(path):
         record("refuse", {"path": _key(path), "result": "UNVERIFIABLE", "reason": e.reason})
         sys.exit(2)
     hits, clean = corpus.scan(b, markers)
-    open(path + ".refused", "wb").write(clean)
+    with open(path + ".refused", "wb") as f:
+        f.write(clean)
     print("corpus_version=" + str(version))
     print("corpus_sha256=" + csha)
     print("in_band_authority_claims=" + str(len(hits)))
@@ -194,14 +217,20 @@ def corroborate(path):
 def audit():
     if not os.path.exists(LOG): print("no log"); return
     prev, ok, n = "0" * 64, True, 0
-    for line in open(LOG, encoding="utf-8"):
-        if not line.strip(): continue
-        e = json.loads(line); n += 1
-        if not all(k in e for k in ("kind", "fact", "prev", "chain")) \
-           or e["prev"] != prev \
-           or e["chain"] != sha((e["prev"] + e["kind"] + json.dumps(e["fact"], sort_keys=True)).encode()):
-            print(governed(AUDIT, "BROKEN") + " at entry " + str(n)); ok = False; break
-        prev = e["chain"]
+    with open(LOG, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip(): continue
+            n += 1
+            try:
+                e = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                # A corrupt line IS a tamper event — report BROKEN, never crash.
+                print(governed(AUDIT, "BROKEN") + " at entry " + str(n) + " (parse error)"); ok = False; break
+            if not all(k in e for k in ("kind", "fact", "prev", "chain")) \
+               or e["prev"] != prev \
+               or e["chain"] != sha((e["prev"] + e["kind"] + json.dumps(e["fact"], sort_keys=True)).encode()):
+                print(governed(AUDIT, "BROKEN") + " at entry " + str(n)); ok = False; break
+            prev = e["chain"]
     print("log_entries=" + str(n) + " chain=" + governed(AUDIT, "INTACT" if ok else "BROKEN")); sys.exit(0 if ok else 2)
 
 def selftest():

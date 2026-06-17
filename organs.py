@@ -51,11 +51,16 @@ def watch(manifest, paths):
         if os.path.isfile(p):
             h = sha(raw(p)); db["artifacts"][p] = h
             print("watch " + p + " sha256=" + h)
-    json.dump(db, open(manifest, "w", encoding="utf-8"), indent=2, sort_keys=True)
+    with open(manifest, "w", encoding="utf-8") as f:
+        json.dump(db, f, indent=2, sort_keys=True)
     print("watched=" + str(len(db["artifacts"])) + " at=" + db["at"])
 
 def observe(manifest, paths):
-    db = json.load(open(manifest, encoding="utf-8")) if os.path.exists(manifest) else {"artifacts": {}}
+    if os.path.exists(manifest):
+        with open(manifest, encoding="utf-8") as f:
+            db = json.load(f)
+    else:
+        db = {"artifacts": {}}
     known = db.get("artifacts", {})
     changed = 0
     for p in paths:
