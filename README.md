@@ -1,6 +1,13 @@
 # EMET
 
-[![conformance](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
+> A small external witness for AI oversight: re-derive the bytes, get one of three verdicts, trust nothing in-band.
+
+[![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
+![python](https://img.shields.io/badge/python-3.x-blue.svg)
+![version](https://img.shields.io/badge/version-0.2.0--draft-informational.svg)
+[![CI](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
+![deps: none](https://img.shields.io/badge/deps-none-success.svg)
+[![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
 
 EMET is a small external witness for AI oversight and source/view consistency.
 It checks whether bytes reaching a model still match the source they claim to
