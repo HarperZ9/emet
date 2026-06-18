@@ -53,6 +53,10 @@ python membrane.py corroborate <path>           # read-path-diverse agreement
 python membrane.py audit                        # recompute the tamper-evident log chain
 ```
 
+For an install/build line, per-command worked examples with expected output, the
+companion tools (`monitor.py`, `organs.py`), and a runnable demo, see
+[USAGE.md](USAGE.md) and [examples/](examples/).
+
 ## Proof-surface use
 
 EMET is the witness point in a proof-surface pipeline:
