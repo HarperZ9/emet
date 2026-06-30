@@ -88,7 +88,9 @@ def report(manifest):
     verdict = governed(MONITOR_BASELINE, "INTACT" if drift == 0 and missing == 0 else "CHANGED")
     print("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
     _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict, "corpus_version": version})
-    sys.exit(0 if verdict == "INTACT" else 2)
+    # baseline CHANGED (drift and/or missing) is a NEGATIVE FINDING -> exit 1
+    # (SPEC s.5); INTACT -> 0. A corpus that cannot load is UNVERIFIABLE -> 2 (above).
+    sys.exit(0 if verdict == "INTACT" else 1)
 
 def reanchor(manifest):
     with open(manifest, encoding="utf-8") as f:

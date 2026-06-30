@@ -27,7 +27,7 @@
       "append": {
         "a.txt": "X"
       },
-      "expect_exit": 2,
+      "expect_exit": 1,
       "expect_substr": "DRIFT",
       "files": {
         "a.txt": "galvanized\n"
@@ -65,7 +65,7 @@
       ]
     },
     {
-      "expect_exit": 2,
+      "expect_exit": 1,
       "expect_substr": "result=VIEW_DIFFERS_FROM_SOURCE",
       "files": {
         "s": "depth\n",
@@ -215,7 +215,7 @@
       ]
     },
     {
-      "expect_exit": 2,
+      "expect_exit": 1,
       "expect_substr": "chain=BROKEN",
       "files": {
         "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"DRIFT\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
@@ -227,7 +227,7 @@
       ]
     },
     {
-      "expect_exit": 2,
+      "expect_exit": 1,
       "expect_substr": "chain=BROKEN",
       "files": {
         "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"MATCH\"}, \"kind\": \"FORGED\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
@@ -251,6 +251,17 @@
       "note": "an implementation writes a hash-chained log entry on anchor and then audits it as INTACT (the write+verify loop, both implementations)",
       "run": [
         "audit"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "UNVERIFIABLE",
+      "files": {},
+      "id": "anchor-unreadable-is-unverifiable",
+      "note": "anchor on an unreadable/absent target is UNVERIFIABLE + exit 2, never a silent skip (SPEC s.4); pins the cross-impl behavior an earlier Rust port diverged on (it exited 0)",
+      "run": [
+        "anchor",
+        "ghost"
       ]
     }
   ]
