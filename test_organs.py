@@ -35,21 +35,22 @@ class OrgansBehavior(unittest.TestCase):
         self.assertRegex(out, r"(?m)^gate=REVERTIBLE\b")
         self.assertEqual(code, 0)
 
-    def test_gate_present_untracked_is_not_revertible_exit_2(self):
+    def test_gate_present_untracked_is_not_revertible_exit_1(self):
         # A present file in a non-git dir has no VCS revert path -> the FACT is
-        # NOT_REVERTIBLE, exit 2. (No permission token is emitted; Boundary 1.)
+        # NOT_REVERTIBLE, a NEGATIVE FINDING -> exit 1 (SPEC s.5). No permission
+        # token is emitted, and exit 1 is a fact, not a denial (Boundary 1/4).
         f = os.path.join(self.tmp, "present.txt")
         with open(f, "wb") as fh:
             fh.write(b"untracked_bytes\n")
         code, out = self.run_organs(["gate", f])
         self.assertRegex(out, r"(?m)^NOT_REVERTIBLE ")
         self.assertRegex(out, r"(?m)^gate=NOT_REVERTIBLE\b")
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 1)
 
     def test_observe_emits_new_unchanged_drifted_and_gone(self):
         # A manifest covering: an unknown path (NEW), a matching hash (UNCHANGED),
-        # a changed file (DRIFTED), and an absent file (GONE). Exit 2 since the
-        # baseline changed.
+        # a changed file (DRIFTED), and an absent file (GONE). Exit 1 (SPEC s.5)
+        # since the baseline changed (a negative finding).
         match = os.path.join(self.tmp, "match.txt")
         drift = os.path.join(self.tmp, "drift.txt")
         fresh = os.path.join(self.tmp, "fresh.txt")
@@ -75,7 +76,7 @@ class OrgansBehavior(unittest.TestCase):
         self.assertRegex(out, r"(?m)^UNCHANGED ")
         self.assertRegex(out, r"(?m)^DRIFTED ")
         self.assertRegex(out, r"(?m)^GONE ")
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 1)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

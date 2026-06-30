@@ -40,7 +40,7 @@ class MonitorBehavior(unittest.TestCase):
     def test_report_governs_match_drift_missing_and_baseline_changed(self):
         # The governed monitor tokens (SPEC s.2): a manifest mixing a matching,
         # a drifted, and a missing file emits per-file MATCH / DRIFT / MISSING and
-        # the per-baseline CHANGED summary, with exit 2.
+        # the per-baseline CHANGED summary, with exit 1 (SPEC s.5: a negative finding).
         mfile = os.path.join(self.tmp, "match.txt"); dfile = os.path.join(self.tmp, "drift.txt")
         gone = os.path.join(self.tmp, "gone.txt")
         with open(mfile, "wb") as f: f.write(b"alpha\n")
@@ -55,7 +55,7 @@ class MonitorBehavior(unittest.TestCase):
         self.assertRegex(out, r"(?m)^DRIFT ")
         self.assertRegex(out, r"(?m)^MISSING ")
         self.assertIn("baseline=CHANGED", out)
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 1)
 
     def test_report_all_match_is_baseline_intact(self):
         code, out = self.run_mon(["report", self.manifest])

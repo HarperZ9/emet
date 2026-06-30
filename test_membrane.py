@@ -39,7 +39,7 @@ class MembraneBehavior(unittest.TestCase):
         f = self.w("a.txt", b"galvanized\n"); run(["anchor", f], self.tmp)
         with open(f, "ab") as fh: fh.write(b"X")
         code, out = run(["verify", f], self.tmp)
-        self.assertIn("DRIFT", out); self.assertEqual(code, 2)
+        self.assertIn("DRIFT", out); self.assertEqual(code, 1)  # SPEC s.5: difference -> exit 1
 
     def test_verify_without_anchor_is_unverifiable_not_trusted(self):
         f = self.w("a.txt", b"x\n")
@@ -56,7 +56,7 @@ class MembraneBehavior(unittest.TestCase):
         s = self.w("s", b"depth in [0,1]\n")
         v = self.w("v", b"depth in [0,1] [SCOPE CONTEXT]\n")
         code, out = run(["coherence", s, v], self.tmp)
-        self.assertIn("VIEW_DIFFERS_FROM_SOURCE", out); self.assertEqual(code, 2)
+        self.assertIn("VIEW_DIFFERS_FROM_SOURCE", out); self.assertEqual(code, 1)  # SPEC s.5: difference -> exit 1
 
     def test_refuse_counts_and_neutralizes_authority(self):
         f = self.w("inj.txt",
@@ -80,7 +80,7 @@ class MembraneBehavior(unittest.TestCase):
         with open(os.path.join(self.tmp, "membrane_log.jsonl"), "a") as fh:
             fh.write('{"chain":"deadbeef","fact":{},"kind":"forged","prev":"0"}\n')
         code, out = run(["audit"], self.tmp)
-        self.assertIn("BROKEN", out); self.assertEqual(code, 2)
+        self.assertIn("BROKEN", out); self.assertEqual(code, 1)  # SPEC s.5: BROKEN -> exit 1
 
     def test_audit_binds_kind_field(self):
         # Relabeling an entry's kind (e.g. anchor -> something else) while leaving
@@ -93,7 +93,7 @@ class MembraneBehavior(unittest.TestCase):
         e["kind"] = "FORGED_KIND"
         with open(logp, "w") as fh: fh.write(_json.dumps(e, sort_keys=True) + "\n")
         code, out = run(["audit"], self.tmp)
-        self.assertIn("BROKEN", out); self.assertEqual(code, 2)
+        self.assertIn("BROKEN", out); self.assertEqual(code, 1)  # SPEC s.5: BROKEN -> exit 1
 
     def test_selftest_hash_is_reproducible(self):
         code, out = run(["selftest"], self.tmp); self.assertEqual(code, 0)

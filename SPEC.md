@@ -69,7 +69,10 @@ conformance/vectors.json.
 
 ## 4. Commands (normative contracts)
 
-- anchor PATH... -- pin sha256 of raw bytes per path to the anchor store; exit 0.
+- anchor PATH... -- pin sha256 of raw bytes per path to the anchor store; exit 0
+  when every path anchored. An unreadable or absent target MUST be reported
+  UNVERIFIABLE with a stable machine reason code (section 9) and yields exit 2; it
+  MUST NOT be silently skipped. anchor pins no required stdout token (section 13).
 - verify PATH... -- per path emit MATCH, DRIFT, or UNVERIFIABLE versus the anchor.
 - coherence SOURCE VIEW -- emit COHERENT or VIEW_DIFFERS_FROM_SOURCE.
 - refuse FILE -- emit the marker count; write a .refused copy with markers
@@ -85,19 +88,40 @@ conformance/vectors.json.
 - selftest -- emit the own-source SHA-256 of the implementation; assert no
   authority.
 
-## 5. Exit codes
+## 5. Exit codes (NORMATIVE)
 
-v1.0 (current -- NORMATIVE):
+The exit code is the verdict class expressed as an integer. It is data plus an
+advisory signal, never an authority decision (Boundary 4): a non-zero code
+reports a fact, it allows and denies nothing.
 
-- exit 0 -- all MATCH, COHERENT, CORROBORATED, INTACT, no markers, or selftest ok.
-- exit 2 -- any DRIFT, UNVERIFIABLE, VIEW_DIFFERS_FROM_SOURCE, QUARANTINE, BROKEN.
+- exit 0 -- the checked property HELD: all MATCH, COHERENT, CORROBORATED, INTACT,
+  no markers, or selftest ok.
+- exit 1 -- a NEGATIVE FINDING was produced: DRIFT, VIEW_DIFFERS_FROM_SOURCE,
+  QUARANTINE_READ_PATH_DIVERGENCE, or BROKEN.
+- exit 2 -- the property COULD NOT BE CHECKED: UNVERIFIABLE, for any stable
+  machine reason code (section 9). Inability is never trust, and never a
+  difference.
 - exit 3 -- one or more markers detected (refuse).
 - exit 64 -- usage error.
 
-v1.1 (TARGET -- requires migration plus a vector update; NOT yet normative):
-split the exit-2 class into exit 1 for DRIFT and exit 2 for UNVERIFIABLE so CI
-can distinguish a changed artifact from an unanchored one. Until shipped,
-consumers MUST treat the v1.0 codes as authoritative.
+Precedence, for a single invocation over multiple targets (for example verify of
+several paths): a confirmed difference dominates an inability to check. The
+process exits 1 if ANY target produced an exit-1 verdict, else 2 if ANY target
+was UNVERIFIABLE, else 0. The marker class (exit 3, refuse) and the difference
+class never co-occur in one command (refuse does not drift), so no precedence
+between them is defined.
+
+The Python-core companion tools extend the same semantic, governed by this spec
+plus their own tests (not by the cross-language vectors of section 12): organs
+perception (DRIFTED / NEW / GONE) and impedance (NOT_REVERTIBLE), and a monitor
+baseline of CHANGED, are negative findings and exit 1; a monitor corpus that
+cannot load is UNVERIFIABLE and exits 2. NOT_REVERTIBLE at exit 1 is the
+re-derivable FACT that no clean revert path exists, never a denial of permission.
+
+This split is the frozen 1.0 contract. Earlier drafts collapsed the exit-1 and
+exit-2 classes into a single exit 2 and named the split a deferred "v1.1 target";
+1.0 ships the split directly, because no prior tagged release ever established
+the collapsed codes, so there is no installed base to migrate.
 
 ## 6. The six boundaries as testable invariants
 

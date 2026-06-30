@@ -75,7 +75,9 @@ def observe(manifest, paths):
         else:
             print(verdict.governed(verdict.PERCEPTION, "DRIFTED") + "   " + p + " was=" + was[:12] + " now=" + cur[:12]); changed += 1
     print("since=" + db.get("at", "?") + " changed=" + str(changed))
-    sys.exit(0 if changed == 0 else 2)
+    # A perceived change (DRIFTED/NEW/GONE) is a NEGATIVE FINDING -> exit 1 (SPEC
+    # s.5); all UNCHANGED -> 0. The exit is a fact, never a permission.
+    sys.exit(0 if changed == 0 else 1)
 
 def revertible(p):
     d = os.path.dirname(os.path.abspath(p)) or "."
@@ -104,7 +106,9 @@ def gate(paths):
         revertible_all = revertible_all and ok
     gate_token = verdict.governed(verdict.REVERT, "REVERTIBLE" if revertible_all else "NOT_REVERTIBLE")
     print("gate=" + gate_token + "  (advisory fact; the operator decides and acts)")
-    sys.exit(0 if revertible_all else 2)
+    # NOT_REVERTIBLE is a NEGATIVE FINDING (no clean revert path) -> exit 1 (SPEC
+    # s.5), explicitly NOT a denial or permission; the operator decides and acts.
+    sys.exit(0 if revertible_all else 1)
 
 def main():
     a = sys.argv
