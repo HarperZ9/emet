@@ -1,9 +1,9 @@
-# 05 — The Authored Root: EMET Is Not Its Own Root of Trust
+# 05 -- The Authored Root: EMET Is Not Its Own Root of Trust
 
 > **Status of this document.** This is a derivation you can re-walk, not a
 > warrant you must accept. Nothing here is true because a corpus says it; it is
 > true only to the extent the argument below survives your attempt to break it.
-> Pointers into `research/` are *further reading* — lineage for the ideas — never
+> Pointers into `research/` are *further reading* -- lineage for the ideas -- never
 > the ground of the claim. Per Boundary 1, this essay has exactly as much
 > authority as its reasoning earns and not one byte more. If this essay and
 > `SPEC.md` ever disagree, `SPEC.md` governs and this essay is the thing that is
@@ -14,14 +14,14 @@
 ## 1. Thesis
 
 EMET cannot be its own root of trust. The integrity it can establish for itself
-runs only as deep as the substrate it runs on; one level beneath that floor —
-the level at which the substrate could already be compromised — EMET has nothing
+runs only as deep as the substrate it runs on; one level beneath that floor --
+the level at which the substrate could already be compromised -- EMET has nothing
 to offer but a self-consistent story, and a self-consistent story is exactly
 what a compromised substrate produces for free. The check of record for EMET
 *itself* must therefore live outside EMET: an external verifier, ideally a
 second author re-deriving the same verdicts from the spec alone. The integrity of
-the tool is, in the precise sense this essay develops, *esse ab alio* — being
-held from another — not *esse a se*, being held from itself.
+the tool is, in the precise sense this essay develops, *esse ab alio* -- being
+held from another -- not *esse a se*, being held from itself.
 
 This is not a confession of weakness bolted onto a finished design. It is the
 design. EMET's `selftest` does one honest thing and refuses a second tempting
@@ -35,7 +35,7 @@ world it would be incoherent to suspend for the one artifact that applies it.
 
 **Status of the mapping in this essay: load-bearing.** Removing it does not
 merely make EMET less elegant; it changes what EMET *is*. A self-rooting EMET is
-a different object — one that has quietly re-introduced the aseity its whole
+a different object -- one that has quietly re-introduced the aseity its whole
 output type was built to deny.
 
 ---
@@ -50,13 +50,13 @@ separate so you can see they are not one argument wearing two hats.
 The foundational move of this whole curation (developed in
 [./02-no-aseity.md](./02-no-aseity.md)) is that nothing stands on its own
 footing: to be is to be conferred, relationally and dependently. In the
-scholastic idiom this is *esse ab alio* — a thing's existence received from
+scholastic idiom this is *esse ab alio* -- a thing's existence received from
 another rather than possessed in itself, contrasted with the *esse a se* that the
 tradition reserves for a first cause alone. The Madhyamaka form is the denial of
 *svabhāva*, intrinsic own-being: nothing carries its own nature inside itself,
 sealed off from what sustains it.
 
-Apply that to EMET, and apply it to *EMET's own trustworthiness* — not to the
+Apply that to EMET, and apply it to *EMET's own trustworthiness* -- not to the
 artifacts EMET checks, but to the standing of EMET's verdict about itself. If
 nothing has aseity, then EMET's integrity has none either. Its integrity is a
 conferred, relational fact: it holds *relative to* an uncompromised substrate,
@@ -64,8 +64,8 @@ conferred, relational fact: it holds *relative to* an uncompromised substrate,
 re-derives the hash. Strip the relations away and ask whether EMET is
 trustworthy "in itself," on its own footing, and the question has no answer,
 because there is no "in itself" for the answer to be about. The verifier that
-tried to confer trust on itself would be claiming the one ontological status —
-self-standing being — that the rest of the design spends every boundary
+tried to confer trust on itself would be claiming the one ontological status --
+self-standing being -- that the rest of the design spends every boundary
 denying. **No-aseity, applied reflexively, forbids a self-root.** That is the
 first derivation, and it is purely from L1 turned inward.
 
@@ -78,7 +78,7 @@ first derivation, and it is purely from L1 turned inward.
 ### 2.2 The authored-root regress (the security half)
 
 The second derivation reaches the identical conclusion from a direction that
-shares no premises with the first — and that independence is itself load-bearing
+shares no premises with the first -- and that independence is itself load-bearing
 (I return to it in §5.3). It is the regress argument about *where authority comes
 from* in any chain of authentication.
 
@@ -86,7 +86,7 @@ Run it slowly. Suppose every element in some hierarchy of trust gets its
 authority by validating an incoming signal against a higher element. Element B
 trusts a command because element A signed it; A's signature is trusted because a
 still-higher element C vouched for A's key; and so on. Now ask: where does the
-chain end? It must end — an infinite tower has no first floor to stand on — and
+chain end? It must end -- an infinite tower has no first floor to stand on -- and
 the terminus has a property nothing else in the tower has. **The terminus cannot
 derive its authority from a signal it received and authenticated**, because doing
 so would just be one more rung, continuing the regress rather than ending it. The
@@ -101,8 +101,8 @@ something whose honesty is assumed, not proven, because to "prove" it would
 require yet another root, and that one would need its own, forever.
 
 The relay/origination distinction is the whole point. A chain of seams each
-authenticating the next can *relay* authority indefinitely — pass it along,
-gate it, attenuate it — but it can never *originate* it. Relay presupposes
+authenticating the next can *relay* authority indefinitely -- pass it along,
+gate it, attenuate it -- but it can never *originate* it. Relay presupposes
 something to relay; the origin is the one seam whose authorization is authored,
 not received. (This is the *spoken-for* of [./04-spoken-for.md](./04-spoken-for.md)
 seen from the trust side: a *for* is authored at a standpoint, never read off the
@@ -111,7 +111,7 @@ substrate that carries it.)
 So far this is a general claim about authority chains. Here is the step that
 makes it bite for EMET specifically: **EMET is not the authored root of its own
 trust chain, and it must not pretend to be.** When EMET checks an artifact, it is
-a relay — it re-derives a fact (these bytes hash to this value) and reports it.
+a relay -- it re-derives a fact (these bytes hash to this value) and reports it.
 When EMET checks *itself*, it is tempted to become the root: to be the seam that
 authorizes its own authority. But it cannot legitimately occupy that position,
 because the position is defined by being unvalidatable from within the chain, and
@@ -136,7 +136,7 @@ hash as axiomatic). It cannot be the authored root of its own.
 this. EMET already ships a `selftest`. It hashes its own source and reports that
 hash. Re-running it reproduces the hash. That *is* a ground: EMET grounds its own
 integrity in its own re-derivable self-hash. The hash is stable, public, and
-checkable. Why isn't that EMET being its own root of trust — and a perfectly good
+checkable. Why isn't that EMET being its own root of trust -- and a perfectly good
 one?"
 
 The objection is the strongest available because it is *almost* right. `selftest`
@@ -149,14 +149,14 @@ establish*.
 
 **Answer.** A compromised substrate re-derives a compromised self-hash
 *consistently*. Walk the failure through. Suppose an adversary has altered the
-machine EMET runs on — patched the Python interpreter, hooked the file-read
+machine EMET runs on -- patched the Python interpreter, hooked the file-read
 syscall, replaced `membrane.py` with a tampered copy that nonetheless behaves
 identically on every observable input. Now run `selftest`. It reads "its own
 source," hashes it, and prints a hash. That hash is internally consistent: it is
 a correct SHA-256 of whatever bytes the (compromised) read channel handed back.
 Re-run it: same hash, every time. The audit chain is INTACT; the self-test
 "passes." **Everything EMET can observe agrees with everything else EMET can
-observe — and that agreement is exactly what a competent compromise produces.**
+observe -- and that agreement is exactly what a competent compromise produces.**
 A tampered substrate does not announce itself by making the math fail; a
 competent one makes the math succeed against the tampered values. Self-agreement
 is not evidence of integrity, because integrity-failure of this kind is invisible
@@ -181,7 +181,7 @@ note=I assert no authority, grant no permission, decide no safety question.
 
 Read those two notes as the answer to the objection, encoded in the running
 tool. The first sentence relocates the root *outward*: "re-derive it from source
-to verify me" — the verification is something *you* do, from *outside*, against
+to verify me" -- the verification is something *you* do, from *outside*, against
 the source; the hash is a credential offered for external checking, not a verdict
 EMET renders on itself. The second sentence is the no-authority refusal: EMET
 does not, even here, even about itself, cross into asserting that the hash *ought*
@@ -190,7 +190,7 @@ to trust the tool that produced it is an *ought* that lives on the far side of t
 seam EMET refuses to launder across (see [./01-is-ought-seam.md](./01-is-ought-seam.md)).
 `selftest` hands you the fact and explicitly declines the authority. That decline
 is the answer to the objection: the self-hash was never offered as a root, only
-as something a root — you, the operator, an independent verifier — can use.
+as something a root -- you, the operator, an independent verifier -- can use.
 
 So the self-test is not falsified by this essay; it is *correctly scoped* by it.
 It does its real job (publish the credential) and refuses the fake one (certify
@@ -210,7 +210,7 @@ of the design are not stylistic; they are this argument, compiled:
 1. **`selftest` emits a hash and asserts no authority.** It prints
    `membrane_self_sha256=` and then *declines*, in band, to claim that the hash
    warrants trust. The closed verdict lattice (§2) has no `TRUSTED` for
-   `selftest` to emit *about itself* any more than about anything else — which is
+   `selftest` to emit *about itself* any more than about anything else -- which is
    the no-aseity boundary of [./02-no-aseity.md](./02-no-aseity.md) doing its
    work at the reflexive case. A `selftest` that printed `TRUSTED` or
    `SELF_VERIFIED` would be the design defect this essay exists to forbid.
@@ -221,12 +221,12 @@ of the design are not stylistic; they are this argument, compiled:
    would be claiming an aseity it does not have. EMET states the floor of its own
    guarantee out loud: integrity "only relative to an uncompromised substrate."
    The honesty is itself a load-bearing part of the design, because the
-   alternative — implying self-certification — is the failure mode.
+   alternative -- implying self-certification -- is the failure mode.
 
 3. **The check of record is required to be external.** §11 does not say an
    external verifier is *nice to have*; it says one MUST be the check of record
    for EMET itself. This is the positive content of the negative claim: "not its
-   own root" means "rooted in another," and the other is named — an external
+   own root" means "rooted in another," and the other is named -- an external
    verifier, with the strongest available form being an independent
    re-derivation. That requirement is the bridge to §5.
 
@@ -241,7 +241,7 @@ authored-root argument stops being a caveat and becomes a research program.
 ### 5.1 Why self-agreement carries zero independent weight (L10)
 
 The README is blunt about its own current state: the project ships three
-implementations — the Python reference, a from-scratch Rust port, and a Node.js port — that agree
+implementations -- the Python reference, a from-scratch Rust port, and a Node.js port -- that agree
 on all 19 conformance vectors in CI. And it immediately refuses to over-claim from
 that agreement:
 
@@ -256,19 +256,19 @@ a model carries zero *independent* confirmatory weight.** When the same author
 writes both the Python and the Rust, the two share an enormous amount: the same
 reading of the spec, the same mental model of what "exact raw bytes" means, the
 same blind spots, the same idea of what the corner cases even *are*. If the author
-misread the spec, *both* implementations encode the misreading, and they agree —
-confidently, reproducibly, in CI — on the wrong answer. Their agreement confirms
+misread the spec, *both* implementations encode the misreading, and they agree --
+confidently, reproducibly, in CI -- on the wrong answer. Their agreement confirms
 that the author was self-consistent. It says nothing about whether the author was
 *right*, because there is no second model for the first to have been checked
 against. Self-consistency is, once again, exactly what a competent error produces
-for free — the same structure as the compromised substrate in §3, now at the
+for free -- the same structure as the compromised substrate in §3, now at the
 level of authorship rather than execution.
 
 The confidence labelling matters here, so: the claim that same-author agreement
 carries *zero independent* weight is the load-bearing one and is high-confidence
 (it follows directly from the absence of an independent model). The further L10
-claim — that the architect's minimized trust and the adversary's maximized attack
-yield *co-locate by construction* — is corpus lineage I am citing as
+claim -- that the architect's minimized trust and the adversary's maximized attack
+yield *co-locate by construction* -- is corpus lineage I am citing as
 illumination, not leaning on as warrant; treat my paraphrase of it as
 moderate-confidence and check it against the source if you want to rely on it.
 The part this essay needs is only the first, self-standing part.
@@ -280,7 +280,7 @@ Now the positive move. §12 names the bar precisely:
 > *"A conformance claim by the REFERENCE implementation against its OWN vectors
 > demonstrates internal consistency only. Re-derivability is DEMONSTRATED only by
 > an INDEPENDENT second implementation passing the same vectors. That second
-> implementation is an open, named deliverable — not yet satisfied — and no party
+> implementation is an open, named deliverable -- not yet satisfied -- and no party
 > should treat re-derivability as proven until it exists."* (SPEC §12)
 
 A different-author implementation, written from `SPEC.md` *alone* (not by reading
@@ -291,7 +291,7 @@ understanding nonetheless produces the same verdict on every vector, the
 agreement now means something it could not mean before: the fact being re-derived
 is robust across *independent* models of it, not just self-consistent within one.
 This is the move that **converts re-derivability from *asserted* to
-*demonstrated*** — the README's own phrasing. Before the independent
+*demonstrated*** -- the README's own phrasing. Before the independent
 implementation, "same bytes, same verdict" is a claim EMET makes about itself
 (self-agreement, zero independent weight). After it, "same bytes, same verdict"
 is a fact two unrelated parties have separately confirmed (the external check of
@@ -315,26 +315,26 @@ This is also why the README's framing of its own status is the *only* honest one
 for a tool of this kind, and is itself an application of [./02-no-aseity.md](./02-no-aseity.md):
 
 > *"For a tool whose only credential is reproduction, an inflated claim would
-> refute itself — so the claim is scoped to exactly what CI reproduces today."*
+> refute itself -- so the claim is scoped to exactly what CI reproduces today."*
 > (README, "Status")
 
 An over-claim of self-grounded trust, in an integrity verifier, is the exact
 in-band authority pattern the tool strips from others. Scoping the claim to "what
-CI reproduces today" — and naming the not-yet-satisfied independent
-implementation as the open deliverable — is the tool declining to be its own root
+CI reproduces today" -- and naming the not-yet-satisfied independent
+implementation as the open deliverable -- is the tool declining to be its own root
 in the one place it would be most tempting to cheat: its own README.
 
 ### 5.3 An aside on why two derivations matter (and a refusal to over-claim it)
 
 I separated §2.1 (no-aseity, reflexive) from §2.2 (the authored-root regress)
 because they reach the same conclusion from premises that genuinely do not
-overlap — one is a metaphysical claim about own-being, the other a structural
+overlap -- one is a metaphysical claim about own-being, the other a structural
 claim about authority chains in security. When two analyses sharing *no model*
 converge, the convergence carries evidentiary weight that two same-model
 analyses (§5.1) do not. That is the honest, self-contained version of the point.
 The corpus states a stronger, framed version of this (the philosophy×security
 convergence of L10); I am flagging that I am *not* leaning on the stronger framed
-version as warrant — I cite it only as lineage. What this essay actually rests on
+version as warrant -- I cite it only as lineage. What this essay actually rests on
 is the weaker, checkable observation: a metaphysical argument and a security
 argument both say EMET can't self-root, and you can verify each independently
 above without taking either on authority.
@@ -348,32 +348,32 @@ refutable rather than merely asserted (the discipline of every essay in this
 curation; see [./GLOSSARY.md](./GLOSSARY.md) on *the authored stop* and on the
 load-bearing/illumination distinction).
 
-**The claim fails if authentication goes all the way down — if there is no
+**The claim fails if authentication goes all the way down -- if there is no
 authored root, only relay.** Concretely: if it could be shown that every root of
 trust derives its authority from a prior verified signal, with no first fold
-anywhere — an infinite, self-supporting regress of authentication that originates
-authority while only ever relaying it — then "the terminus cannot be a signal it
+anywhere -- an infinite, self-supporting regress of authentication that originates
+authority while only ever relaying it -- then "the terminus cannot be a signal it
 authenticated" would be false, there would be no privileged authored root for
 EMET to fail to be, and the whole basis for "EMET cannot self-root because no
 self-validating root is coherent" would collapse. The authored-root argument is a
 *bet* that authority chains must terminate in an authored fold and cannot close
 into a self-supporting loop. It is contentful because it could be wrong: exhibit
-the loop — relay that originates with no author — and §2.2 dies, taking the
+the loop -- relay that originates with no author -- and §2.2 dies, taking the
 security half of the derivation with it.
 
 The metaphysical half (§2.1) has its own refuter, inherited from
-[./02-no-aseity.md](./02-no-aseity.md): exhibit a thing with genuine aseity —
-self-standing own-being owing nothing to anything — and "EMET's integrity has no
+[./02-no-aseity.md](./02-no-aseity.md): exhibit a thing with genuine aseity --
+self-standing own-being owing nothing to anything -- and "EMET's integrity has no
 aseity either" loses its premise. Note that the two refuters are independent: you
 would have to defeat *both* the regress argument *and* the no-aseity argument to
 rehabilitate a self-rooting EMET, which is the §5.3 point cashed out as
 resilience. Defeating one leaves the other standing, and the conclusion with it.
 
 A narrower, more practical refuter also applies, against the design rather than
-the philosophy: show that `selftest` ever emits authority — that it prints
+the philosophy: show that `selftest` ever emits authority -- that it prints
 `TRUSTED`, or that any codepath lets a passing self-test *substitute* for the
 external check §11 requires (e.g., a deployment that treats "selftest passed" as
-licensing trust with no external verifier) — and the design has crossed the line
+licensing trust with no external verifier) -- and the design has crossed the line
 this essay says it must not cross. That would not refute the philosophy; it would
 refute the *implementation's fidelity to it*, which is the more immediately
 fixable kind of failure.
@@ -384,28 +384,28 @@ fixable kind of failure.
 
 EMET's integrity is *esse ab alio*: held from another, never from itself. The
 tool's most reflexive act, `selftest`, is built to honor this rather than evade
-it — it publishes a credential and explicitly refuses to certify it, relocating
+it -- it publishes a credential and explicitly refuses to certify it, relocating
 the root of trust outward to the operator, the external verifier, and above all
 the independent re-derivation that has not yet happened. The two ways of seeing
-why this must be so — no-aseity turned on the tool, and the regress that says no
-authority chain can authorize its own first fold — converge from unrelated
+why this must be so -- no-aseity turned on the tool, and the regress that says no
+authority chain can authorize its own first fold -- converge from unrelated
 premises on the same verdict, and their convergence is itself a small instance of
 the only kind of agreement that carries weight: agreement across models that share
 nothing.
 
 The discipline applies, finally, to this very essay. Its standing is conferred,
 not aseitic. It is not true because it is in a `docs/` folder, nor because a
-corpus lends it authority — it has exactly the authority its argument earns under
+corpus lends it authority -- it has exactly the authority its argument earns under
 your attempt to break it, and no more. The check of record for *this document* is
 the same as the check of record for EMET: an external one. Re-derive it. If it
 disagrees with `SPEC.md`, `SPEC.md` is right and this essay is the thing that is
-wrong — which is precisely the relationship a thing with no aseity has to the
+wrong -- which is precisely the relationship a thing with no aseity has to the
 sources that confer its standing.
 
 ---
 
-*Reading order:* previous — [./04-spoken-for.md](./04-spoken-for.md) ·
-next — [./06-aleph.md](./06-aleph.md). Map and full reading order in
+*Reading order:* previous -- [./04-spoken-for.md](./04-spoken-for.md) ·
+next -- [./06-aleph.md](./06-aleph.md). Map and full reading order in
 [./INDEX.md](./INDEX.md); terms in [./GLOSSARY.md](./GLOSSARY.md). The worked
 proof that `selftest` publishes-and-declines in a live run is annotated in
 [./07-walkthrough.md](./07-walkthrough.md).

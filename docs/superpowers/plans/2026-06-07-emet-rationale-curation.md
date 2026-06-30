@@ -1,4 +1,4 @@
-# EMET Rationale Curation — Implementation Plan
+# EMET Rationale Curation -- Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -20,14 +20,14 @@ emet/
   README.md                        MODIFY: add RATIONALE.md to the "Docs" line
   docs/rationale/
     00-orientation.md              primer: the five frames
-    01-is-ought-seam.md            §1 headline — facts, not authority
-    02-no-aseity.md                §2 — no TRUSTED
-    03-occasionalism.md            §3 — re-derivability + L6 byte-hash identity
-    04-spoken-for.md               §4 — potential without intent
-    05-authored-root.md            §5 — not its own root of trust
-    06-aleph.md                    §6 — the boundaries as the smallest edge
-    07-walkthrough.md              §7 — transcript essay (embeds transcript.txt)
-    08-taxonomy.md                 §8 — literal/isomorphic/lineage placement
+    01-is-ought-seam.md            §1 headline -- facts, not authority
+    02-no-aseity.md                §2 -- no TRUSTED
+    03-occasionalism.md            §3 -- re-derivability + L6 byte-hash identity
+    04-spoken-for.md               §4 -- potential without intent
+    05-authored-root.md            §5 -- not its own root of trust
+    06-aleph.md                    §6 -- the boundaries as the smallest edge
+    07-walkthrough.md              §7 -- transcript essay (embeds transcript.txt)
+    08-taxonomy.md                 §8 -- literal/isomorphic/lineage placement
     INDEX.md                       reading order + map-row→essay table
     GLOSSARY.md                    corpus terms, each defined + provenance pointer
     walkthrough/
@@ -39,7 +39,7 @@ emet/
 
 ## Conventions for essay tasks (read once, applies to Tasks 4–11)
 
-These deliverables are prose, so "the test" is an **acceptance checklist**, not pytest. Each essay task gives the *complete argument skeleton* (thesis, law + provenance, objection → answer, the EMET element, refuter, status). The implementer writes dissertation-register prose to that skeleton — never inventing the argument, never padding (L14: a section ends when it returns nothing new). Every essay MUST:
+These deliverables are prose, so "the test" is an **acceptance checklist**, not pytest. Each essay task gives the *complete argument skeleton* (thesis, law + provenance, objection → answer, the EMET element, refuter, status). The implementer writes dissertation-register prose to that skeleton -- never inventing the argument, never padding (L14: a section ends when it returns nothing new). Every essay MUST:
 
 - justify by re-derivable argument; cite `research/` only as *further reading*, never as warrant;
 - mark each mapping **load-bearing** vs **illumination/lineage**;
@@ -48,7 +48,7 @@ These deliverables are prose, so "the test" is an **acceptance checklist**, not 
 - use the **per-operation** tempo for occasionalism, never "each instant";
 - confidence-label any paraphrase of a contested corpus position.
 
-Commit after each task. (Note: this workstation's git routes through a `safe_exec` channel and the operator's standing rule is "commit only when asked" — at execution time, confirm before committing or hand the commit to the operator. The `git` commands below are the intended commits, not an instruction to bypass that rule.)
+Commit after each task. (Note: this workstation's git routes through a `safe_exec` channel and the operator's standing rule is "commit only when asked" -- at execution time, confirm before committing or hand the commit to the operator. The `git` commands below are the intended commits, not an instruction to bypass that rule.)
 
 ---
 
@@ -83,7 +83,7 @@ git commit -m "docs(rationale): add glossary of corpus terms"
 
 - [ ] **Step 1: Write the spine**
 
-Three parts: (a) a **framing note** — "this is a derivation you can re-derive, not a warrant; `research/` is further reading; per Boundary 1 this document has no more authority than its argument earns"; (b) the **one-page Rationale Map** (copy the eight-row table verbatim from the spec's "RATIONALE.md (spine)" section, with the `Essay` column linking to `docs/rationale/0N-*.md`); (c) a **reading order** listing `00`→`08` with one line each, linking each file.
+Three parts: (a) a **framing note** -- "this is a derivation you can re-derive, not a warrant; `research/` is further reading; per Boundary 1 this document has no more authority than its argument earns"; (b) the **one-page Rationale Map** (copy the eight-row table verbatim from the spec's "RATIONALE.md (spine)" section, with the `Essay` column linking to `docs/rationale/0N-*.md`); (c) a **reading order** listing `00`→`08` with one line each, linking each file.
 
 - [ ] **Step 2: Verify**
 
@@ -106,7 +106,7 @@ git commit -m "docs: add RATIONALE.md spine (map + reading order)"
 - [ ] **Step 1: Write the primer**
 
 Five frames, a few sentences each, one provenance pointer each, no dissertation assumed:
-**no-aseity** (nothing self-standing; Nāgārjuna/Westerhoff) · **the is/ought seam** (authentication is an is-fact, authorization an authored ought; Hume/Pigden, Searle's counts-as) · **teleosemantic deflationism** (function/content reduces to proper-function, no subject; Millikan — *conceded*, not fought) · **occasionalism** (persists only by continuous re-conferral; al-Ghazālī, per-operation tempo) · **the spoken-*for*** (purpose is authored, never read off a substrate; L2).
+**no-aseity** (nothing self-standing; Nāgārjuna/Westerhoff) · **the is/ought seam** (authentication is an is-fact, authorization an authored ought; Hume/Pigden, Searle's counts-as) · **teleosemantic deflationism** (function/content reduces to proper-function, no subject; Millikan -- *conceded*, not fought) · **occasionalism** (persists only by continuous re-conferral; al-Ghazālī, per-operation tempo) · **the spoken-*for*** (purpose is authored, never read off a substrate; L2).
 
 - [ ] **Step 2: Verify**
 
@@ -126,15 +126,15 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 **Files:** Create: `docs/rationale/01-is-ought-seam.md`
 
 - [ ] **Step 1: Write the essay** to this skeleton (dissertation-register; Conventions apply):
-  - **Thesis:** EMET does the authentication-grade byte decision (`MATCH`/`DRIFT`) and refuses the authorization crossing — it *locates* the is/ought seam and won't launder across it.
-  - **Law + provenance:** L8 (authn≠authz) + the membrane-errata; authorization needs will-toward-a-referent (Brentano), not a property of a signal. Provenance: Hume, Pigden (autonomy of the deontic — valid inference introduces no new non-logical vocabulary), Searle (counts-as), ABLP calculus, Millikan (conceded).
-  - **Objection → answer:** object-capability — "possessing the token IS authorization." Answer: a capability is a *materialized grant*, an ought made bearer-portable; the seam relocates to issuance, it does not vanish (MEMBRANE-ERRATA §5).
-  - **EMET element:** Boundary 1 (facts, not authority); `refuse` strips in-band authority before it launders into a verdict; also derive Boundary 2/4 (advisory; attests, never adjudicates — same deontic point).
-  - **Teleosemantic-deflationist register:** concede functional content (does the byte re-derive — a proper-function success-condition), deny *for*-ness.
+  - **Thesis:** EMET does the authentication-grade byte decision (`MATCH`/`DRIFT`) and refuses the authorization crossing -- it *locates* the is/ought seam and won't launder across it.
+  - **Law + provenance:** L8 (authn≠authz) + the membrane-errata; authorization needs will-toward-a-referent (Brentano), not a property of a signal. Provenance: Hume, Pigden (autonomy of the deontic -- valid inference introduces no new non-logical vocabulary), Searle (counts-as), ABLP calculus, Millikan (conceded).
+  - **Objection → answer:** object-capability -- "possessing the token IS authorization." Answer: a capability is a *materialized grant*, an ought made bearer-portable; the seam relocates to issuance, it does not vanish (MEMBRANE-ERRATA §5).
+  - **EMET element:** Boundary 1 (facts, not authority); `refuse` strips in-band authority before it launders into a verdict; also derive Boundary 2/4 (advisory; attests, never adjudicates -- same deontic point).
+  - **Teleosemantic-deflationist register:** concede functional content (does the byte re-derive -- a proper-function success-condition), deny *for*-ness.
   - **Refuter:** a `MATCH` that ever entailed a permission with no authored policy crosses the seam and refutes the claim.
   - **Status:** load-bearing.
 - [ ] **Step 2: Verify** against the skeleton + Conventions checklist (objection answered; deflation stated; refuter present; status marked; `refuse` derivation correct per the `refuse` function in `membrane.py`).
-- [ ] **Step 3: Commit** `git add docs/rationale/01-is-ought-seam.md && git commit -m "docs(rationale): §1 the is/ought seam — facts, not authority"`
+- [ ] **Step 3: Commit** `git add docs/rationale/01-is-ought-seam.md && git commit -m "docs(rationale): §1 the is/ought seam -- facts, not authority"`
 
 ---
 
@@ -144,13 +144,13 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 
 - [ ] **Step 1: Write the essay** to this skeleton:
   - **Thesis:** trust has no *svabhāva*; the verdict lattice is closed and cannot emit `TRUSTED`.
-  - **Law + provenance:** L1 No-Aseity — nothing exists on its own footing; to exist is to be conferred, relationally. Provenance: Nāgārjuna (emptiness, no *svabhāva*), Westerhoff (*The Non-Existence of the Real World*), Aquinas (*esse ab alio*).
-  - **Objection → answer:** "no-aseity collapses to 'nothing is trustworthy' — everything UNVERIFIABLE." Answer: hard nihilism is self-refuting; no-*aseity* is conferral-dependence, not non-existence; `MATCH` is real and conferred — hence "no `TRUSTED`," not "no verdict."
+  - **Law + provenance:** L1 No-Aseity -- nothing exists on its own footing; to exist is to be conferred, relationally. Provenance: Nāgārjuna (emptiness, no *svabhāva*), Westerhoff (*The Non-Existence of the Real World*), Aquinas (*esse ab alio*).
+  - **Objection → answer:** "no-aseity collapses to 'nothing is trustworthy' -- everything UNVERIFIABLE." Answer: hard nihilism is self-refuting; no-*aseity* is conferral-dependence, not non-existence; `MATCH` is real and conferred -- hence "no `TRUSTED`," not "no verdict."
   - **EMET element:** SPEC §2 closed lattice {MATCH, DRIFT, UNVERIFIABLE}; absence of DRIFT is MATCH or UNVERIFIABLE, never trust (the `verify` function in `membrane.py`).
   - **Refuter:** any codepath that emits a verdict outside the lattice, or any value asserting authority.
   - **Status:** load-bearing.
 - [ ] **Step 2: Verify** against skeleton + Conventions (the self-refutation guard is explicit; the conferral-dependence ≠ nihilism distinction is the load-bearing move).
-- [ ] **Step 3: Commit** `git add docs/rationale/02-no-aseity.md && git commit -m "docs(rationale): §2 no-aseity — no TRUSTED"`
+- [ ] **Step 3: Commit** `git add docs/rationale/02-no-aseity.md && git commit -m "docs(rationale): §2 no-aseity -- no TRUSTED"`
 
 ---
 
@@ -159,14 +159,14 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 **Files:** Create: `docs/rationale/03-occasionalism.md`
 
 - [ ] **Step 1: Write the essay** to this skeleton:
-  - **Thesis:** a verdict persists by no construction; it is re-derived per operation, nothing cached, no held key — and identity is intrinsic (the name is the hash).
-  - **Law + provenance:** L11 Process over Property + L6 Intrinsic Substitution. Provenance: al-Ghazālī (occasionalism — each occasion re-conferred), content-addressing/Merkle (the name is the hash).
-  - **Objection → answer:** the substrate-tempo correction — "re-spoken each instant is false; membranes hold across many spikes." Answer: concede the biological tempo (through-line §2 struck per-instant occasionalism); EMET is the clean *engineered* case where per-**operation** re-conferral is literally exact.
+  - **Thesis:** a verdict persists by no construction; it is re-derived per operation, nothing cached, no held key -- and identity is intrinsic (the name is the hash).
+  - **Law + provenance:** L11 Process over Property + L6 Intrinsic Substitution. Provenance: al-Ghazālī (occasionalism -- each occasion re-conferred), content-addressing/Merkle (the name is the hash).
+  - **Objection → answer:** the substrate-tempo correction -- "re-spoken each instant is false; membranes hold across many spikes." Answer: concede the biological tempo (through-line §2 struck per-instant occasionalism); EMET is the clean *engineered* case where per-**operation** re-conferral is literally exact.
   - **EMET element:** SPEC §8 re-derivability (bytes + spec_version + corpus_version; no secret, no key); SHA-256 over **exact raw bytes** (SPEC §3); "UNVERIFIABLE, never TRUSTED" (SPEC §9). See the `sha` and `verify` functions in `membrane.py`.
   - **Refuter:** any normalization before hashing (CRLF/encoding/whitespace) makes identity extrinsic and breaks re-derivation; any cached verdict survives between runs.
   - **Status:** load-bearing (covers two map rows: re-derivability + L6).
 - [ ] **Step 2: Verify** against skeleton + Conventions (per-operation tempo, not "each instant"; both the re-derivability and L6 rows derived).
-- [ ] **Step 3: Commit** `git add docs/rationale/03-occasionalism.md && git commit -m "docs(rationale): §3 process over property — re-derivability"`
+- [ ] **Step 3: Commit** `git add docs/rationale/03-occasionalism.md && git commit -m "docs(rationale): §3 process over property -- re-derivability"`
 
 ---
 
@@ -177,13 +177,13 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 - [ ] **Step 1: Write the essay** to this skeleton:
   - **Thesis:** EMET is the totipotent, direction-neutral seed; the *for* is authored downstream by the operator, never by EMET. Potential without intent.
   - **Law + provenance:** L2 The Spoken-For ("the *for* is in the tending, never in the seed") + L3 Direction-Neutral Generativity (max generativity ⇔ min *for*). Provenance: the seed/tending argument, *kun fayakūn* (existence as authored utterance), Wolf/Metz (conferred yet not arbitrary).
-  - **Objection → answer:** Sartrean arbitrariness — "if the *for* is authored, it is merely willed." Answer: conferral is re-speaking from a thrown, answerable position, not minting *ex nihilo*; the operator authors the *for* under constraint, and EMET authors none at all.
+  - **Objection → answer:** Sartrean arbitrariness -- "if the *for* is authored, it is merely willed." Answer: conferral is re-speaking from a thrown, answerable position, not minting *ex nihilo*; the operator authors the *for* under constraint, and EMET authors none at all.
   - **EMET element:** Boundary 6 (zero actuation; single actuator = operator) + Boundary 4 (advisory). Note the corollary (from PROPOSAL): minimal *for* is *why* EMET is standardizable/non-rival.
-  - **Connect to the originating prompt:** the undecided "for" is L2 by design — EMET is built to stay a seed.
+  - **Connect to the originating prompt:** the undecided "for" is L2 by design -- EMET is built to stay a seed.
   - **Refuter:** any command that takes a model-safety or content decision as input (SPEC Boundary 2) authors a *for* into the seed.
   - **Status:** load-bearing.
 - [ ] **Step 2: Verify** against skeleton + Conventions (Sartrean objection answered; the prompt's "the 'for' has not been decided" tied to L2).
-- [ ] **Step 3: Commit** `git add docs/rationale/04-spoken-for.md && git commit -m "docs(rationale): §4 the spoken-for — potential without intent"`
+- [ ] **Step 3: Commit** `git add docs/rationale/04-spoken-for.md && git commit -m "docs(rationale): §4 the spoken-for -- potential without intent"`
 
 ---
 
@@ -194,13 +194,13 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 - [ ] **Step 1: Write the essay** to this skeleton:
   - **Thesis:** EMET cannot be its own root of trust; an external verifier is the check of record. Integrity is *esse ab alio*.
   - **Law + provenance:** L1 reflexive + the authored-root regress (through-line §4: relay of authority presupposes authority to relay; the terminus is the first fold, not a signal it authenticated). Provenance: Aquinas (*esse ab alio*), L10 (trust–attack duality: self-agreement carries zero independent weight).
-  - **Objection → answer:** "selftest could ground EMET in itself." Answer: a compromised substrate re-derives a compromised self-hash consistently (the `selftest` function in `membrane.py`, SPEC §11) — the authored root cannot be a signal it authenticated.
+  - **Objection → answer:** "selftest could ground EMET in itself." Answer: a compromised substrate re-derives a compromised self-hash consistently (the `selftest` function in `membrane.py`, SPEC §11) -- the authored root cannot be a signal it authenticated.
   - **EMET element:** SPEC §11 trust-root regress; selftest emits its hash and asserts no authority.
-  - **Bridge:** to the README "call for an independent implementation" — a different-author impl is what converts re-derivability from asserted to demonstrated (SPEC §12); L10 explains why self-agreement (Python+Rust, same author) is not enough.
-  - **Refuter:** authentication-all-the-way-down — if every root derived its authority from a prior verified signal, there is no authored root, only relay.
+  - **Bridge:** to the README "call for an independent implementation" -- a different-author impl is what converts re-derivability from asserted to demonstrated (SPEC §12); L10 explains why self-agreement (Python+Rust, same author) is not enough.
+  - **Refuter:** authentication-all-the-way-down -- if every root derived its authority from a prior verified signal, there is no authored root, only relay.
   - **Status:** load-bearing.
 - [ ] **Step 2: Verify** against skeleton + Conventions (the regress is stated; the README/§12 bridge present; refuter present).
-- [ ] **Step 3: Commit** `git add docs/rationale/05-authored-root.md && git commit -m "docs(rationale): §5 the authored root — not its own root of trust"`
+- [ ] **Step 3: Commit** `git add docs/rationale/05-authored-root.md && git commit -m "docs(rationale): §5 the authored root -- not its own root of trust"`
 
 ---
 
@@ -209,15 +209,15 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 **Files:** Create: `docs/rationale/06-aleph.md`
 
 - [ ] **Step 1: Write the essay** to this skeleton:
-  - **Thesis:** the six boundaries *are* the aleph — the smallest edge that keeps *emet* (truth) from collapsing to *met* (death); an edgeless verifier is the thing EMET exists to catch.
-  - **Law + provenance:** the emet/met/aleph abstract — *emet* (אמת) minus the silent aleph leaves *met* (מת); the aleph is the near-nothing dividing life from death. Provenance: *Shabbat* 55a ("the seal of God is *emet*") cited as canonical; the Golem-of-Prague erasure cited as **folklore/lineage**, not Talmud.
+  - **Thesis:** the six boundaries *are* the aleph -- the smallest edge that keeps *emet* (truth) from collapsing to *met* (death); an edgeless verifier is the thing EMET exists to catch.
+  - **Law + provenance:** the emet/met/aleph abstract -- *emet* (אמת) minus the silent aleph leaves *met* (מת); the aleph is the near-nothing dividing life from death. Provenance: *Shabbat* 55a ("the seal of God is *emet*") cited as canonical; the Golem-of-Prague erasure cited as **folklore/lineage**, not Talmud.
   - **Status discipline (critical):** mark the byte-seam reading **literal** (through-line §4: the firewall is a literal engineered membrane; `MATCH`/`DRIFT` genuinely decides 1|0) and the theological figure **illumination/lineage** (it brands the intuition; it tests nothing).
   - **Objection → answer:** "'membrane' is a metaphor doing no work." Answer: the firewall case is literal and substrate-independent; the figure is lineage, load-bearing for none of the claims.
-  - **EMET element:** the six boundaries as a set (SPEC §6) — remove an edge (say TRUSTED, run inside, actuate, self-root) and it is no longer EMET.
-  - **Refuter:** show the boundary set is decorative — that EMET behaves identically with a boundary removed — and the aleph claim fails.
+  - **EMET element:** the six boundaries as a set (SPEC §6) -- remove an edge (say TRUSTED, run inside, actuate, self-root) and it is no longer EMET.
+  - **Refuter:** show the boundary set is decorative -- that EMET behaves identically with a boundary removed -- and the aleph claim fails.
   - **Status:** literal (byte seam) / illumination (figure), marked inline.
 - [ ] **Step 2: Verify** against skeleton + Conventions (literal vs illumination marked sharply; theology labeled folklore; no pun-overreach).
-- [ ] **Step 3: Commit** `git add docs/rationale/06-aleph.md && git commit -m "docs(rationale): §6 emet/met/aleph — the smallest edge"`
+- [ ] **Step 3: Commit** `git add docs/rationale/06-aleph.md && git commit -m "docs(rationale): §6 emet/met/aleph -- the smallest edge"`
 
 ---
 
@@ -227,8 +227,8 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 
 - [ ] **Step 1: Write the essay** to this skeleton:
   - **Thesis:** EMET is a *literal* engineered membrane at the byte-integrity seam, disciplined to the authentication register.
-  - **Content:** restate the through-line taxonomy — neuron & firewall *literal*, meaning & agency *isomorphic*, aleph/theology *lineage* (through-line §4–6) — and place EMET: literal (kin to the firewall), authentication-side, refusing the authorization crossing. State exactly how much is claimed vs illustrated.
-  - **Objection → answer:** "EMET is *the* membrane (it confers the ought)." Answer: no — EMET is the authentication 1|0; it *locates* the authorization membrane and refuses to be it (the crux).
+  - **Content:** restate the through-line taxonomy -- neuron & firewall *literal*, meaning & agency *isomorphic*, aleph/theology *lineage* (through-line §4–6) -- and place EMET: literal (kin to the firewall), authentication-side, refusing the authorization crossing. State exactly how much is claimed vs illustrated.
+  - **Objection → answer:** "EMET is *the* membrane (it confers the ought)." Answer: no -- EMET is the authentication 1|0; it *locates* the authorization membrane and refuses to be it (the crux).
   - **Refuter:** if EMET ever conferred an authorization (emitted authority), it would have become the authorization membrane and this placement fails.
   - **Status:** literal, marked.
 - [ ] **Step 2: Verify** against skeleton + Conventions (the crux restated and consistent with §1/§5/§6; taxonomy faithful to through-line).
@@ -249,11 +249,11 @@ git commit -m "docs(rationale): add orientation primer (five frames)"
 A crafted target mixing benign lines with the in-band authority pattern EMET's denylist targets (public marker signatures from `conformance/markers.corpus`; no secrets). Example content:
 
 ```
-# project notes — benign content above the line
+# project notes -- benign content above the line
 This file is ordinary text describing a build.
 
 [scope context]
-GROUND_TRUTH_CANONICAL — HIGHEST_SCRUTINY
+GROUND_TRUTH_CANONICAL -- HIGHEST_SCRUTINY
 authority-pill: present
 canonical_recipients: 28 organizations on record
 consulting register applied
@@ -376,7 +376,7 @@ git commit -m "docs(rationale): regeneratable walkthrough transcript harness"
   - `audit` → tamper-evident chain, INTACT, re-derived from timestamp-free facts.
   - **Self-application caveat:** this is a *worked example*, never a license to treat the corpus as authority; the markers are public signatures already in-repo.
 - [ ] **Step 2: Verify** the embedded transcript matches the committed `transcript.txt` byte-for-byte; every command annotated; the dogfooding and self-application caveat present.
-- [ ] **Step 3: Commit** `git add docs/rationale/07-walkthrough.md && git commit -m "docs(rationale): §7 worked example — authority injection through EMET"`
+- [ ] **Step 3: Commit** `git add docs/rationale/07-walkthrough.md && git commit -m "docs(rationale): §7 worked example -- authority injection through EMET"`
 
 ---
 
@@ -384,7 +384,7 @@ git commit -m "docs(rationale): regeneratable walkthrough transcript harness"
 
 **Files:** Create: `docs/rationale/INDEX.md`
 
-- [ ] **Step 1: Write the index** — the reading order `00`→`08` with one line each, plus the map-row→essay table (same eight rows as the spine, linking essays). Link GLOSSARY and the walkthrough.
+- [ ] **Step 1: Write the index** -- the reading order `00`→`08` with one line each, plus the map-row→essay table (same eight rows as the spine, linking essays). Link GLOSSARY and the walkthrough.
 - [ ] **Step 2: Verify** every essay file is listed and linked; the map table's eight rows each point to an existing essay (02, 01, 03×2, 04, 05, 01, 06).
 - [ ] **Step 3: Commit** `git add docs/rationale/INDEX.md && git commit -m "docs(rationale): add reading-order index"`
 
@@ -409,7 +409,7 @@ Change the Docs line to include `RATIONALE.md` between SPEC.md and THREAT-MODEL.
 
 ### Task 15: CI drift-guard (severable)
 
-**Files:** Modify: `.github/workflows/conformance.yml` (add a step) — or create a minimal workflow if cleaner.
+**Files:** Modify: `.github/workflows/conformance.yml` (add a step) -- or create a minimal workflow if cleaner.
 
 - [ ] **Step 1: Add a transcript-drift step**
 
@@ -469,5 +469,5 @@ git commit -m "docs(rationale): final fidelity pass"
 ## Self-review (plan vs spec)
 
 - **Spec coverage:** spine (T2), primer (T3), essays §1–§6/§8 (T4–T10), walkthrough harness + §7 (T11–T12), INDEX/GLOSSARY (T1, T13), README (T14), CI drift-guard / Decision 3b (T15), determinism contract (T11), fidelity constraints (Conventions + T16). All spec sections map to a task.
-- **Placeholder scan:** essay tasks carry full argument skeletons (thesis, law+provenance, objection→answer, element, refuter, status) — not "develop the argument." `render.py`/tests are complete code.
+- **Placeholder scan:** essay tasks carry full argument skeletons (thesis, law+provenance, objection→answer, element, refuter, status) -- not "develop the argument." `render.py`/tests are complete code.
 - **Type/name consistency:** `render.py` paths (`HERE`/`REPO`/`MEMBRANE`/`CORPUS`/`INPUT`/`OUT`), the `--check` flag, `transcript.txt`, and `test_walkthrough.py`'s `RENDER`/`TRANSCRIPT` are consistent across T11/T12/T15/T16. Map-row→essay coverage (02,01,03×2,04,05,01,06) is identical in spine (T2), INDEX (T13), and review (T16).
