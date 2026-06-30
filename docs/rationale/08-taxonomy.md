@@ -1,4 +1,4 @@
-# §8 — Membrane Taxonomy: Where EMET Sits
+# §8 -- Membrane Taxonomy: Where EMET Sits
 
 > Reading order: this is the last derivation essay. It assumes the
 > [Orientation](./00-orientation.md) primer and the [GLOSSARY](./GLOSSARY.md),
@@ -9,17 +9,17 @@
 ## Thesis
 
 EMET is a *literal* engineered membrane at the byte-integrity seam, disciplined
-to the **authentication** register. It does the 1|0 of the signal — does this
+to the **authentication** register. It does the 1|0 of the signal -- does this
 artifact re-derive, byte for byte, to its anchored identity (`MATCH`), or not
-(`DRIFT`)? — and it refuses, by construction, to become the **authorization**
+(`DRIFT`)? -- and it refuses, by construction, to become the **authorization**
 membrane that decides whether an authentic artifact *ought* to be acted on.
 That refusal is not modesty. It is the placement: EMET *locates* the
 authorization seam precisely by declining to inhabit it, and a verifier that
 crossed over and conferred a permission would no longer be EMET.
 
 This essay does two things. First, it restates the taxonomy that the rest of the
-curation has used as a discipline — the three-way sort of membrane-claims into
-**literal**, **isomorphic**, and **lineage** — so that a reader can see the
+curation has used as a discipline -- the three-way sort of membrane-claims into
+**literal**, **isomorphic**, and **lineage** -- so that a reader can see the
 sorting rule itself, not just its verdicts. Second, it places EMET on that
 sort and states *exactly how much is claimed and how much is merely
 illustrated*. The whole point of the taxonomy is to stop the word "membrane"
@@ -30,7 +30,7 @@ every other case does: by surviving the subtraction test.
 ## The sorting rule, stated plainly
 
 A claim of the form "X is a membrane" is worth making only if it *forbids* a
-competitor description — only if calling X a membrane rules something out that a
+competitor description -- only if calling X a membrane rules something out that a
 flatter vocabulary would have allowed. If "X is a membrane" rules nothing out,
 it is decoration, and decoration is not derivation. This is the subtraction
 test, and it is the engine of the whole taxonomy: a membrane-claim is admitted
@@ -41,15 +41,15 @@ The taxonomy then sorts the surviving claims by *how* the structure holds. A
 membrane has three defining properties: it is **neither of the two states** it
 divides (it is the seam, not the 1 and not the 0); it is **continuously
 re-maintained** against lapse to the dead/equilibrium state; and it is **where
-the conferral happens** — where a 0 is turned into a 1, indifferent data into
+the conferral happens** -- where a 0 is turned into a 1, indifferent data into
 authorized command, met into emet. Given those three properties, a case is:
 
-- **literal** when all three hold *of the actual thing*, with no metaphor — the
+- **literal** when all three hold *of the actual thing*, with no metaphor -- the
   artifact really is a selectively-permeable, re-maintained, deciding seam;
 - **isomorphic** when the three hold *by argued structural identity across a
-  different kind* — the same form, a different genus, asserted as form and never
+  different kind* -- the same form, a different genus, asserted as form and never
   as substance;
-- **lineage** when the case only *illuminates* the idea — it brands the
+- **lineage** when the case only *illuminates* the idea -- it brands the
   intuition, supplies the etymology of the thought, and tests nothing because it
   is not falsifiable on its own terms.
 
@@ -76,17 +76,17 @@ analogy is drawn.
 
 The **neuron** is literal: a lipid bilayer separates two ionic media and holds a
 resting potential against entropy by active transport; above threshold it fires
-an all-or-nothing action potential — a genuine, measured, binary event. The seam
+an all-or-nothing action potential -- a genuine, measured, binary event. The seam
 is neither the graded dendritic input nor the spike output; it is the threshold
 rule that turns a continuum into a 1. Stop the metabolic work and the gradient
 runs down toward equilibrium, and the membrane can decide nothing. (See the
 per-**operation** versus per-instant tempo discussion in
-[§3](./03-occasionalism.md) — the neuron's re-maintenance is *metabolic*, not
+[§3](./03-occasionalism.md) -- the neuron's re-maintenance is *metabolic*, not
 per-instant, and the curation never claims otherwise.)
 
 The **firewall / authorization channel** is the literal case that matters most
 for EMET, *because it was built to be a deciding permeable seam with no
-phospholipids and no subjectivity* — which is itself the evidence that the
+phospholipids and no subjectivity* -- which is itself the evidence that the
 meaning and agency cases below are isomorphism and not substance. At the wire
 there is only signal: 1s and 0s indistinguishable in their physics. The security
 distinction is exactly the seam:
@@ -96,7 +96,7 @@ distinction is exactly the seam:
   A signal can be perfectly authentic and still be one that must be refused.
 - **Authorization is the membrane, and is not readable off the signal.** Whether
   an authentic command *ought* to cross is a fact about a will and a policy on
-  *this* side of the seam — not a property of the data crossing it.
+  *this* side of the seam -- not a property of the data crossing it.
 
 This two-layer split is the whole reason EMET has a placement at all, and it is
 the crux of the curation. EMET lives on the authentication side of the firewall
@@ -108,13 +108,13 @@ high-confidence half.
 
 ### Isomorphic: meaning and agency
 
-The corpus's two passed chapters — meaning and agency — describe the *same three
+The corpus's two passed chapters -- meaning and agency -- describe the *same three
 properties* holding of a self/world seam (for significance) and an input/act
 seam (for sourcehood). These are admitted as **isomorphic**, never literal: the
 word "membrane" there names two categorically different things that share a
 *form* but not a *genus*, and the through-line marks this in-line with the label
 "same structure, different kind." This tier is **illumination/lineage** for
-EMET's purposes — EMET is a byte-integrity artifact, not a theory of
+EMET's purposes -- EMET is a byte-integrity artifact, not a theory of
 significance or sourcehood, and nothing in EMET's design is *forced* by the
 meaning/agency isomorphism. I name the tier only to show where EMET is *not*:
 EMET makes no claim about subjects, aboutness, or owned agency, and an essay
@@ -122,8 +122,8 @@ that imported those claims into the verifier would be over-reaching.
 
 ### Lineage: aleph, alif, the crossroads
 
-The theological and esoteric cases — the silent aleph that divides *emet* from
-*met*, the alif as vowel-carrier, the crossroads holder of the generative word —
+The theological and esoteric cases -- the silent aleph that divides *emet* from
+*met*, the alif as vowel-carrier, the crossroads holder of the generative word --
 are **lineage only**. They are the etymology of the membrane intuition, kept and
 labeled as such, and they test nothing because they are not falsifiable on their
 own terms. [§6](./06-aleph.md) uses the aleph figure exactly this way: literal
@@ -140,14 +140,14 @@ Now the placement, run through the subtraction test so it earns its slot.
 **EMET is a literal membrane, kin to the firewall, not the neuron and not the
 isomorphs.** It instantiates the three properties without metaphor. (i) It is
 *neither of the two states*: a verdict is not the artifact's bytes and not the
-anchor's recorded hash; it is the seam at which the two are compared and a 1|0 —
-`MATCH` or `DRIFT` — is decided. The verdict lattice is the deciding rule, not
+anchor's recorded hash; it is the seam at which the two are compared and a 1|0 --
+`MATCH` or `DRIFT` -- is decided. The verdict lattice is the deciding rule, not
 either thing it sorts. (ii) It is *re-maintained per operation*: nothing is
 cached, no key is held, the identity is recomputed from raw bytes on every
 `verify` (see [§3](./03-occasionalism.md)). Withdraw the re-derivation and there
-is no standing verdict to fall back on — only `UNVERIFIABLE`, which is the
+is no standing verdict to fall back on -- only `UNVERIFIABLE`, which is the
 equilibrium state, the analytic *met* of the verifier: inability, never trust
-(SPEC §9). (iii) It is *where a conferral happens* — but only the
+(SPEC §9). (iii) It is *where a conferral happens* -- but only the
 authentication-grade conferral: it turns indifferent bytes into the fact "these
 bytes re-derive to their anchored identity," and nothing more.
 
@@ -158,7 +158,7 @@ the reason the hash is over *exact raw bytes* with no normalization
 ([§5](./05-authored-root.md)). Each of those is the firewall membrane's
 discipline applied to a verifier: a deciding seam that runs purely off
 signal-validity, that normalizes its input before deciding, or that authenticates
-itself with a signal it produced is *not a membrane — it is a wire*. So
+itself with a signal it produced is *not a membrane -- it is a wire*. So
 "membrane" here forbids the competitor description "EMET is a trust oracle that
 emits a permission." That forbidding is the load-bearing content of the
 placement.
@@ -166,13 +166,13 @@ placement.
 **EMET is on the authentication side, and refuses the authorization crossing.**
 This is the crux, stated once and consistent with [§1](./01-is-ought-seam.md),
 [§5](./05-authored-root.md), and [§6](./06-aleph.md). Authentication is the 1|0
-of the signal: EMET answers it, and answers nothing else. Authorization — whether
-an authentic artifact *ought* to be acted on — is a fact about a will and a
+of the signal: EMET answers it, and answers nothing else. Authorization -- whether
+an authentic artifact *ought* to be acted on -- is a fact about a will and a
 policy on the operator's side of the seam, and EMET is built so that no command
 can take such a decision as input or return such an answer (SPEC §6.2: attests,
 never adjudicates; SPEC §6.4: advisory by default; SPEC §2: the lattice cannot
 emit `TRUSTED`, `APPROVED`, or `SAFE`). EMET *locates* the authorization
-membrane — it makes the seam visible by stopping exactly at it — and declines to
+membrane -- it makes the seam visible by stopping exactly at it -- and declines to
 be it.
 
 This is the placement's most important negative claim, so it gets its own
@@ -182,18 +182,18 @@ ought" has misread the placement; the next section answers that reader directly.
 
 ## Objection → answer
 
-**Objection.** "You are underselling it. The whole apparatus — the closed
-lattice, the audit chain, the `refuse` denylist — is the deciding seam that
+**Objection.** "You are underselling it. The whole apparatus -- the closed
+lattice, the audit chain, the `refuse` denylist -- is the deciding seam that
 *confers the ought*. When EMET says `MATCH`, that is the authorization: it is the
 go/no-go. EMET *is* the membrane in the full sense, the authorization membrane,
 and your 'authentication-only' framing is a polite fiction."
 
-**Answer.** No — and the distinction is the entire point of the placement, not a
+**Answer.** No -- and the distinction is the entire point of the placement, not a
 hedge on it. EMET decides the authentication 1|0: *does this artifact re-derive
 to its anchored identity?* That is a fact about bytes, recomputable by anyone
 from `spec_version` + the bytes, with no secret and no held
 key (SPEC §8). It is emphatically *not* the decision *whether an authentic
-artifact ought to cross* — that decision requires a will directed at a referent
+artifact ought to cross* -- that decision requires a will directed at a referent
 (the operator's policy about *this* artifact in *this* situation), and no such
 will is, or can be, read off the bytes. A `MATCH` that ever entailed a permission
 would have to manufacture an ought out of an is with no authored policy to
@@ -201,7 +201,7 @@ license it, which is exactly the laundering [§1](./01-is-ought-seam.md) shows
 EMET refuses. The verdict lattice is closed *so that* `MATCH` cannot quietly
 become `APPROVED`: absence of `DRIFT` is reported as agreement on the bytes or as
 `UNVERIFIABLE`, never as trust (SPEC §2). EMET *locates* the authorization
-membrane — it shows you precisely where the seam is, by halting at it — and
+membrane -- it shows you precisely where the seam is, by halting at it -- and
 refuses to be the thing that crosses it. The placement is "literal membrane,
 authentication register"; the objection wants "literal membrane, authorization
 register," and that second reading is the thing every boundary in SPEC §6 is
@@ -210,7 +210,7 @@ built to prevent.
 (One tempting reply to the objection deserves naming and dismissing: "but in
 practice an operator *will* treat `MATCH` as a go." True, and irrelevant to the
 placement. The operator authoring a policy that says "act on `MATCH`" is the
-operator inhabiting the authorization membrane — authoring the *for*, in the
+operator inhabiting the authorization membrane -- authoring the *for*, in the
 sense of [§4](./04-spoken-for.md). EMET supplies the authentication fact; the
 *for* is conferred downstream, by a will, never by the verifier. The seam did not
 move; the operator stepped up to it.)
@@ -218,12 +218,12 @@ move; the operator stepped up to it.)
 ## Refuter
 
 The placement is falsifiable, and here is what would refute it: **show EMET ever
-conferring an authorization — emitting a value that asserts a permission rather
-than reporting a byte fact — and the placement fails.** If any codepath could
+conferring an authorization -- emitting a value that asserts a permission rather
+than reporting a byte fact -- and the placement fails.** If any codepath could
 emit `TRUSTED`, `APPROVED`, `SAFE`, or any verdict outside the closed lattice; if
 any command could take a model-safety or content decision as input or answer such
 a question (SPEC §6.2); or if a `MATCH` could be made to *entail* a downstream
-permission with no operator-authored policy in between — then EMET would have
+permission with no operator-authored policy in between -- then EMET would have
 become the authorization membrane, and this whole placement (literal,
 authentication-side, refusing the crossing) would be wrong. The placement is not
 a description we have decided to like; it is a claim the design can be checked
@@ -238,7 +238,7 @@ mislocated EMET.
 load-bearing: removing it removes the constraints that make the closed lattice,
 the exact-byte identity, and the no-self-root discipline *necessary* rather than
 tasteful. The meaning/agency isomorphs and the aleph lineage are named in this
-essay only to fence EMET off from them — they are illumination/lineage here, and
+essay only to fence EMET off from them -- they are illumination/lineage here, and
 nothing in EMET's design rests on them. The one figure that recurs across the
 curation, the aleph, is load-bearing in this essay for *none* of its claims; it
 is lineage, exactly as [§6](./06-aleph.md) marks it.
@@ -247,8 +247,8 @@ is lineage, exactly as [§6](./06-aleph.md) marks it.
 
 The taxonomy's discipline applies to the taxonomy itself. This placement claims
 no authority from having been written down; it has exactly the standing its
-argument earns and not a byte more. If the subtraction test fails — if "EMET is a
-membrane" turns out to forbid no competitor description — then this essay is
+argument earns and not a byte more. If the subtraction test fails -- if "EMET is a
+membrane" turns out to forbid no competitor description -- then this essay is
 decoration and should be cut, not believed. That is the same self-application the
 spine states for the whole curation: standing is conferred by re-derivable
 argument, never aseitic, never read off the fact that a document asserts it. The
@@ -259,7 +259,7 @@ something. Re-run it.
 
 ---
 
-## Further reading (lineage and provenance — not warrant)
+## Further reading (lineage and provenance -- not warrant)
 
 These are pointers to where the ideas above were developed. They are *further
 reading only*: nothing in this essay is true *because* a corpus document says so.
@@ -275,17 +275,17 @@ If a source and `SPEC.md` disagree, `SPEC.md` governs and the essay is wrong.
 
 ## Cross-links
 
-- [§1 — The is/ought seam](./01-is-ought-seam.md): why `refuse` strips in-band
+- [§1 -- The is/ought seam](./01-is-ought-seam.md): why `refuse` strips in-band
   authority and the lattice won't launder *is* into *ought*. The crux originates
   there; this essay places it on the taxonomy.
-- [§2 — No-aseity, no `TRUSTED`](./02-no-aseity.md): why the lattice is closed.
-- [§3 — Process over property](./03-occasionalism.md): the per-operation
+- [§2 -- No-aseity, no `TRUSTED`](./02-no-aseity.md): why the lattice is closed.
+- [§3 -- Process over property](./03-occasionalism.md): the per-operation
   re-maintenance that makes property (ii) hold for EMET.
-- [§4 — The spoken-*for*](./04-spoken-for.md): who authors the authorization
-  *for* (the operator, downstream — never the verifier).
-- [§5 — The authored root](./05-authored-root.md): why EMET cannot authenticate
+- [§4 -- The spoken-*for*](./04-spoken-for.md): who authors the authorization
+  *for* (the operator, downstream -- never the verifier).
+- [§5 -- The authored root](./05-authored-root.md): why EMET cannot authenticate
   itself; the membrane that refuses to be its own root of trust.
-- [§6 — emet / met / aleph](./06-aleph.md): the literal byte seam versus the
+- [§6 -- emet / met / aleph](./06-aleph.md): the literal byte seam versus the
   lineage figure; the source of the literal/illumination marking this essay
   inherits.
 - [GLOSSARY](./GLOSSARY.md): literal / isomorphic / lineage; materialized grant;

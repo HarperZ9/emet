@@ -1,7 +1,7 @@
-# Marker Corpus Reconciliation — Design
+# Marker Corpus Reconciliation -- Design
 
 - Date: 2026-06-06
-- Status: APPROVED (brainstorming) — pending spec self-review + user review, then implementation plan
+- Status: APPROVED (brainstorming) -- pending spec self-review + user review, then implementation plan
 - Scope: EMET `refuse` + `monitor` marker census; the byte-hash core is untouched
 - Related: SPEC.md sections 8, 10, 11, 13, 16; conformance/vectors.json
 
@@ -17,7 +17,7 @@ The two implementations therefore DISAGREE on any marker input not in exact
 underscore form. Confirmed: on `GROUND TRUTH CANONICAL ... authority-pill ...
 HIGHEST SCRUTINY` the Python core counts 3, the Rust core counts 0. The conformance
 vectors only use exact-underscore inputs, so the divergence is invisible to CI. This
-undercuts the project's central claim — re-derivability across implementations — for
+undercuts the project's central claim -- re-derivability across implementations -- for
 the marker-dependent path.
 
 SPEC sections 8 and 16 already DESIGN for the fix: the marker denylist is a
@@ -37,7 +37,7 @@ that is implemented today: the list is hardcoded inline in three places,
 
 1. MATCH MODEL: literal-enumerated. The corpus is a flat list of literal
    byte-strings; matching is ASCII-case-insensitive substring via a non-overlapping
-   left-to-right byte scan — the exact algorithm now in emet.rs. No regex engine in
+   left-to-right byte scan -- the exact algorithm now in emet.rs. No regex engine in
    either language (regex is the primary source of cross-language divergence).
 
 2. FORMAT: plain UTF-8 text, one literal marker per line. A `# corpus_version: N`
@@ -46,12 +46,12 @@ that is implemented today: the list is hardcoded inline in three places,
    is one marker. `corpus_sha256` = sha256 over the whole file's raw bytes.
 
 3. LOADING: default path resolved relative to the tool; `EMET_CORPUS` env var
-   overrides it (at most two sources — never a guess-list). refuse and monitor census
+   overrides it (at most two sources -- never a guess-list). refuse and monitor census
    ALWAYS echo `corpus_version=` and `corpus_sha256=`. Missing/unreadable corpus is
    UNVERIFIABLE with reason code `E_NO_CORPUS`, never a silent empty denylist.
 
 4. CORPUS CONTENTS (corpus_version 1): uniform separator variants per multi-token
-   marker — all-underscore, all-space, all-none, plus the hyphen form for
+   marker -- all-underscore, all-space, all-none, plus the hyphen form for
    `authority-pill`. Single-token markers stay literal.
 
 5. SHARED LOADER: a new stdlib-only `corpus.py` core module (load / match / redact),
@@ -142,7 +142,7 @@ Notes:
   in_band_authority_claims substrings are unaffected by the added corpus lines).
   ADD:
   - refuse-space-separated: input "GROUND TRUTH CANONICAL\n" -> count 1, exit 3
-    (previously Python 1 / Rust 0 — now identical).
+    (previously Python 1 / Rust 0 -- now identical).
   - refuse-hyphen-pill: input "authority-pill\n" -> count 1, exit 3.
   - refuse-no-corpus: EMET_CORPUS pointed at a nonexistent path -> substring
     UNVERIFIABLE, exit 2.
@@ -179,7 +179,7 @@ New tests (test_corpus.py and/or extend test_membrane.py), each watched fail fir
 ## Out of scope
 
 - Rust audit command + chain recording (separate P0 item).
-- The byte-hash core (anchor/verify/coherence/corroborate/audit) — no corpus
+- The byte-hash core (anchor/verify/coherence/corroborate/audit) -- no corpus
   dependency (SPEC section 8), untouched.
 - New injection signatures beyond reconciling the current set; corpus growth is
   governed separately (CONTRIBUTING.md).

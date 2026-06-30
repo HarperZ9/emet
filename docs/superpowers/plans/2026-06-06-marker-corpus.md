@@ -1,4 +1,4 @@
-# Marker Corpus Reconciliation — Implementation Plan
+# Marker Corpus Reconciliation -- Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -20,17 +20,17 @@
 
 ## File structure
 
-- Create: `corpus.py` — corpus loader, matcher, redactor (stdlib-only core module).
-- Create: `conformance/markers.corpus` — the versioned marker artifact.
-- Create: `test_corpus.py` — unit tests for `corpus.py`.
-- Create: `test_monitor.py` — behavior tests for `monitor.py` report/corpus handling.
-- Modify: `membrane.py` — refuse() uses corpus.py; remove `AUTHORITY`/`AUTHORITY_RE`; drop unused `re` import.
-- Modify: `monitor.py` — report() uses corpus.py; remove `MARKERS`/`_markers`; drop unused `re` import.
-- Modify: `impl/rust/emet.rs` — load corpus from file; remove `const MARKERS`; thread markers through.
-- Modify: `conformance/run.py` — set `EMET_CORPUS` for both impls; add per-vector `env`.
-- Modify: `conformance/vectors.json` — corpus_version 0->1, add corpus_sha256, add 3 vectors.
-- Modify: `SPEC.md` — sections 8, 10, 13, 16.
-- Modify: `README.md`, `CONTRIBUTING.md`, `.github/workflows/conformance.yml`, `impl/rust/README.md` — counts + corpus mention + new CI test steps.
+- Create: `corpus.py` -- corpus loader, matcher, redactor (stdlib-only core module).
+- Create: `conformance/markers.corpus` -- the versioned marker artifact.
+- Create: `test_corpus.py` -- unit tests for `corpus.py`.
+- Create: `test_monitor.py` -- behavior tests for `monitor.py` report/corpus handling.
+- Modify: `membrane.py` -- refuse() uses corpus.py; remove `AUTHORITY`/`AUTHORITY_RE`; drop unused `re` import.
+- Modify: `monitor.py` -- report() uses corpus.py; remove `MARKERS`/`_markers`; drop unused `re` import.
+- Modify: `impl/rust/emet.rs` -- load corpus from file; remove `const MARKERS`; thread markers through.
+- Modify: `conformance/run.py` -- set `EMET_CORPUS` for both impls; add per-vector `env`.
+- Modify: `conformance/vectors.json` -- corpus_version 0->1, add corpus_sha256, add 3 vectors.
+- Modify: `SPEC.md` -- sections 8, 10, 13, 16.
+- Modify: `README.md`, `CONTRIBUTING.md`, `.github/workflows/conformance.yml`, `impl/rust/README.md` -- counts + corpus mention + new CI test steps.
 
 ---
 
@@ -349,7 +349,7 @@ Add to `test_membrane.py` class `MembraneBehavior` (the shipped corpus at the de
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `python test_membrane.py MembraneBehavior.test_refuse_echoes_corpus_version_and_sha MembraneBehavior.test_refuse_counts_space_separated_marker MembraneBehavior.test_refuse_missing_corpus_is_unverifiable`
-Expected: FAIL (no `corpus_version=` line; space form counts 0 under old regex `[_ ]?` — actually old regex matches it, so this one may pass pre-change; the corpus_version test WILL fail). At least the version/sha and E_NO_CORPUS tests FAIL.
+Expected: FAIL (no `corpus_version=` line; space form counts 0 under old regex `[_ ]?` -- actually old regex matches it, so this one may pass pre-change; the corpus_version test WILL fail). At least the version/sha and E_NO_CORPUS tests FAIL.
 
 - [ ] **Step 3: Edit membrane.py imports**
 
@@ -792,13 +792,13 @@ git commit -m "feat(rust): load marker corpus from artifact; echo version/sha (C
 **Files:**
 - Modify: `SPEC.md`, `README.md`, `CONTRIBUTING.md`, `impl/rust/README.md`, `.github/workflows/conformance.yml`
 
-- [ ] **Step 1: SPEC.md section 8** — replace the section-8 body with text that adds: "The corpus is the plain-text artifact conformance/markers.corpus: a `# corpus_version: N` header line, `#` comment lines, blank lines ignored, one literal marker per remaining line. corpus_sha256 is sha256 over the whole file. Matching is literal ASCII-case-insensitive substring over raw bytes. Implementations MUST echo corpus_version and SHOULD echo corpus_sha256 with marker-dependent output."
+- [ ] **Step 1: SPEC.md section 8** -- replace the section-8 body with text that adds: "The corpus is the plain-text artifact conformance/markers.corpus: a `# corpus_version: N` header line, `#` comment lines, blank lines ignored, one literal marker per remaining line. corpus_sha256 is sha256 over the whole file. Matching is literal ASCII-case-insensitive substring over raw bytes. Implementations MUST echo corpus_version and SHOULD echo corpus_sha256 with marker-dependent output."
 
-- [ ] **Step 2: SPEC.md section 10** — change "The core (membrane, organs, monitor) MUST depend only on..." to "The core (membrane, organs, monitor, corpus) MUST depend only on...".
+- [ ] **Step 2: SPEC.md section 10** -- change "The core (membrane, organs, monitor) MUST depend only on..." to "The core (membrane, organs, monitor, corpus) MUST depend only on...".
 
-- [ ] **Step 3: SPEC.md section 13** — in the refuse grammar bullet, add: "and a line containing corpus_version=N and a line containing corpus_sha256=<hex>."
+- [ ] **Step 3: SPEC.md section 13** -- in the refuse grammar bullet, add: "and a line containing corpus_version=N and a line containing corpus_sha256=<hex>."
 
-- [ ] **Step 4: SPEC.md section 16** — replace with a reference to conformance/markers.corpus as the governed artifact, the plain-text format, and literal ASCII-CI matching; keep the known-signature/non-complete caveat.
+- [ ] **Step 4: SPEC.md section 16** -- replace with a reference to conformance/markers.corpus as the governed artifact, the plain-text format, and literal ASCII-CI matching; keep the known-signature/non-complete caveat.
 
 - [ ] **Step 5: Update counts and CI**
 

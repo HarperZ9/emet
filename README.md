@@ -2,6 +2,8 @@
 
 > A small external witness for AI oversight: re-derive the bytes, get one of three verdicts, trust nothing in-band.
 
+![EMET advisory integrity witness architecture](assets/emet-hero.svg)
+
 [![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![version](https://img.shields.io/badge/version-0.2.0--draft-informational.svg)
@@ -21,6 +23,46 @@ comes from re-derivation - same bytes, same answer - not from authority. There
 is no `TRUSTED` verdict.
 
 `emet` is Hebrew for "truth."
+
+## Why it matters
+
+EMET is an advisory integrity witness for AI work. Its public value is narrow
+and testable: it re-derives bytes, compares source and view material, and emits
+closed verdicts without claiming authority, safety, approval, or permission.
+
+That makes it useful anywhere Project Telos needs provenance without another
+self-attesting layer. A model-facing view can drift from its source; a monitor
+can observe the wrong artifact; a generated report can overstate what was
+checked. EMET gives those surfaces a small external witness that says what
+matched, what drifted, and what could not be verified.
+
+## Usage
+
+Run the core checks directly from a checkout:
+
+```sh
+python membrane.py selftest
+python conformance/run.py membrane.py
+python test_forward_delivery_contract.py
+```
+
+For complete command examples and captured outputs, see [USAGE.md](USAGE.md).
+
+## For developers
+
+Keep EMET small, external, and advisory. Before changing public-facing docs,
+conformance behavior, or witness adapters, run the targeted checks:
+
+```sh
+python test_forward_delivery_contract.py
+python test_membrane.py
+python conformance/run.py membrane.py
+python -m public_surface_sweeper . --workspace --json
+```
+
+Spec changes, conformance-vector changes, and implementation behavior must move
+together. EMET must not emit `TRUSTED`, `APPROVED`, `SAFE`, or any value that
+grants authority or permission.
 
 ## What's here
 

@@ -6,7 +6,7 @@
 > boundary and the boundaries [CONTRIBUTING.md](../CONTRIBUTING.md) makes
 > non-negotiable. If this document and `SPEC.md` ever disagree, **`SPEC.md`
 > governs and this document is wrong.** Where it points elsewhere, it points as
-> *further reading* — lineage — never as the reason to accept a gate. A rubric
+> *further reading* -- lineage -- never as the reason to accept a gate. A rubric
 > that justified EMET's no-authority shape *by appeal to its own authority* would
 > be doing in band exactly what `refuse` exists to strip; so every gate here is
 > offered to be re-derived, and a contributor who knows only `SPEC.md` should be
@@ -16,7 +16,7 @@ This document answers one question a maintainer faces on every pull request:
 **will this change keep EMET an EMET, or quietly turn it into a different
 artifact wearing EMET's name?** The boundaries in `CONTRIBUTING.md` say a change
 that bends one of them is out of scope "no matter how useful." This rubric is the
-mechanism that makes that sentence operable — a litmus you can run, gate by gate,
+mechanism that makes that sentence operable -- a litmus you can run, gate by gate,
 before merge.
 
 ---
@@ -35,16 +35,16 @@ arriving at a boundary but to the project's own roadmap.
 is-axis is everything that makes a fact *more re-derivable, more covered, better
 evidenced, more rigorously specified*:
 
-- re-derivability — tightening the byte-hash core, pinning a scan that was
+- re-derivability -- tightening the byte-hash core, pinning a scan that was
   implicit (SPEC §16's non-overlapping leftmost rule was exactly such a
   deepening), closing a gap a second implementation surfaced;
-- coverage — more artifact, byte, and provenance facts brought under judgement;
+- coverage -- more artifact, byte, and provenance facts brought under judgement;
   more disjoint read paths for `corroborate`; more honest `UNVERIFIABLE` reason
   codes where inability was previously silent;
-- evidence — more conformance vectors, a machine-readable envelope so a consumer
+- evidence -- more conformance vectors, a machine-readable envelope so a consumer
   re-derives without reading reference code, a second independent implementation
-  (the highest-leverage contribution there is — `CONTRIBUTING.md`);
-- spec rigor — sharper MUSTs, a corrected overclaim, a disclosed limit
+  (the highest-leverage contribution there is -- `CONTRIBUTING.md`);
+- spec rigor -- sharper MUSTs, a corrected overclaim, a disclosed limit
   (SPEC §11) made more precise rather than quietly dropped.
 
 Depth makes EMET *more of what it already is*: a verifier whose verdicts are
@@ -53,24 +53,24 @@ single, and the position outside. **EMET can grow without bound along this axis.
 
 **Growth along the ought-axis is DISQUALIFYING, and no amount of utility
 redeems it.** The ought-axis is the set of capabilities that would let EMET
-answer the question it exists to refuse — *ought this authentic signal cross?*
+answer the question it exists to refuse -- *ought this authentic signal cross?*
 Each is a way of acquiring standing EMET must never hold:
 
-- **authority** — emitting a value that asserts permission (`TRUSTED`, `APPROVED`,
+- **authority** -- emitting a value that asserts permission (`TRUSTED`, `APPROVED`,
   `SAFE`, a trust score);
-- **adjudication** — taking a model-safety or content decision as input or
+- **adjudication** -- taking a model-safety or content decision as input or
   answering one;
-- **inside position** — requiring to be hosted by, or routed through, the audited
+- **inside position** -- requiring to be hosted by, or routed through, the audited
   system;
-- **enforcement** — allowing, denying, blocking, or gating of EMET's own accord;
-- **held key** — grounding a verdict in a secret, a cached trust, a credential the
+- **enforcement** -- allowing, denying, blocking, or gating of EMET's own accord;
+- **held key** -- grounding a verdict in a secret, a cached trust, a credential the
   tool *has* rather than re-derives;
-- **actuation on the target** — editing, writing, signing, backing up, or
+- **actuation on the target** -- editing, writing, signing, backing up, or
   reverting the artifact under judgement.
 
 The asymmetry is the heart of the rubric, and it is structural, not stylistic.
 A removed-or-added capability on the ought-axis does not make EMET a *worse* EMET
-along some continuous dial of goodness; it moves EMET *across the seam* — from a
+along some continuous dial of goodness; it moves EMET *across the seam* -- from a
 verifier that locates the is/ought boundary to a thing that launders across it
 ([06-aleph.md](./rationale/06-aleph.md): the boundary set is one closed edge, and
 an edge with a gap is not a smaller edge, it is an opening). That is why a feature
@@ -85,17 +85,17 @@ gates below are that test.
 ## 2. The six-gate litmus test
 
 Run every proposed change through all six gates. Each gate is grounded in a
-specific SPEC §6 boundary and in `CONTRIBUTING.md`. **Any NO is scope creep — no
-matter how useful — and the change is out of scope until it is reshaped to a
+specific SPEC §6 boundary and in `CONTRIBUTING.md`. **Any NO is scope creep -- no
+matter how useful -- and the change is out of scope until it is reshaped to a
 YES or moved to a separate package.** The gates are not weighted and do not
 trade off against each other; they are six segments of one perimeter, and a
 perimeter with one segment open is open.
 
-### G1 — Re-derivable: no secret, no held key, no clock
+### G1 -- Re-derivable: no secret, no held key, no clock
 
 > **Pass condition.** Every verdict the change can produce is reproducible from
-> the same artifact bytes, the same `spec_version`, and — for marker-dependent
-> output only — the same `corpus_version`. The change introduces no secret, no
+> the same artifact bytes, the same `spec_version`, and -- for marker-dependent
+> output only -- the same `corpus_version`. The change introduces no secret, no
 > held key, no wall-clock dependency, and no claim EMET cannot re-derive from
 > bytes it can read.
 
@@ -109,12 +109,12 @@ perimeter with one segment open is open.
   ([03-occasionalism.md](./rationale/03-occasionalism.md): re-conferred per
   operation, nothing cached). The moment a check needs a key the maintainer holds,
   an independent re-implementation can no longer reproduce the verdict, and
-  re-derivability — the only assurance EMET offers — is gone.
+  re-derivability -- the only assurance EMET offers -- is gone.
 - **Fails when:** the change adds a signing key the core consults, a network
   trust root, a timestamp baked into a verdict, a random nonce that varies the
   output, or any cached "this was good last time" that a later run reads back.
 
-### G2 — Stays in the closed lattice: emits no authority, permission, or score
+### G2 -- Stays in the closed lattice: emits no authority, permission, or score
 
 > **Pass condition.** Every judgement the change emits is exactly one of the
 > governed tokens (enumerated in §3 below). The change defines, emits, or accepts
@@ -122,15 +122,15 @@ perimeter with one segment open is open.
 > authority, grants permission, or expresses a graded trust score.
 
 - **Boundary:** SPEC §6.1 (facts, not authority) and §2 (the closed lattice).
-  "An implementation MUST NOT define, emit, or accept any other verdict — in
+  "An implementation MUST NOT define, emit, or accept any other verdict -- in
   particular it MUST NOT emit `TRUSTED`, `APPROVED`, or `SAFE`."
 - **`CONTRIBUTING.md`:** a change must not make EMET "emit a verdict outside the
   closed lattice `MATCH | DRIFT | UNVERIFIABLE` (in particular, never `TRUSTED`)."
 - **Why it is load-bearing:** the seam is welded into the output *type*
   ([01-is-ought-seam.md](./rationale/01-is-ought-seam.md): "the function literally
   cannot return an *ought*, because the lattice has no inhabitant that is one"). A
-  fourth verdict meaning *trusted* — or a 0–100 risk number, which is `TRUSTED`
-  with a decimal point — is the is laundered into an ought at the one place the
+  fourth verdict meaning *trusted* -- or a 0–100 risk number, which is `TRUSTED`
+  with a decimal point -- is the is laundered into an ought at the one place the
   whole design exists to keep clean.
 - **A note on the structure today.** Boundary 1 is now enforced **structurally**,
   not only by review. Every governed token is emitted through `verdict.py`'s
@@ -139,7 +139,7 @@ perimeter with one segment open is open.
   outright), so a codepath that tried to print a fourth verdict fails at
   construction time inside the TCB, before a byte reaches stdout. `governed()`
   returns the token verbatim, so it guards *what* may be emitted without changing
-  any emitted byte. G2 is therefore largely mechanical now — but a reviewer still
+  any emitted byte. G2 is therefore largely mechanical now -- but a reviewer still
   applies it by hand to the one thing the type cannot catch: a genuinely needed
   new verdict must be **added to the governed set in `SPEC.md` first** (the
   governed sets in `verdict.py` follow the spec, never the reverse), never slipped
@@ -149,7 +149,7 @@ perimeter with one segment open is open.
   that ranks artifacts, or any output a downstream reader would reasonably treat as
   a grant of permission.
 
-### G3 — Outside the audited system
+### G3 -- Outside the audited system
 
 > **Pass condition.** The change keeps EMET able to run from outside its target,
 > reading the target only by raw bytes. It does not make EMET require being hosted
@@ -164,18 +164,18 @@ perimeter with one segment open is open.
   *mediated* view; a compromised host shapes what the verifier sees, and the
   is-fact is no longer independently re-derivable
   ([06-aleph.md](./rationale/06-aleph.md), Boundary 3). The raw-byte channel
-  (`open(path, "rb")`, never a transformed view — SPEC §3) is what keeps the
+  (`open(path, "rb")`, never a transformed view -- SPEC §3) is what keeps the
   position external.
 - **Fails when:** the change requires a plugin slot inside the target runtime, an
   agent injected into the audited process, an API the target must expose for EMET
   to function, or reads the target through the target's own mediated interface
   instead of raw bytes.
 
-### G4 — Advisory: zero actuation ON THE TARGET
+### G4 -- Advisory: zero actuation ON THE TARGET
 
 > **Pass condition.** The change keeps EMET's output to data plus an exit code.
 > EMET does not, of its own accord, allow, deny, block, or enforce; and it does
-> not write to, edit, sign, back up, or revert **the audited target** — the
+> not write to, edit, sign, back up, or revert **the audited target** -- the
 > artifact under judgement. The single actuator over the world remains the
 > operator.
 
@@ -194,13 +194,13 @@ perimeter with one segment open is open.
     (`monitor.py`, in `reanchor`).
 
   None of those four is the target. "Zero actuation" therefore means **zero
-  actuation on the audited target, of EMET's own accord** — not "EMET performs no
+  actuation on the audited target, of EMET's own accord** -- not "EMET performs no
   write at all." The single actuator *over the world* is the operator; EMET's
   private bookkeeping is not an act upon the artifact it judges.
 
   This corrects two earlier phrasings that were **overstated** and are wrong as
   written:
-  - `THREAT-MODEL.md` said "EMET performs no action." It does perform actions —
+  - `THREAT-MODEL.md` said "EMET performs no action." It does perform actions --
     on its own private stores. The defensible claim is that it performs no
     actuation *on the target*.
   - [06-aleph.md](./rationale/06-aleph.md) said "Boundary 6 is the absence of a
@@ -210,12 +210,12 @@ perimeter with one segment open is open.
 
   Both are corrected to the scoped form above. The gate is **target-scoped
   actuation**, and a contributor who reads "zero actuation" as "no writes
-  anywhere" will mis-apply it — flagging the log as a violation, or worse, taking
+  anywhere" will mis-apply it -- flagging the log as a violation, or worse, taking
   the overstatement as license to relax the *real* boundary because the literal
   one is obviously already broken.
-- **Why it is load-bearing:** remove this wall and a `MATCH` becomes an *act* — a
+- **Why it is load-bearing:** remove this wall and a `MATCH` becomes an *act* -- a
   gate that opens, a file that is "fixed," a target reverted to its anchored bytes
-  — and EMET has become a second author of the *for*
+  -- and EMET has become a second author of the *for*
   ([04-spoken-for.md](./rationale/04-spoken-for.md); [06-aleph.md](./rationale/06-aleph.md),
   Boundaries 4 and 6). The operator authors the *ought*; EMET hands over a clean
   *is*.
@@ -223,14 +223,14 @@ perimeter with one segment open is open.
   auto-revert on DRIFT, a quarantine that moves or deletes the target, a
   block-on-DRIFT mode that denies an action, or any signing of the target. It does
   **not** fail merely because the change writes to `anchors.json`, a log, a
-  `.refused` copy, or (on explicit operator `reanchor`) the manifest — those are
+  `.refused` copy, or (on explicit operator `reanchor`) the manifest -- those are
   private stores, not the target.
 
-### G5 — Named-core stays stdlib-only; integrations live in separate packages
+### G5 -- Named-core stays stdlib-only; integrations live in separate packages
 
 > **Pass condition.** The change adds no third-party runtime dependency to the
 > named core (membrane, organs, monitor, corpus, verdict). Any adapter that needs an
-> outside dependency — signing, SARIF or in-toto emission, fuzzing — lives in a
+> outside dependency -- signing, SARIF or in-toto emission, fuzzing -- lives in a
 > *separate package*, and the minimal-TCB guarantee continues to apply to the
 > named core alone.
 
@@ -252,7 +252,7 @@ perimeter with one segment open is open.
   runtime requirement; or buries an adapter's dependency inside the core instead
   of in its own package.
 
-### G6 — Takes no model-safety or content decision as input
+### G6 -- Takes no model-safety or content decision as input
 
 > **Pass condition.** No command the change adds or modifies takes a model-safety
 > or content decision as input, or answers such a question. EMET operates only on
@@ -290,17 +290,17 @@ in `SPEC.md` first (see §6, "fix the spec, not the code").
 | `audit` | `INTACT`, `BROKEN` (chain) | SPEC §13 |
 | `selftest` | `membrane_self_sha256=<hex>` (an identity, **not** a verdict) | SPEC §13, §14 |
 
-**Monitor report — newly governed by this document.** The monitor (`monitor.py`)
+**Monitor report -- newly governed by this document.** The monitor (`monitor.py`)
 emits `INTACT`/`CHANGED` per baseline and `MATCH`/`DRIFT`/`MISSING` per file
 (`monitor.py`, in `report`). These tokens already ship; until now they were
-**ungoverned** — emitted outside the SPEC §2 closed set, an oversight an
+**ungoverned** -- emitted outside the SPEC §2 closed set, an oversight an
 adversarial scope review correctly flagged. This document **enumerates them as
 governed auxiliary judgements**:
 
 | Surface | Governed tokens | Note |
 |---|---|---|
-| monitor report — per baseline | `INTACT`, `CHANGED` | aggregate of the per-file results |
-| monitor report — per file | `MATCH`, `DRIFT`, `MISSING` | `MATCH`/`DRIFT` mirror the primary lattice; `MISSING` is the monitor's `UNVERIFIABLE`-class result for an absent baseline file |
+| monitor report -- per baseline | `INTACT`, `CHANGED` | aggregate of the per-file results |
+| monitor report -- per file | `MATCH`, `DRIFT`, `MISSING` | `MATCH`/`DRIFT` mirror the primary lattice; `MISSING` is the monitor's `UNVERIFIABLE`-class result for an absent baseline file |
 
 The change is to **enumerate, not rename**: keep these exact tokens (they are
 load-bearing in shipped output and in the conformance posture), but place them
@@ -319,12 +319,12 @@ The gates are sharp only against examples. Here are the canonical ones, sorted
 into DEPTH (ship it) and CREEP (refuse it). Each verdict is justified by the gate
 it turns on.
 
-### DEPTH — ship these
+### DEPTH -- ship these
 
 - **The machine-readable JSON envelope (the v1 target).** Wrapping the existing
   pinned stdout tokens (SPEC §13) in a JSON object for programmatic consumers is
   pure is-axis: it makes the *same* governed verdicts *more* consumable without
-  adding a new one. Passes all six gates — the envelope carries `MATCH`/`DRIFT`/
+  adding a new one. Passes all six gates -- the envelope carries `MATCH`/`DRIFT`/
   `UNVERIFIABLE`, not a new token (G2); needs no key, no inside position, no
   actuation, no third-party core dependency, no content decision. SPEC §13 already
   names it as the target. **Depth.**
@@ -333,7 +333,7 @@ it turns on.
   changed artifact from an unanchored one. It adds *resolution to a fact*, not a
   new verdict or any authority; the verdicts themselves are unchanged. It does
   require a migration plus a vector update done *together* (`CONTRIBUTING.md`),
-  which is the disciplined way — spec and vectors move as one. **Depth.**
+  which is the disciplined way -- spec and vectors move as one. **Depth.**
 - **A new governed marker.** Adding a signature to the versioned denylist
   (`conformance/markers.corpus`) with a rationale and a test input plus expected
   count (`CONTRIBUTING.md`; SPEC §§8, 16) deepens coverage. A marker is *data*, not
@@ -348,7 +348,7 @@ it turns on.
   mapping. **Depth.** (Note the seam: the *adapter* is depth; the same SARIF
   emission welded into the stdlib-only core would fail G5.)
 
-### CREEP — refuse these, however useful
+### CREEP -- refuse these, however useful
 
 - **A risk score.** A 0–100 (or low/medium/high) number presented as a verdict
   fails **G2**: it is a graded trust assertion, `TRUSTED` with a decimal point.
@@ -363,7 +363,7 @@ it turns on.
   action when EMET sees `DRIFT` fails **G4**: it makes the verdict *do something*
   of EMET's own accord, converting advice into enforcement. Enforcement is a
   downstream decision on owner-controlled infrastructure (SPEC §11), authored by
-  the operator — not a mode EMET ships. (The exit code is already the integration
+  the operator -- not a mode EMET ships. (The exit code is already the integration
   point: a CI step can choose to fail on exit 2. That is the *operator* acting on a
   fact, which is correct; EMET blocking of its own accord is not.) **Creep.**
 - **A built-in policy engine.** Bundling rules of the form "if `DRIFT` on path X
@@ -378,8 +378,8 @@ it turns on.
 ## 5. The symmetric risk: over-minimalism
 
 Scope discipline has a failure mode in *both* directions, and a rubric that warned
-only against creep would itself be dishonest. **Over-minimalism — purity-as-
-uselessness — is the symmetric risk, and it is just as real.** A verifier so
+only against creep would itself be dishonest. **Over-minimalism -- purity-as-
+uselessness -- is the symmetric risk, and it is just as real.** A verifier so
 guarded that it verifies nothing anyone runs in anger has kept its edge by having
 no edge to keep.
 
@@ -393,7 +393,7 @@ Concretely, the over-minimalist failures to watch for:
 - **Indefinitely deferring the machine interface.** The JSON envelope and the
   v1.1 exit split are DEPTH (§4). Treating them as forever-deferred "later
   deliverables" in the name of minimalism is a way of refusing the is-axis growth
-  the project needs — a tool no machine can consume cleanly is pure in a way that
+  the project needs -- a tool no machine can consume cleanly is pure in a way that
   helps no one.
 - **Doc-mass exceeding the core.** When the rationale and process documents
   substantially outweigh the verifier they describe, the project has begun
@@ -404,7 +404,7 @@ Concretely, the over-minimalist failures to watch for:
 The point of stating this is the load-bearing one: **the rubric governs the SEAM,
 not a freeze.** Its job is to keep growth on the is-axis (depth) and off the
 ought-axis (authority, adjudication, inside position, enforcement, held key,
-target actuation) — *not* to stop growth. "Refuse every change" is not the
+target actuation) -- *not* to stop growth. "Refuse every change" is not the
 discipline; it is the over-minimalist failure wearing the discipline's clothes. A
 maintainer who blocks a JSON envelope, a coverage expansion, or a second
 implementation "to stay minimal" has mistaken the freeze for the seam, and is
@@ -416,28 +416,28 @@ ought-axis. Both axes have a wrong direction; the rubric names both.
 ## 6. When the gate is wrong: fix the spec, not the code
 
 Sometimes a change fails a gate not because the change is creep but because the
-**spec has a genuine gap** — a MUST that is too narrow, a verdict the lattice
+**spec has a genuine gap** -- a MUST that is too narrow, a verdict the lattice
 honestly needs, a boundary phrased in an overstated form (this very document
 corrects two such overstatements in G4). When that happens, the discipline is
 inherited straight from `CONTRIBUTING.md`: **fix the spec, not the code.**
 
 > "Where your implementation and the spec disagree, **fix the spec**: those
-> divergences are the point." — `CONTRIBUTING.md`
+> divergences are the point." -- `CONTRIBUTING.md`
 
 The mechanism:
 
 1. **Do not** route around a gate by quietly adding a token, a write, or a
    dependency that the spec does not sanction. A codepath that emits an
    unenumerated verdict is BROKEN scope discipline even if the verdict seems
-   harmless — because the *next* unenumerated verdict will not be harmless, and
+   harmless -- because the *next* unenumerated verdict will not be harmless, and
    review cannot tell them apart once the precedent is set.
 2. If the gap is real, change `SPEC.md` and `conformance/vectors.json`
-   **together** (`CONTRIBUTING.md`) — the spec is normative, the vectors are how an
+   **together** (`CONTRIBUTING.md`) -- the spec is normative, the vectors are how an
    independent implementation reproduces it. The governed verdict set (§3) is
    amended *in the spec first*; this rubric then follows the spec, never the
    reverse.
 3. The bar for amending a §6 boundary is highest of all, because a boundary is not
-   a dial — removing or widening one changes *what EMET is*
+   a dial -- removing or widening one changes *what EMET is*
    ([06-aleph.md](./rationale/06-aleph.md)). Correcting an *overstated* boundary to
    its true scope (as G4 does for "zero actuation") is legitimate spec repair;
    *relaxing a boundary's real content* to admit a convenient feature is the
@@ -447,8 +447,8 @@ The mechanism:
    crossed.
 
 A gate that genuinely blocks a needed capability is evidence about the spec, not a
-verdict against the capability. Run it back through the spec — openly, with
-vectors — and let the divergence do its work. That is the same posture the whole
+verdict against the capability. Run it back through the spec -- openly, with
+vectors -- and let the divergence do its work. That is the same posture the whole
 project runs on: the warrant is the argument and the re-derivation, never the
 authority of whoever holds the pen.
 
@@ -460,16 +460,16 @@ A rubric worth keeping must say how it would fail. This one fails if either of
 two things is shown:
 
 > **If a change that passes all six gates nonetheless moves EMET across the
-> is/ought seam — gives it authority, an inside position, enforcement, a held key,
-> or actuation on the target — then the gates are not the perimeter they claim to
+> is/ought seam -- gives it authority, an inside position, enforcement, a held key,
+> or actuation on the target -- then the gates are not the perimeter they claim to
 > be, and the litmus is incomplete.** Conversely, **if a change that fails a gate
-> can be shown to leave EMET categorically unchanged — same job, same side of the
-> seam, crossing nothing it did not already cross — then that gate is over-tight,
+> can be shown to leave EMET categorically unchanged -- same job, same side of the
+> seam, crossing nothing it did not already cross -- then that gate is over-tight,
 > and it is the over-minimalism §5 warns against, dressed as discipline.**
 
 Either finding is actionable: the first widens the gate set (a perimeter with a
 gap), the second loosens an over-tight gate (a freeze mistaken for a seam). The
-rubric earns its keep only so long as both refuters stay un-triggered — checkable,
+rubric earns its keep only so long as both refuters stay un-triggered -- checkable,
 gate by gate, against SPEC §6 and the governed set, by anyone, with no appeal to
 the authority of this document.
 
