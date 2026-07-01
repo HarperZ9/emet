@@ -2,7 +2,7 @@
 
 > A small external witness for AI oversight: re-derive the bytes, get one of three verdicts, trust nothing in-band.
 
-![EMET advisory integrity witness architecture](assets/emet-hero.svg)
+![EMET advisory integrity witness architecture](assets/emet-hero.png)
 
 [![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.x-blue.svg)
