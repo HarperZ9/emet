@@ -243,7 +243,7 @@ authored-root argument stops being a caveat and becomes a research program.
 
 The README is blunt about its own current state: the project ships four
 implementations -- the Python reference, a from-scratch Rust port, a Node.js port, and a stdlib-only, clean-room Go port -- that agree
-on all 31 conformance vectors in CI. And it immediately refuses to over-claim from
+on all 35 conformance vectors in CI. And it immediately refuses to over-claim from
 that agreement:
 
 > *"they share an author, so that agreement shows the spec is implementable, not

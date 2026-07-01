@@ -7,10 +7,10 @@ before a tag is cut, and the published artifacts must re-derive after upload.
 
 ```sh
 # 1. The four implementations agree on the full vector suite.
-python conformance/run.py membrane.py                      # Python reference: 31/31
-( cd impl/rust && rustc -O emet.rs -o emet ) && python conformance/run.py impl/rust/emet   # 31/31
-python conformance/run.py impl/js/emet.js                  # Node.js: 31/31
-( cd impl/go && go build -o emet emet.go ) && python conformance/run.py impl/go/emet        # Go: 31/31
+python conformance/run.py membrane.py                      # Python reference: 35/35
+( cd impl/rust && rustc -O emet.rs -o emet ) && python conformance/run.py impl/rust/emet   # 35/35
+python conformance/run.py impl/js/emet.js                  # Node.js: 35/35
+( cd impl/go && go build -o emet emet.go ) && python conformance/run.py impl/go/emet        # Go: 35/35
 
 # 2. The Python behavior + delivery suite.
 python -m pytest -q                                        # all green
@@ -58,7 +58,7 @@ python -m twine upload dist/*            # requires a PyPI API token
 python -m venv /tmp/emet-verify && . /tmp/emet-verify/bin/activate
 pip install emet-witness
 emet selftest                                                   # re-derives its identity
-python conformance/run.py "$(command -v emet)"                  # installed console script: 31/31
+python conformance/run.py "$(command -v emet)"                  # installed console script: 35/35
 ```
 
 If the published artifact does not re-derive, the release is not done. EMET's only

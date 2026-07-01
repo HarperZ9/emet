@@ -274,12 +274,26 @@ func extractJSONString(line, key string) (string, bool) {
 				b.WriteByte('\t')
 			case 'r':
 				b.WriteByte('\r')
+			case 'b':
+				b.WriteByte('\b')
+			case 'f':
+				b.WriteByte('\f')
 			case '"':
 				b.WriteByte('"')
 			case '\\':
 				b.WriteByte('\\')
 			case '/':
 				b.WriteByte('/')
+			case 'u':
+				// \uXXXX escape. Decode the 4 hex digits; if it is a UTF-16 high
+				// surrogate, consume the following \uXXXX low surrogate and combine
+				// into a single astral code point (SPEC s.7 re-derivability).
+				if j+4 < len(rest) {
+					if r, adv, ok := decodeUEscape(rest, j+1); ok {
+						b.WriteRune(r)
+						j += adv // advance past the consumed hex (and any low pair)
+					}
+				}
 			default:
 				b.WriteByte(c)
 			}
@@ -296,6 +310,38 @@ func extractJSONString(line, key string) (string, bool) {
 		b.WriteByte(c)
 	}
 	return "", false
+}
+
+// decodeUEscape decodes a \uXXXX escape whose 4 hex digits begin at s[at]. If the
+// decoded value is a UTF-16 high surrogate (0xD800..0xDBFF) and is immediately
+// followed by "\uYYYY" holding a low surrogate (0xDC00..0xDFFF), the two are
+// combined into a single astral rune. Returns (rune, advanceBeyondBackslashU, ok)
+// where advance is the number of index positions to skip forward from the 'u'
+// (i.e. added to the loop index that currently points at 'u').
+func decodeUEscape(s string, at int) (rune, int, bool) {
+	if at+4 > len(s) {
+		return 0, 0, false
+	}
+	hi, err := strconv.ParseInt(s[at:at+4], 16, 32)
+	if err != nil {
+		return 0, 0, false
+	}
+	// 4 hex digits consumed beyond the 'u'.
+	adv := 4
+	r := rune(hi)
+	if hi >= 0xd800 && hi <= 0xdbff {
+		// Expect a following \uYYYY low surrogate: "\\uYYYY" = 6 chars after the
+		// first escape's hex.
+		lowStart := at + 4
+		if lowStart+6 <= len(s) && s[lowStart] == '\\' && s[lowStart+1] == 'u' {
+			lo, err2 := strconv.ParseInt(s[lowStart+2:lowStart+6], 16, 32)
+			if err2 == nil && lo >= 0xdc00 && lo <= 0xdfff {
+				r = 0x10000 + ((rune(hi) - 0xd800) << 10) + (rune(lo) - 0xdc00)
+				adv += 6 // consume "\uYYYY"
+			}
+		}
+	}
+	return r, adv, true
 }
 
 func appendAnchor(path, hexhash string) error {
@@ -499,11 +545,14 @@ func parseFlatObject(s string) (jobj, bool) {
 				case '/':
 					b.WriteByte('/')
 				case 'u':
+					// \uXXXX escape. i currently points at the first hex digit.
+					// decodeUEscape handles UTF-16 surrogate-pair combining so an
+					// astral code point stored as a surrogate pair re-serializes
+					// identically (SPEC s.7 re-derivability).
 					if i+4 <= n {
-						cp, err := strconv.ParseInt(body[i:i+4], 16, 32)
-						if err == nil {
-							b.WriteRune(rune(cp))
-							i += 4
+						if r, adv, ok := decodeUEscape(body, i); ok {
+							b.WriteRune(r)
+							i += adv
 						}
 					}
 				default:
@@ -796,15 +845,19 @@ func cmdVerify(paths []string, jsonMode bool) int {
 	anyDrift := false
 	anyUnverif := false
 	for _, p := range paths {
-		data, reason := readRaw(p)
-		if reason != "" {
-			results = append(results, res{path: p, verdict: "UNVERIFIABLE", reason: reason})
-			anyUnverif = true
-			continue
-		}
+		// SPEC s.9/s.13: verify is anchor-relative. Consult the anchor store FIRST;
+		// a path with no anchor is E_NO_ANCHOR (exit 2) WITHOUT ever reading the file,
+		// so an absent+unanchored path reports E_NO_ANCHOR, not E_NOT_FOUND. This
+		// matches Python/Rust/JS, where the anchor check precedes the raw read.
 		want, ok := anchors[p]
 		if !ok {
 			results = append(results, res{path: p, verdict: "UNVERIFIABLE", reason: eNoAnchor})
+			anyUnverif = true
+			continue
+		}
+		data, reason := readRaw(p)
+		if reason != "" {
+			results = append(results, res{path: p, verdict: "UNVERIFIABLE", reason: reason})
 			anyUnverif = true
 			continue
 		}
@@ -868,13 +921,17 @@ func cmdCoherence(args []string, jsonMode bool) int {
 		return usageError("coherence requires SOURCE VIEW", jsonMode, "coherence")
 	}
 	source, view := args[0], args[1]
+	// SPEC s.9/s.13: the coherence UNVERIFIABLE reason carries the failing leg so a
+	// consumer can tell which side was unreadable: source:<code> or view:<code>,
+	// with source taking precedence when both fail. The subject stays the source
+	// (matching Python/Rust/JS).
 	sData, sReason := readRaw(source)
-	if sReason != "" {
-		return coherenceUnverif(source, sReason, jsonMode)
-	}
 	vData, vReason := readRaw(view)
+	if sReason != "" {
+		return coherenceUnverif(source, "source:"+sReason, jsonMode)
+	}
 	if vReason != "" {
-		return coherenceUnverif(view, vReason, jsonMode)
+		return coherenceUnverif(source, "view:"+vReason, jsonMode)
 	}
 	sHash := sha256Hex(sData)
 	vHash := sha256Hex(vData)
@@ -1141,19 +1198,27 @@ func cmdAudit(jsonMode bool) int {
 		return exitUnverif
 	}
 	if corrupt {
+		// SPEC s.7/s.13: a log line that cannot be parsed is a TAMPER event, not an
+		// inability to check. It is a detected difference from a well-formed chain,
+		// so it MUST report chain=BROKEN (exit 1), matching Python/Rust/JS -- never
+		// UNVERIFIABLE. broken_at is the 1-based index of the entries parsed before
+		// the corrupt line (i.e. the corrupt line itself).
+		brokenAt := len(entries) + 1
 		if jsonMode {
 			emitEnvelope(jobj{
-				"command":      "audit",
-				"emet_version": emetVersion,
-				"spec_version": specVersion,
-				"exit_code":    exitUnverif,
-				"verdict":      "UNVERIFIABLE",
-				"reason":       eLogCorrupt,
+				"command":       "audit",
+				"emet_version":  emetVersion,
+				"spec_version":  specVersion,
+				"exit_code":     exitNegative,
+				"verdict":       "BROKEN",
+				"log_entries":   brokenAt,
+				"broken_at":     brokenAt,
+				"broken_reason": "parse_error",
 			})
-			return exitUnverif
+			return exitNegative
 		}
-		fmt.Printf("result=UNVERIFIABLE reason=%s\n", eLogCorrupt)
-		return exitUnverif
+		fmt.Printf("chain=%s log_entries=%d\n", "BROKEN", brokenAt)
+		return exitNegative
 	}
 
 	// Recompute the chain. Genesis prev = 64 zeros; each entry's prev must equal
@@ -1229,17 +1294,13 @@ func cmdSelftest(jsonMode bool) int {
 	return exitHeld
 }
 
+// usageError reports a usage error. SPEC s.13 EXEMPTS the usage-error path from
+// the --json envelope: like Python/Rust/JS, we write the usage line to stderr and
+// emit NOTHING to stdout, in both plain and --json mode, then exit 64. The command
+// argument is retained for call-site clarity but is not emitted.
 func usageError(msg string, jsonMode bool, command string) int {
-	if jsonMode {
-		emitEnvelope(jobj{
-			"command":      command,
-			"emet_version": emetVersion,
-			"spec_version": specVersion,
-			"exit_code":    exitUsage,
-			"error":        msg,
-		})
-		return exitUsage
-	}
+	_ = jsonMode
+	_ = command
 	fmt.Fprintln(os.Stderr, "usage error: "+msg)
 	return exitUsage
 }

@@ -278,8 +278,12 @@ reference code, the human-readable stdout tokens are pinned. For each command an
 implementation MUST emit a line CONTAINING the stated token:
 
 - verify: per path, a line containing exactly one of MATCH, DRIFT, or
-  UNVERIFIABLE, followed by the path.
-- coherence: a line containing result=COHERENT or result=VIEW_DIFFERS_FROM_SOURCE.
+  UNVERIFIABLE, followed by the path. verify is ANCHOR-RELATIVE: the anchor lookup
+  PRECEDES the raw read, so a path with no anchor is UNVERIFIABLE reason=E_NO_ANCHOR
+  even when the path is also absent (E_NO_ANCHOR dominates E_NOT_FOUND for verify).
+- coherence: a line containing result=COHERENT or result=VIEW_DIFFERS_FROM_SOURCE,
+  or result=UNVERIFIABLE with reason=source:<code> or reason=view:<code> naming the
+  failing leg (source before view when both fail; section 9).
 - refuse: a line containing in_band_authority_claims=N, where N is the
   non-negative integer marker count. An implementation MUST also emit a line
   containing corpus_version=N and SHOULD emit a line containing
@@ -289,7 +293,10 @@ implementation MUST emit a line CONTAINING the stated token:
   code when there is no independent read path to corroborate against (section 9).
 - audit: a line containing chain=INTACT or chain=BROKEN. An absent log is the
   genesis state (an empty chain is trivially intact) and MUST report chain=INTACT
-  with log_entries=0, not a special-case string.
+  with log_entries=0, not a special-case string. A log line that cannot be parsed
+  is a tamper event and MUST yield chain=BROKEN (exit 1), never UNVERIFIABLE: a
+  corrupt line is a detected difference from a well-formed chain, not an inability
+  to check.
 - selftest: a line beginning with emet_self_sha256= followed by the
   artifact-of-record hash (section 14), and, through the 1.x deprecation window,
   also the legacy membrane_self_sha256= line (section 14).
@@ -316,22 +323,27 @@ subcommand. In --json mode the implementation emits exactly ONE JSON object to
 stdout and NO human-grammar lines, so a programmatic consumer parses stdout
 directly. The object MUST be the canonical JSON of section 7 (keys sorted, ", "
 and ": " separators, UTF-8, ensure_ascii). The exit code (section 5) is identical
-with or without --json.
+with or without --json. A USAGE ERROR (exit 64) is exempt from the envelope: an
+implementation MAY emit a minimal envelope or none and MAY write to stderr; only
+the exit code 64 is the contract on that path.
 
 Every envelope MUST carry command, emet_version, spec_version, and exit_code; and,
 for a command that emits a lattice or auxiliary verdict, a verdict field whose
 value is a governed closed-lattice token (section 2). selftest reports an identity,
-not a judgement, and so carries self_sha256 and no verdict. No field of any
+not a judgement, and so carries self_sha256 and no verdict.  No field of any
 envelope may contain TRUSTED, APPROVED, SAFE, or any authority word (Boundary 1).
 
 These GOVERNED fields (command, verdict, exit_code, emet_version, spec_version, and
-the per-command reason / corpus_version / corpus_sha256 / self_sha256 / in_band_
-authority_claims) are, for the same input at the same spec_version and
-corpus_version, byte-identical across conforming implementations. DETAIL fields are
-permitted and MAY differ or be absent per implementation, exactly where sections 4
-and 15 already make behavior implementation-defined (for example a verify want/got
-pair, or corroborate per-channel hashes). The human token grammar above remains the
-default (no --json) for human and CI use.
+the per-command reason / corpus_version / corpus_sha256 / in_band_authority_claims)
+are, for the same input at the same spec_version and corpus_version, byte-identical
+across conforming implementations. self_sha256 is EXPLICITLY NOT in this set: it is
+a per-implementation identity (section 14) and is never compared across
+implementations (a multi-file source hash and a single-binary hash cannot be
+equal). Other DETAIL fields are likewise permitted and MAY differ or be absent per
+implementation, exactly where sections 4 and 15 already make behavior
+implementation-defined (for example a verify want/got pair, or corroborate
+per-channel hashes). The human token grammar above remains the default (no --json)
+for human and CI use.
 
 ## 14. Artifact-of-record and selftest (normative)
 

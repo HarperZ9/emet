@@ -41,7 +41,7 @@ managers):
 ( cd impl/rust && rustc -O emet.rs -o emet ); python conformance/run.py impl/rust/emet   # Rust, no crates
 python conformance/run.py impl/js/emet.js                                                # Node.js, built-ins only
 ( cd impl/go && go build -o emet emet.go ); python conformance/run.py impl/go/emet       # Go, stdlib only
-# each: expected CONFORMANCE 31/31 vectors pass
+# each: expected CONFORMANCE 35/35 vectors pass
 ```
 
 ## Commands
@@ -180,9 +180,11 @@ appended. Editing any past log entry makes `audit` report `chain=BROKEN` (exit 1
 Add `--json` to any command for one canonical-JSON object (sorted keys, `", "` /
 `": "` separators) instead of the human lines. The exit code is unchanged, and the
 governed fields (`command`, `verdict`, `exit_code`, `emet_version`, `spec_version`,
-`reason`, `corpus_*`, `self_sha256`) are byte-identical across all four
-implementations. Nothing in an envelope can be `TRUSTED` (the closed lattice holds
-in JSON too).
+`reason`, `corpus_version`, `corpus_sha256`, `in_band_authority_claims`) are
+byte-identical across all four implementations. (`self_sha256` is NOT governed: it
+is a per-implementation identity - source hash vs compiled-binary hash - and is
+never compared across implementations; see SPEC section 14.) Nothing in an envelope
+can be `TRUSTED` (the closed lattice holds in JSON too).
 
 ```sh
 $ python membrane.py verify --json report.md

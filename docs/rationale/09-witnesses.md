@@ -14,7 +14,7 @@
 > **Count snapshot (2026-06).** This essay was written when EMET shipped **three**
 > same-author ports (Python, Rust, Node.js) against a 19-vector suite, and its
 > examples preserve that snapshot. A **fourth** port -- a stdlib-only, clean-room
-> Go implementation -- has since joined, and the suite grew to 31 vectors. The
+> Go implementation -- has since joined, and the suite grew to 35 vectors. The
 > argument is deliberately count-agnostic: read "three"/"thrice" as "as many ports
 > as there are." Four same-author ports are still **one witness, repeated four
 > times**, not four independent witnesses -- four reflections of one face is still

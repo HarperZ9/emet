@@ -103,7 +103,7 @@ harness itself anchored a moment earlier. That is correct *as a walkthrough* -- 
 deterministic, re-derivable teaching transcript needs a fixed input. The failure
 is not having it; the failure is *stopping there*.
 
-The honest reading of the repository's current state: the 31 conformance vectors
+The honest reading of the repository's current state: the 35 conformance vectors
 (`conformance/vectors.json`, counted by `id` field -- high confidence) and the
 walkthrough together pin behavior on **inputs EMET's own authors constructed**.
 This is not a flaw to apologize for -- pinned vectors are how an independent

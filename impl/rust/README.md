@@ -11,11 +11,11 @@ vectors -- which is what converts re-derivability from asserted to demonstrated
   rustc -O emet.rs -o emet
   python ../../conformance/run.py ./emet
 
-Expected: CONFORMANCE 31/31 vectors pass.
+Expected: CONFORMANCE 35/35 vectors pass.
 
 ## Status
 
-Compiled and passing all 31 conformance vectors (rustc, `-O`). The hand-rolled
+Compiled and passing all 35 conformance vectors (rustc, `-O`). The hand-rolled
 SHA-256 was verified against a reference on known vectors before transcription,
 and the hand-rolled canonical JSON reproduces the Python `--json` envelope
 byte-for-byte on the governed fields. This cross-LANGUAGE impl proves the spec is

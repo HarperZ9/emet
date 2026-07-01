@@ -20,7 +20,7 @@ arc end to end, in three real captures the essay annotates:
 
   (3) ONE WITNESS THRICE - run the language-agnostic conformance runner against
       the Python reference (membrane.py) and the Node port (impl/js/emet.js).
-      Both print CONFORMANCE 19/19. They AGREE - and they share an author, so
+      Both print CONFORMANCE 35/35. They AGREE - and they share an author, so
       the agreement shows the spec is implementable, not yet independently
       re-derivable (SPEC s.12). The annotation in the essay is the load-bearing
       part: same-author agreement is not an independent witness.
