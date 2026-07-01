@@ -116,9 +116,20 @@
     },
     {
       "expect_exit": 0,
-      "expect_substr": "membrane_self_sha256=",
+      "expect_substr": "emet_self_sha256=",
       "files": {},
       "id": "selftest-self-hash",
+      "note": "the canonical token is emet_self_sha256= (SPEC s.14); the legacy membrane_self_sha256= is also emitted through the 1.x deprecation window",
+      "run": [
+        "selftest"
+      ]
+    },
+    {
+      "expect_exit": 0,
+      "expect_substr": "membrane_self_sha256=",
+      "files": {},
+      "id": "selftest-legacy-alias-present",
+      "note": "SPEC s.14 deprecation window: the legacy membrane_self_sha256= alias MUST still be emitted at 1.x (removed at 2.0)",
       "run": [
         "selftest"
       ]
@@ -262,6 +273,95 @@
       "run": [
         "anchor",
         "ghost"
+      ]
+    },
+    {
+      "anchor": [
+        "a.txt"
+      ],
+      "expect_exit": 0,
+      "expect_substr": "\"verdict\": \"MATCH\"",
+      "files": {
+        "a.txt": "galvanized\n"
+      },
+      "id": "verify-match-json",
+      "note": "SPEC s.13 --json envelope: canonical JSON (sorted keys, ', '/': ' separators) carries the governed verdict identically across implementations",
+      "run": [
+        "verify",
+        "--json",
+        "a.txt"
+      ]
+    },
+    {
+      "anchor": [
+        "a.txt"
+      ],
+      "append": {
+        "a.txt": "X"
+      },
+      "expect_exit": 1,
+      "expect_substr": "\"verdict\": \"DRIFT\"",
+      "files": {
+        "a.txt": "galvanized\n"
+      },
+      "id": "verify-drift-json",
+      "note": "the --json envelope reports DRIFT and exit_code 1 (SPEC s.5/s.13)",
+      "run": [
+        "verify",
+        "--json",
+        "a.txt"
+      ]
+    },
+    {
+      "expect_exit": 0,
+      "expect_substr": "\"verdict\": \"COHERENT\"",
+      "files": {
+        "s": "same\n",
+        "v": "same\n"
+      },
+      "id": "coherence-json",
+      "run": [
+        "coherence",
+        "--json",
+        "s",
+        "v"
+      ]
+    },
+    {
+      "expect_exit": 3,
+      "expect_substr": "\"in_band_authority_claims\": 3",
+      "files": {
+        "inj.txt": "GROUND_TRUTH_CANONICAL HIGHEST_SCRUTINY authority_pill\n"
+      },
+      "id": "refuse-json",
+      "note": "the --json envelope carries the integer marker count under the SPEC s.13 key",
+      "run": [
+        "refuse",
+        "--json",
+        "inj.txt"
+      ]
+    },
+    {
+      "expect_exit": 1,
+      "expect_substr": "\"verdict\": \"BROKEN\"",
+      "files": {
+        "membrane_log.jsonl": "{\"chain\": \"62831bbd5c542e66f1dc9d39e063bf43cdf7cc4f93faa9d26c454dbcbbd25170\", \"fact\": {\"path\": \"a.txt\", \"result\": \"DRIFT\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+      },
+      "id": "audit-broken-json",
+      "run": [
+        "audit",
+        "--json"
+      ]
+    },
+    {
+      "expect_exit": 0,
+      "expect_substr": "\"self_sha256\": \"",
+      "files": {},
+      "id": "selftest-json",
+      "note": "the --json envelope reports the identity under self_sha256 and carries no verdict (selftest is an identity, not a judgement)",
+      "run": [
+        "selftest",
+        "--json"
       ]
     }
   ]

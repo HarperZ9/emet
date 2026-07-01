@@ -194,13 +194,25 @@ it MUST report UNVERIFIABLE with a STABLE MACHINE REASON CODE (not prose), and
 MUST NOT substitute a default, a cached value, or a trust assertion. Inability is
 never trust.
 
+The reason code is one of a fixed, machine-readable set; an implementation MUST NOT
+substitute human prose for it. The governed codes are: E_NOT_FOUND (the path does
+not exist), E_NO_RAW_CHANNEL (the path exists but no raw byte channel is available),
+E_NO_ANCHOR (verify: no anchor for the path), E_NO_CORPUS (the marker corpus is
+unresolvable), E_NO_CORPUS_VERSION (the corpus lacks its version header),
+E_NO_SECOND_READ_PATH (corroborate: no independent read path), and E_LOG_CORRUPT
+(a log line cannot be parsed). An implementation MAY add further E_* codes for
+conditions not listed here, but MUST reuse these for the conditions they name.
+
 ## 10. Trusted Computing Base
 
-The core (membrane, organs, monitor, corpus, verdict) MUST depend only on the
-language runtime and standard library (reference: CPython plus hashlib, json, os,
-subprocess) and MUST add no third-party runtime dependency. Optional adapters (signing, SARIF or
-in-toto emission, fuzzing) MAY pull additional dependencies but MUST live in
-separate packages; the minimal-TCB guarantee applies to the NAMED CORE only.
+The core (membrane, organs, monitor, corpus, verdict, report) MUST depend only on
+the language runtime and standard library (reference: CPython plus hashlib, json,
+os, subprocess) and MUST add no third-party runtime dependency. report renders the
+human grammar and the --json envelope (section 13) and adds no dependency. Optional
+adapters (signing, SARIF or in-toto emission, fuzzing) MAY pull additional
+dependencies but MUST live in separate packages; the minimal-TCB guarantee applies
+to the NAMED CORE only. Packaging (a console entry point, an sdist/wheel) is a
+distribution convenience and MUST NOT add a runtime dependency to the core.
 
 ## 11. Honest limits (MUST be disclosed)
 
@@ -255,9 +267,12 @@ implementation MUST emit a line CONTAINING the stated token:
 - corroborate: a line containing result=CORROBORATED or
   result=QUARANTINE_READ_PATH_DIVERGENCE, or result=UNVERIFIABLE with a reason
   code when there is no independent read path to corroborate against (section 9).
-- audit: a line containing chain=INTACT or chain=BROKEN.
-- selftest: a line beginning with membrane_self_sha256= followed by the
-  artifact-of-record hash (section 14).
+- audit: a line containing chain=INTACT or chain=BROKEN. An absent log is the
+  genesis state (an empty chain is trivially intact) and MUST report chain=INTACT
+  with log_entries=0, not a special-case string.
+- selftest: a line beginning with emet_self_sha256= followed by the
+  artifact-of-record hash (section 14), and, through the 1.x deprecation window,
+  also the legacy membrane_self_sha256= line (section 14).
 - monitor report: per file, a line beginning with exactly one of MATCH, DRIFT,
   or MISSING, followed by the marker census and the file's basename; and a
   per-baseline summary line containing baseline=INTACT or baseline=CHANGED.
@@ -274,19 +289,49 @@ implementation MUST emit a line CONTAINING the stated token:
   Python-core tooling governed by this spec plus test_organs.py, not by the
   cross-language conformance vectors (section 12).
 
-A future machine-readable JSON envelope (the v1 target) supersedes this grammar
-for programmatic consumers; the tokens above remain for human and CI use.
+### The --json envelope (normative)
+
+An implementation MUST support a global --json flag, accepted before or after the
+subcommand. In --json mode the implementation emits exactly ONE JSON object to
+stdout and NO human-grammar lines, so a programmatic consumer parses stdout
+directly. The object MUST be the canonical JSON of section 7 (keys sorted, ", "
+and ": " separators, UTF-8, ensure_ascii). The exit code (section 5) is identical
+with or without --json.
+
+Every envelope MUST carry command, emet_version, spec_version, and exit_code; and,
+for a command that emits a lattice or auxiliary verdict, a verdict field whose
+value is a governed closed-lattice token (section 2). selftest reports an identity,
+not a judgement, and so carries self_sha256 and no verdict. No field of any
+envelope may contain TRUSTED, APPROVED, SAFE, or any authority word (Boundary 1).
+
+These GOVERNED fields (command, verdict, exit_code, emet_version, spec_version, and
+the per-command reason / corpus_version / corpus_sha256 / self_sha256 / in_band_
+authority_claims) are, for the same input at the same spec_version and
+corpus_version, byte-identical across conforming implementations. DETAIL fields are
+permitted and MAY differ or be absent per implementation, exactly where sections 4
+and 15 already make behavior implementation-defined (for example a verify want/got
+pair, or corroborate per-channel hashes). The human token grammar above remains the
+default (no --json) for human and CI use.
 
 ## 14. Artifact-of-record and selftest (normative)
 
 selftest MUST emit the SHA-256 of the implementation artifact-of-record:
 
 - for an INTERPRETED implementation, the artifact-of-record is the source file or
-  files;
-- for a COMPILED implementation, it is the compiled binary.
+  files; where it is more than one file, the hash is over the sorted-by-path
+  concatenation of the raw bytes of the core source files, and the implementation
+  MUST document that file list (the Python reference: membrane, corpus, verdict,
+  organs, monitor, report; each hashed as raw bytes, ordered by module name);
+- for a COMPILED implementation, it is the compiled binary (so the self-hash is
+  build-dependent, not source-reproducible across rebuilds; this is expected).
 
-The output token remains membrane_self_sha256= for compatibility; a future spec
-version MAY rename it to emet_self_sha256= with a deprecation window.
+The canonical output token is emet_self_sha256=. Through the 1.x deprecation
+window an implementation MUST ALSO emit the legacy membrane_self_sha256= line
+carrying the same hex value, so parsers written against the old token keep
+working; the legacy alias is removed at 2.0. In the --json envelope (section 13)
+the identity is carried under the key self_sha256. selftest is per-implementation
+self-identity and is never compared across implementations, so a multi-file
+source hash and a single-binary hash coexist correctly.
 
 ## 15. Anchor store (normative)
 
