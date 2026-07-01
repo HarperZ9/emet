@@ -24,7 +24,7 @@ python membrane.py selftest          # smoke test: re-derive the tool's own hash
 Or install the package for an `emet` console script (still zero runtime deps):
 
 ```sh
-pip install emet-witness
+pip install emet
 emet selftest                        # same tool, one command
 ```
 

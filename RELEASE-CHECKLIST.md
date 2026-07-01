@@ -44,7 +44,7 @@ git push origin v1.0.0
 gh release create v1.0.0 --title "EMET 1.0.0" --notes-file <(sed -n '/## 1.0.0/,/## 2026-06-29/p' CHANGELOG.md)
 ```
 
-## PyPI (emet-witness)
+## PyPI (emet)
 
 ```sh
 python -m build                          # sdist + wheel into dist/
@@ -56,7 +56,7 @@ python -m twine upload dist/*            # requires a PyPI API token
 
 ```sh
 python -m venv /tmp/emet-verify && . /tmp/emet-verify/bin/activate
-pip install emet-witness
+pip install emet
 emet selftest                                                   # re-derives its identity
 python conformance/run.py "$(command -v emet)"                  # installed console script: 35/35
 ```

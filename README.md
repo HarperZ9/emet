@@ -7,7 +7,7 @@
 [![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.x-blue.svg)
 ![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-[![PyPI](https://img.shields.io/pypi/v/emet-witness.svg)](https://pypi.org/project/emet-witness/)
+[![PyPI](https://img.shields.io/pypi/v/emet.svg)](https://pypi.org/project/emet/)
 [![CI](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
 ![deps: none](https://img.shields.io/badge/deps-none-success.svg)
 [![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
@@ -67,7 +67,7 @@ grants authority or permission.
 
 ## What's here
 
-- A stdlib-only Python reference - `membrane.py` / `organs.py` / `monitor.py` / `corpus.py` / `verdict.py` / `report.py`, no dependencies; run it straight from a checkout or `pip install emet-witness` for the `emet` console script.
+- A stdlib-only Python reference - `membrane.py` / `organs.py` / `monitor.py` / `corpus.py` / `verdict.py` / `report.py`, no dependencies; run it straight from a checkout or `pip install emet` for the `emet` console script.
 - A from-scratch Rust second implementation - `impl/rust/emet.rs`, no crates.
 - A clean-room Node.js third implementation - `impl/js/emet.js`, built-in modules only (no npm).
 - A clean-room Go fourth implementation - `impl/go/emet.go`, standard library only (no third-party modules).
@@ -89,7 +89,7 @@ python conformance/run.py impl/go/emet           # Go:      35/35
 
 ## Use it
 
-From a checkout with `python membrane.py <cmd>`, or after `pip install emet-witness`
+From a checkout with `python membrane.py <cmd>`, or after `pip install emet`
 with the `emet` console script - the two are equivalent:
 
 ```sh

@@ -89,7 +89,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: install the emet-witness package (zero runtime deps)
+      - name: install the emet package (zero runtime deps)
         run: python -m pip install .
       - name: the installed emet console script re-derives its own identity
         run: emet selftest
