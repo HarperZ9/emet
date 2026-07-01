@@ -141,6 +141,12 @@ outside the EMET core and does not change governed stdout, signing, enforcement,
 or actuation boundaries. The adapter only accepts governed verdict tokens as
 whole tokens and refuses authority-shaped stdout before it enters a receipt.
 
+For Project Telos browser automation and research-capture workflows, use
+[docs/browser-evidence.md](docs/browser-evidence.md) to anchor
+`project-telos.browser-evidence/v1` packet bytes before Index/Forum council or
+review escalation. EMET remains witness-only; it does not control the browser or
+dereference raw browser artifacts.
+
 ## What it won't do
 
 It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model is
