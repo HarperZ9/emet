@@ -27,7 +27,7 @@ Added:
 - **A fourth implementation, Go** (`impl/go/emet.go`, stdlib-only, clean-room from
   the spec), joining the Python reference, Rust, and Node.js. All four pass the
   same 35 conformance vectors in CI.
-- **Packaging:** installable as `emet-witness` with an `emet` console script,
+- **Packaging:** installable as `emet` with an `emet` console script,
   zero runtime dependencies; the run-from-checkout story is preserved.
 
 Freeze hardening (SPEC): pinned the reason-code enum (s.9), the audit prev-linkage
