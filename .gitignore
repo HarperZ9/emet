@@ -12,3 +12,14 @@ perception*.json
 *.pdb
 docs/PROPOSAL.md
 .warden-safe-cache/
+# built implementation binaries (the source is the artifact; binaries are rebuilt)
+impl/rust/emet
+impl/rust/emet.exe
+impl/rust/target/
+impl/rust/Cargo.lock
+impl/go/emet
+impl/go/emet.exe
+# python packaging build artifacts
+dist/
+build/
+*.egg-info/
