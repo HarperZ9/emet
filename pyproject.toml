@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emet-witness"
+version = "1.0.0"
+description = "A small external witness for AI oversight: re-derive the bytes, get MATCH / DRIFT / UNVERIFIABLE, trust nothing in-band."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MPL-2.0" }
+authors = [{ name = "HarperZ9" }]
+keywords = ["integrity", "witness", "provenance", "ai-oversight", "attestation", "re-derivability", "supply-chain"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/HarperZ9/emet"
+Repository = "https://github.com/HarperZ9/emet"
+Issues = "https://github.com/HarperZ9/emet/issues"
+Specification = "https://github.com/HarperZ9/emet/blob/main/SPEC.md"
+
+[project.scripts]
+emet = "emet.cli:main"
+
+# The marker corpus is a separately-distributed versioned DATA artifact (SPEC s.8);
+# it is NOT bundled in the wheel. The installed byte-hash core (anchor/verify/
+# coherence/corroborate/audit/selftest) needs no corpus; refuse/monitor require
+# EMET_CORPUS (or a source checkout) and otherwise report UNVERIFIABLE E_NO_CORPUS.
+[tool.setuptools]
+packages = ["emet"]

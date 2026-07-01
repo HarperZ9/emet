@@ -100,11 +100,11 @@ class MembraneBehavior(unittest.TestCase):
         printed = [l for l in out.splitlines()
                    if l.startswith("emet_self_sha256=")][0].split("=", 1)[1]
         # Artifact-of-record (SPEC s.14): sorted-by-name concatenation of the core
-        # source files, so the identity reflects the WHOLE implementation.
+        # source files, which live in the emet/ package (the root files are shims).
         core = ("corpus.py", "membrane.py", "monitor.py", "organs.py", "report.py", "verdict.py")
         h = hashlib.sha256()
         for name in core:
-            with open(os.path.join(HERE, name), "rb") as fh: h.update(fh.read())
+            with open(os.path.join(HERE, "emet", name), "rb") as fh: h.update(fh.read())
         self.assertEqual(printed, h.hexdigest())
         # SPEC s.14 deprecation window: the legacy membrane_self_sha256= alias is
         # still emitted at 1.x (removed at 2.0), so existing parsers keep working.
