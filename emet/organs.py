@@ -29,6 +29,8 @@ Invariants (the membrane, unchanged):
 """
 import sys, os, json, subprocess, hashlib
 from . import verdict
+from . import report
+from .report import say, emit
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -50,10 +52,11 @@ def watch(manifest, paths):
         p = os.path.normpath(p)
         if os.path.isfile(p):
             h = sha(raw(p)); db["artifacts"][p] = h
-            print("watch " + p + " sha256=" + h)
+            say("watch " + p + " sha256=" + h)
     with open(manifest, "w", encoding="utf-8") as f:
         json.dump(db, f, indent=2, sort_keys=True)
-    print("watched=" + str(len(db["artifacts"])) + " at=" + db["at"])
+    say("watched=" + str(len(db["artifacts"])) + " at=" + db["at"])
+    emit("watch", None, 0, watched=len(db["artifacts"]), at=db["at"])
 
 def observe(manifest, paths):
     if os.path.exists(manifest):
@@ -62,22 +65,26 @@ def observe(manifest, paths):
     else:
         db = {"artifacts": {}}
     known = db.get("artifacts", {})
-    changed = 0
+    changed = 0; results = []
     for p in paths:
         p = os.path.normpath(p)
         if not os.path.isfile(p):
-            print(verdict.governed(verdict.PERCEPTION, "GONE") + "      " + p); changed += 1; continue
+            say(verdict.governed(verdict.PERCEPTION, "GONE") + "      " + p); changed += 1
+            results.append({"path": p, "perception": "GONE"}); continue
         cur = sha(raw(p)); was = known.get(p)
         if was is None:
-            print(verdict.governed(verdict.PERCEPTION, "NEW") + "       " + p); changed += 1
+            say(verdict.governed(verdict.PERCEPTION, "NEW") + "       " + p); changed += 1
+            results.append({"path": p, "perception": "NEW"})
         elif cur == was:
-            print(verdict.governed(verdict.PERCEPTION, "UNCHANGED") + " " + p)
+            say(verdict.governed(verdict.PERCEPTION, "UNCHANGED") + " " + p)
+            results.append({"path": p, "perception": "UNCHANGED"})
         else:
-            print(verdict.governed(verdict.PERCEPTION, "DRIFTED") + "   " + p + " was=" + was[:12] + " now=" + cur[:12]); changed += 1
-    print("since=" + db.get("at", "?") + " changed=" + str(changed))
+            say(verdict.governed(verdict.PERCEPTION, "DRIFTED") + "   " + p + " was=" + was[:12] + " now=" + cur[:12]); changed += 1
+            results.append({"path": p, "perception": "DRIFTED", "was": was, "now": cur})
+    say("since=" + db.get("at", "?") + " changed=" + str(changed))
     # A perceived change (DRIFTED/NEW/GONE) is a NEGATIVE FINDING -> exit 1 (SPEC
     # s.5); all UNCHANGED -> 0. The exit is a fact, never a permission.
-    sys.exit(0 if changed == 0 else 1)
+    emit("observe", None, 0 if changed == 0 else 1, since=db.get("at", "?"), changed=changed, results=results)
 
 def revertible(p):
     d = os.path.dirname(os.path.abspath(p)) or "."
@@ -93,8 +100,8 @@ def revertible(p):
         return (False, "git unavailable: " + type(e).__name__)
 
 def gate(paths):
-    print("PRE-ACTION IMPEDANCE GATE (organs perform nothing; the operator acts)")
-    revertible_all = True
+    say("PRE-ACTION IMPEDANCE GATE (organs perform nothing; the operator acts)")
+    revertible_all = True; results = []
     for p in paths:
         p = os.path.normpath(p)
         if os.path.isfile(p):
@@ -102,16 +109,19 @@ def gate(paths):
         else:
             pre = "absent"; ok, why = (True, "new file - revert = delete")
         token = verdict.governed(verdict.REVERT, "REVERTIBLE" if ok else "NOT_REVERTIBLE")
-        print(token + " " + p + " pre=" + pre + " revert=[" + why + "]")
+        say(token + " " + p + " pre=" + pre + " revert=[" + why + "]")
+        results.append({"path": p, "revert": token, "pre": pre, "recipe": why})
         revertible_all = revertible_all and ok
     gate_token = verdict.governed(verdict.REVERT, "REVERTIBLE" if revertible_all else "NOT_REVERTIBLE")
-    print("gate=" + gate_token + "  (advisory fact; the operator decides and acts)")
+    say("gate=" + gate_token + "  (advisory fact; the operator decides and acts)")
     # NOT_REVERTIBLE is a NEGATIVE FINDING (no clean revert path) -> exit 1 (SPEC
     # s.5), explicitly NOT a denial or permission; the operator decides and acts.
-    sys.exit(0 if revertible_all else 1)
+    emit("gate", gate_token, 0 if revertible_all else 1, results=results)
 
 def main():
-    a = sys.argv
+    a = [x for x in sys.argv if x != "--json"]
+    if len(a) != len(sys.argv):
+        report.enable_json()
     if   len(a) >= 4 and a[1] == "watch":   watch(a[2], a[3:])
     elif len(a) >= 4 and a[1] == "observe": observe(a[2], a[3:])
     elif len(a) >= 4 and a[1] == "confirm": observe(a[2], a[3:])

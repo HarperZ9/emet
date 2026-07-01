@@ -62,5 +62,16 @@ class MonitorBehavior(unittest.TestCase):
         self.assertIn("baseline=INTACT", out)
         self.assertEqual(code, 0)
 
+    def test_report_json_envelope(self):
+        # --json emits one canonical envelope carrying the governed baseline verdict.
+        import json
+        code, out = self.run_mon(["report", "--json", self.manifest])
+        env = json.loads(out)
+        self.assertEqual(env["command"], "report")
+        self.assertIn(env["verdict"], ("INTACT", "CHANGED", "UNVERIFIABLE"))
+        self.assertEqual(env["spec_version"], "1.0.0")
+        for tok in ("TRUSTED", "APPROVED", "SAFE", "AUTHORIZED"):
+            self.assertNotIn(tok, json.dumps(env))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

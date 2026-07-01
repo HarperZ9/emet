@@ -24,6 +24,7 @@ Facts and advice only. Reads raw bytes. Never edits the target.
 """
 import sys, os, json, hashlib
 from . import corpus
+from .report import say, emit, enable_json  # NB: 'report' is a command here, so import the helpers by name
 from .verdict import governed, LATTICE, MONITOR_FILE, MONITOR_BASELINE
 
 def sha(b):
@@ -63,34 +64,39 @@ def report(manifest):
     try:
         version, csha, markers = corpus.load()
     except corpus.CorpusError as e:
-        print("=== EXTERNAL ACCOUNTABILITY REPORT ===")
-        print("baseline: " + manifest)
-        print("corpus=" + governed(LATTICE, "UNVERIFIABLE") + " reason=" + e.reason)
+        say("=== EXTERNAL ACCOUNTABILITY REPORT ===")
+        say("baseline: " + manifest)
+        say("corpus=" + governed(LATTICE, "UNVERIFIABLE") + " reason=" + e.reason)
         _record(manifest, "report", {"result": "UNVERIFIABLE", "reason": e.reason})
-        sys.exit(2)
-    drift = missing = total = 0
-    print("=== EXTERNAL ACCOUNTABILITY REPORT ===")
-    print("baseline: " + manifest)
-    print("corpus_version=" + str(version) + " corpus_sha256=" + csha)
+        emit("report", governed(LATTICE, "UNVERIFIABLE"), 2, subject=manifest, reason=e.reason)
+    drift = missing = total = 0; results = []
+    say("=== EXTERNAL ACCOUNTABILITY REPORT ===")
+    say("baseline: " + manifest)
+    say("corpus_version=" + str(version) + " corpus_sha256=" + csha)
     for p in sorted(db):
         want = db[p]
         if not os.path.isfile(p):
-            print(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p)); missing += 1; continue
+            say(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p)); missing += 1
+            results.append({"file": os.path.basename(p), "status": "MISSING"}); continue
         try:
             with open(p, "rb") as fh:
                 b = fh.read()
         except OSError:
-            print(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p) + " reason=E_NO_RAW_CHANNEL"); missing += 1; continue
+            say(governed(MONITOR_FILE, "MISSING") + "  markers=  -  " + os.path.basename(p) + " reason=E_NO_RAW_CHANNEL"); missing += 1
+            results.append({"file": os.path.basename(p), "status": "MISSING", "reason": "E_NO_RAW_CHANNEL"}); continue
         got = sha(b); hits = corpus.count(b, markers); total += hits
-        st = governed(MONITOR_FILE, "MATCH" if got == want else "DRIFT") + " "
+        st = governed(MONITOR_FILE, "MATCH" if got == want else "DRIFT")
         if got != want: drift += 1
-        print(st + " markers=" + str(hits).rjust(3) + "  " + os.path.basename(p))
+        say(st + "  markers=" + str(hits).rjust(3) + "  " + os.path.basename(p))
+        results.append({"file": os.path.basename(p), "status": st, "markers": hits})
     verdict = governed(MONITOR_BASELINE, "INTACT" if drift == 0 and missing == 0 else "CHANGED")
-    print("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
+    say("files=" + str(len(db)) + " drift=" + str(drift) + " missing=" + str(missing) + " markers=" + str(total) + " baseline=" + verdict)
     _record(manifest, "report", {"files": len(db), "drift": drift, "missing": missing, "markers": total, "verdict": verdict, "corpus_version": version})
     # baseline CHANGED (drift and/or missing) is a NEGATIVE FINDING -> exit 1
     # (SPEC s.5); INTACT -> 0. A corpus that cannot load is UNVERIFIABLE -> 2 (above).
-    sys.exit(0 if verdict == "INTACT" else 1)
+    emit("report", verdict, 0 if verdict == "INTACT" else 1, subject=manifest,
+         corpus_version=version, corpus_sha256=csha, files=len(db), drift=drift,
+         missing=missing, markers=total, results=results)
 
 def reanchor(manifest):
     with open(manifest, encoding="utf-8") as f:
@@ -98,21 +104,24 @@ def reanchor(manifest):
     changed = 0; new = {}
     for p in sorted(db):
         if not os.path.isfile(p):
-            print("skip MISSING " + p); continue
+            say("skip MISSING " + p); continue
         try:
             with open(p, "rb") as fh:
                 h = sha(fh.read())
         except OSError:
-            print("skip UNREADABLE " + p + " reason=E_NO_RAW_CHANNEL"); continue
+            say("skip UNREADABLE " + p + " reason=E_NO_RAW_CHANNEL"); continue
         if h != db[p]: changed += 1
         new[p] = h
     with open(manifest, "w", encoding="utf-8") as f:
         json.dump(new, f, indent=2, sort_keys=True)
-    print("reanchored=" + str(len(new)) + " updated=" + str(changed) + " (operator authorized current state as baseline)")
+    say("reanchored=" + str(len(new)) + " updated=" + str(changed) + " (operator authorized current state as baseline)")
     _record(manifest, "reanchor", {"reanchored": len(new), "updated": changed})
+    emit("reanchor", None, 0, subject=manifest, reanchored=len(new), updated=changed)
 
 def main():
-    a = sys.argv
+    a = [x for x in sys.argv if x != "--json"]
+    if len(a) != len(sys.argv):
+        enable_json()
     if   len(a) >= 3 and a[1] == "report":   report(a[2])
     elif len(a) >= 3 and a[1] == "reanchor": reanchor(a[2])
     else: print(__doc__); sys.exit(64)
