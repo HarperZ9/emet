@@ -12,17 +12,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: behavior proof (23 tests)
+      - name: behavior proof (membrane)
         run: python test_membrane.py
-      - name: corpus unit tests (6 tests)
+      - name: corpus unit tests
         run: python test_corpus.py
-      - name: monitor behavior tests (2 tests)
+      - name: monitor behavior tests
         run: python test_monitor.py
       - name: organs behavior tests
         run: python test_organs.py
-      - name: conformance, reference implementation (expect 19 of 19)
+      - name: forward delivery contract
+        run: python test_forward_delivery_contract.py
+      - name: proof surface receipt test
+        run: python test_proof_surface_receipt.py
+      - name: conformance, Python reference (expect 31 of 31)
         run: python conformance/run.py membrane.py
-      - name: selftest re-derives own identity
+      - name: selftest re-derives own identity (emet_self_sha256=)
         run: python membrane.py selftest
       - name: proof surface receipt adapter emits closed-lattice receipt
         run: |
@@ -35,7 +39,7 @@ jobs:
           assert data["verdict"] in {"MATCH", "DRIFT", "UNVERIFIABLE"}
           assert "TRUSTED" not in json.dumps(data)
           PY
-      - name: rationale walkthrough transcript is re-derivable (2 tests)
+      - name: rationale walkthrough transcript is re-derivable
         run: python test_walkthrough.py
 
   rust-second-implementation:
@@ -47,7 +51,7 @@ jobs:
           python-version: "3.12"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, rust second implementation (expect 19 of 19)
+      - name: conformance, Rust second implementation (expect 31 of 31)
         run: python conformance/run.py impl/rust/emet
 
   js-third-implementation:
@@ -60,5 +64,34 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: conformance, node.js third implementation (expect 19 of 19)
+      - name: conformance, Node.js third implementation (expect 31 of 31)
         run: python conformance/run.py impl/js/emet.js
+
+  go-fourth-implementation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: build go impl (standard library only, no modules)
+        run: CGO_ENABLED=0 go build -o impl/go/emet impl/go/emet.go
+      - name: conformance, Go fourth implementation (expect 31 of 31)
+        run: python conformance/run.py impl/go/emet
+
+  packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: install the emet-witness package (zero runtime deps)
+        run: python -m pip install .
+      - name: the installed emet console script re-derives its own identity
+        run: emet selftest
+      - name: conformance against the INSTALLED emet console script (expect 31 of 31)
+        run: python conformance/run.py "$(python -c 'import shutil; print(shutil.which("emet"))')"
