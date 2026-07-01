@@ -12,7 +12,7 @@ this one shares the operator. See Status.
 
   python conformance/run.py impl/js/emet.js
 
-(Run from the repository root.) Expected: CONFORMANCE 19/19 vectors pass.
+(Run from the repository root.) Expected: CONFORMANCE 31/31 vectors pass.
 
 ## What this implementation surfaced
 

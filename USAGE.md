@@ -14,29 +14,43 @@ and [RATIONALE.md](RATIONALE.md) for why EMET is shaped this way.
 
 ## Install / build
 
-There is nothing to install. The reference implementation is stdlib-only Python
-(3.x) with no dependencies and no packaging step - run the scripts directly:
+Run it straight from a checkout (stdlib-only Python, zero dependencies):
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
 python membrane.py selftest          # smoke test: re-derive the tool's own hash
 ```
 
-Optional second/third implementations (same conformance vectors, no package
+Or install the package for an `emet` console script (still zero runtime deps):
+
+```sh
+pip install emet-witness
+emet selftest                        # same tool, one command
+```
+
+`emet <cmd>` and `python membrane.py <cmd>` are equivalent; `emet` also exposes
+`emet monitor report|reanchor` and the organs commands (`watch|observe|confirm|gate`).
+Note: the marker corpus is a separately-distributed data artifact (SPEC s.8), so
+an installed `refuse`/`monitor` needs `EMET_CORPUS` set (or a source checkout);
+without it they report `UNVERIFIABLE reason=E_NO_CORPUS`, never a silent pass.
+
+Optional second/third/fourth implementations (same conformance vectors, no package
 managers):
 
 ```sh
-( cd impl/rust && rustc -O emet.rs -o emet )   # Rust, no crates
-python conformance/run.py impl/rust/emet       # expected: CONFORMANCE 19/19 vectors pass
-python conformance/run.py impl/js/emet.js      # Node.js, built-in modules only
+( cd impl/rust && rustc -O emet.rs -o emet ); python conformance/run.py impl/rust/emet   # Rust, no crates
+python conformance/run.py impl/js/emet.js                                                # Node.js, built-ins only
+( cd impl/go && go build -o emet emet.go ); python conformance/run.py impl/go/emet       # Go, stdlib only
+# each: expected CONFORMANCE 31/31 vectors pass
 ```
 
 ## Commands
 
-`membrane.py` is the core. Each command reads raw bytes, prints facts to stdout,
-and sets an exit code (`0` = clean, `2` = drift/unverifiable, `3` = in-band
-authority claims found, `64` = usage error). It never edits, signs, or blocks
-the thing it inspects.
+`membrane.py` (or `emet`) is the core. Each command reads raw bytes, prints facts
+to stdout, and sets an exit code: `0` held (MATCH/COHERENT/CORROBORATED/INTACT/no
+markers) · `1` a negative finding (DRIFT, VIEW_DIFFERS_FROM_SOURCE, QUARANTINE,
+BROKEN) · `2` UNVERIFIABLE (could not check) · `3` markers found (refuse) · `64`
+usage. It never edits, signs, or blocks the thing it inspects.
 
 ```sh
 python membrane.py selftest                     # re-derive the tool's own hash
@@ -47,6 +61,9 @@ python membrane.py refuse      <file>            # detect + strip in-band author
 python membrane.py corroborate <path>            # agreement across disjoint read paths
 python membrane.py audit                         # recompute the tamper-evident log chain
 ```
+
+Add `--json` to any command for a machine-readable canonical-JSON envelope
+(SPEC s.13) instead of the human lines; the exit code is unchanged.
 
 Companion tools:
 
@@ -79,7 +96,7 @@ MATCH report.md want=a948904f2f0f479b got=a948904f2f0f479b
 $ printf 'hello world CHANGED\n' > report.md      # mutate one file
 $ python membrane.py verify report.md
 DRIFT report.md want=a948904f2f0f479b got=9fc0ea6515ceadd9
-# exit 2
+# exit 1  (a difference was found)
 ```
 
 A path that was never anchored verifies as `UNVERIFIABLE ... reason=E_NO_ANCHOR`
@@ -103,7 +120,7 @@ $ python membrane.py coherence source.md view.md
 source=abb7f0ae43ba52cc56233a5ecb4dfa11765f26b1282a18346d811b6a85af19c1
 view  =92e78d0b032962f47792a9fa95fd981ef63e1e3ef074d536d6304c75eddbe29f
 result=VIEW_DIFFERS_FROM_SOURCE
-# exit 2
+# exit 1  (a difference was found)
 ```
 
 ### 3. refuse - detect and strip in-band authority claims
@@ -156,7 +173,22 @@ log_entries=7 chain=INTACT
 `cat_subproc` and `git_read` are environment-dependent (a machine without `cat`
 or `git` simply has one fewer channel and the result may be `UNVERIFIABLE` with a
 stable reason code). `log_entries` reflects how many facts the preceding commands
-appended. Editing any past log entry makes `audit` report `chain=BROKEN` (exit 2).
+appended. Editing any past log entry makes `audit` report `chain=BROKEN` (exit 1).
+
+### 5. `--json` - the machine-readable envelope
+
+Add `--json` to any command for one canonical-JSON object (sorted keys, `", "` /
+`": "` separators) instead of the human lines. The exit code is unchanged, and the
+governed fields (`command`, `verdict`, `exit_code`, `emet_version`, `spec_version`,
+`reason`, `corpus_*`, `self_sha256`) are byte-identical across all four
+implementations. Nothing in an envelope can be `TRUSTED` (the closed lattice holds
+in JSON too).
+
+```sh
+$ python membrane.py verify --json report.md
+{"command": "verify", "emet_version": "1.0.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
+# exit 1
+```
 
 ## Optional: proof-surface receipt adapter
 

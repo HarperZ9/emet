@@ -34,9 +34,13 @@ echo "== anchor + verify (expect MATCH, exit 0) =="
 "$PY" "$REPO/membrane.py" verify prompt.txt || echo "(verify exit $?)"
 
 echo
-echo "== verify after a one-byte change (expect DRIFT, exit 2) =="
+echo "== verify after a one-byte change (expect DRIFT, exit 1) =="
 printf 'X' >> prompt.txt
 "$PY" "$REPO/membrane.py" verify prompt.txt || echo "(verify exit $? as expected for DRIFT)"
+
+echo
+echo "== the same verdict as a machine-readable --json envelope (SPEC s.13) =="
+"$PY" "$REPO/membrane.py" verify --json prompt.txt || echo "(verify --json exit $? as expected for DRIFT)"
 
 echo
 echo "== coherence: faithful view vs source (expect COHERENT, exit 0) =="
