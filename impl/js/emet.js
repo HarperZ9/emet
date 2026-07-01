@@ -30,14 +30,58 @@ const { spawnSync } = require("node:child_process");
 // ---------------------------------------------------------------------------
 // Exit codes (SPEC s.5, v1.0 -- NORMATIVE)
 //   0  -- all MATCH / COHERENT / CORROBORATED / INTACT / no markers / selftest ok
-//   2  -- any DRIFT / UNVERIFIABLE / VIEW_DIFFERS_FROM_SOURCE / QUARANTINE / BROKEN
+//   1  -- a NEGATIVE FINDING: DRIFT / VIEW_DIFFERS_FROM_SOURCE /
+//         QUARANTINE_READ_PATH_DIVERGENCE / BROKEN
+//   2  -- UNVERIFIABLE for any stable machine reason code (SPEC s.9)
 //   3  -- one or more markers detected (refuse)
 //   64 -- usage error
+// Precedence over multiple targets (SPEC s.5): exit 1 if ANY produced an exit-1
+// verdict, else 2 if ANY was UNVERIFIABLE, else 0.
 // ---------------------------------------------------------------------------
 const EXIT_OK = 0;
-const EXIT_FAIL = 2;
+const EXIT_DIFFER = 1;
+const EXIT_FAIL = 2; // UNVERIFIABLE
 const EXIT_MARKERS = 3;
 const EXIT_USAGE = 64;
+
+// --json envelope constants (SPEC s.13/s.14). Byte-identical governed keys
+// across conforming implementations for the same input.
+const EMET_VERSION = "1.0.0";
+const SPEC_VERSION = "1.0.0";
+
+// Set true when a global --json flag is present (SPEC s.13). In JSON mode the
+// impl emits EXACTLY ONE canonical-JSON object to stdout and NO human lines.
+let JSON_MODE = false;
+
+// Emit a human-grammar line, unless --json mode is active (parity with the
+// Python report.say()).
+function say(line) {
+  if (!JSON_MODE) process.stdout.write(line + "\n");
+}
+
+// In --json mode, print one canonical envelope to stdout (SPEC s.13). Governed
+// keys command/emet_version/spec_version/exit_code always; verdict when a
+// judgement-bearing command (null for selftest, the identity, not a judgement).
+// null/undefined-valued fields are dropped so the per-command shape is stable.
+function emit(command, verdict, exitCode, fields) {
+  if (JSON_MODE) {
+    const env = {
+      command,
+      emet_version: EMET_VERSION,
+      spec_version: SPEC_VERSION,
+      exit_code: exitCode,
+    };
+    if (verdict !== null && verdict !== undefined) env.verdict = verdict;
+    if (fields) {
+      for (const k of Object.keys(fields)) {
+        const v = fields[k];
+        if (v !== null && v !== undefined) env[k] = v;
+      }
+    }
+    process.stdout.write(canonicalJson(env) + "\n");
+  }
+  return exitCode;
+}
 
 // Implementation-private store paths (SPEC s.15); resolved against cwd so a
 // single conformance run's anchor + verify share the same store.
@@ -55,6 +99,21 @@ function readRawBytes(p) {
     return fs.readFileSync(p); // Buffer of exact bytes
   } catch (_e) {
     return null;
+  }
+}
+
+// SPEC s.3/s.9: with no raw byte channel, report UNVERIFIABLE with a STABLE
+// MACHINE REASON CODE -- never crash, never substitute a default. Distinguishes
+// E_NOT_FOUND (the path does not exist) from E_NO_RAW_CHANNEL (the path exists
+// but no raw byte channel is available), instead of collapsing to one code.
+// Returns { bytes, err }: on success err === null; on inability bytes === null.
+function tryRaw(p) {
+  try {
+    return { bytes: fs.readFileSync(p), err: null };
+  } catch (e) {
+    const code = e && e.code;
+    if (code === "ENOENT") return { bytes: null, err: "E_NOT_FOUND" };
+    return { bytes: null, err: "E_NO_RAW_CHANNEL" };
   }
 }
 
@@ -180,53 +239,69 @@ function cmdAnchor(paths) {
   if (paths.length === 0) return EXIT_USAGE;
   const anchors = loadAnchors();
   let anyFail = false;
+  const results = [];
   for (const p of paths) {
-    const hex = hashFileRaw(p);
-    if (hex === null) {
+    const { bytes, err } = tryRaw(p);
+    if (err) {
       // No raw byte channel -> UNVERIFIABLE (SPEC s.3/s.9), stable reason code.
       // Continue the batch and persist what anchored (parity with membrane.py),
       // rather than aborting and discarding earlier anchors.
-      process.stdout.write(`UNVERIFIABLE ${p} reason=E_NO_RAW_CHANNEL\n`);
+      say(`UNVERIFIABLE ${p} reason=${err}`);
+      results.push({ path: p, verdict: "UNVERIFIABLE", reason: err });
       anyFail = true;
       continue;
     }
+    const hex = sha256Hex(bytes);
     anchors[p] = { sha256: hex };
     appendLogEntry("anchor", { path: p, sha256: hex });
-    process.stdout.write(`ANCHORED ${p}\n`);
+    say(`ANCHORED ${p}`);
+    results.push({ path: p, sha256: hex });
   }
   saveAnchors(anchors);
-  return anyFail ? EXIT_FAIL : EXIT_OK;
+  // anchor only ever produces UNVERIFIABLE (an unreadable path) or clean; it
+  // never drifts. An unreadable target is UNVERIFIABLE, never a silent skip.
+  return emit("anchor", null, anyFail ? EXIT_FAIL : EXIT_OK, { results });
 }
 
 // verify PATH... -- per path emit MATCH / DRIFT / UNVERIFIABLE vs the anchor.
-// exit 0 iff ALL MATCH; exit 2 if ANY DRIFT or UNVERIFIABLE (SPEC s.5 v1.0).
+// Precedence (SPEC s.5 v1.0): exit 1 if ANY path DRIFTed, else 2 if ANY was
+// UNVERIFIABLE, else 0. A confirmed difference dominates an inability to check.
 function cmdVerify(paths) {
   if (paths.length === 0) return EXIT_USAGE;
   const anchors = loadAnchors();
-  let anyFail = false;
+  let drift = 0;
+  let unver = 0;
+  const results = [];
   for (const p of paths) {
-    const hex = hashFileRaw(p);
-    if (hex === null) {
-      process.stdout.write(`UNVERIFIABLE ${p} reason=E_NO_RAW_CHANNEL\n`);
-      anyFail = true;
-      continue;
-    }
     const a = anchors[p];
     if (!a || typeof a.sha256 !== "string") {
-      process.stdout.write(`UNVERIFIABLE ${p} reason=E_NO_ANCHOR\n`);
-      anyFail = true;
+      say(`UNVERIFIABLE ${p} reason=E_NO_ANCHOR`);
+      results.push({ path: p, verdict: "UNVERIFIABLE", reason: "E_NO_ANCHOR" });
+      unver++;
       continue;
     }
-    if (a.sha256 === hex) {
-      process.stdout.write(`MATCH ${p}\n`);
-      appendLogEntry("verify", { path: p, result: "MATCH" });
-    } else {
-      process.stdout.write(`DRIFT ${p}\n`);
-      appendLogEntry("verify", { path: p, result: "DRIFT" });
-      anyFail = true;
+    const { bytes, err } = tryRaw(p);
+    if (err) {
+      say(`UNVERIFIABLE ${p} reason=${err}`);
+      appendLogEntry("verify", { path: p, result: "UNVERIFIABLE", reason: err });
+      results.push({ path: p, verdict: "UNVERIFIABLE", reason: err });
+      unver++;
+      continue;
     }
+    const got = sha256Hex(bytes);
+    const want = a.sha256;
+    const ok = want === got;
+    const v = ok ? "MATCH" : "DRIFT";
+    say(`${v} ${p}`);
+    appendLogEntry("verify", { path: p, result: v });
+    results.push({ path: p, verdict: v, want, got });
+    if (!ok) drift++;
   }
-  return anyFail ? EXIT_FAIL : EXIT_OK;
+  // Precedence (SPEC s.5): a confirmed difference dominates an inability to
+  // check. Exit 1 if any path DRIFTed, else 2 if any was UNVERIFIABLE, else 0.
+  const dom = drift ? "DRIFT" : unver ? "UNVERIFIABLE" : "MATCH";
+  const code = drift ? EXIT_DIFFER : unver ? EXIT_FAIL : EXIT_OK;
+  return emit("verify", dom, code, { results });
 }
 
 // coherence SOURCE VIEW -- compare exact raw bytes.
@@ -235,22 +310,26 @@ function cmdVerify(paths) {
 function cmdCoherence(args) {
   if (args.length !== 2) return EXIT_USAGE;
   const [src, view] = args;
-  const srcBytes = readRawBytes(src);
-  if (srcBytes === null) {
-    process.stdout.write(`result=UNVERIFIABLE reason=E_NO_RAW_CHANNEL side=source path=${src}\n`);
-    return EXIT_FAIL;
+  const s = tryRaw(src);
+  const vw = tryRaw(view);
+  if (s.err || vw.err) {
+    const why = s.err ? `source:${s.err}` : `view:${vw.err}`;
+    say(`result=UNVERIFIABLE reason=${why}`);
+    return emit("coherence", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: src,
+      reason: why,
+    });
   }
-  const viewBytes = readRawBytes(view);
-  if (viewBytes === null) {
-    process.stdout.write(`result=UNVERIFIABLE reason=E_NO_RAW_CHANNEL side=view path=${view}\n`);
-    return EXIT_FAIL;
-  }
-  if (Buffer.compare(srcBytes, viewBytes) === 0) {
-    process.stdout.write("result=COHERENT\n");
-    return EXIT_OK;
-  }
-  process.stdout.write("result=VIEW_DIFFERS_FROM_SOURCE\n");
-  return EXIT_FAIL;
+  const sh = sha256Hex(s.bytes);
+  const vh = sha256Hex(vw.bytes);
+  const ok = Buffer.compare(s.bytes, vw.bytes) === 0;
+  const res = ok ? "COHERENT" : "VIEW_DIFFERS_FROM_SOURCE";
+  say(`result=${res}`);
+  return emit("coherence", res, ok ? EXIT_OK : EXIT_DIFFER, {
+    subject: src,
+    source: sh,
+    view: vh,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -327,12 +406,14 @@ function matchesAt(hay, i, m) {
 // byte and advance by one. The count is the number of matched spans, so a
 // repeated marker counts ONCE PER OCCURRENCE (e.g. "authority_pill
 // authority_pill" -> 2). This reproduces the reference's count byte-for-byte.
-// Returns { count, redacted } where redacted is the .refused copy's bytes.
-const REPL_TOKEN = Buffer.from("[REFUSED]", "latin1"); // implementation-defined
+// Returns { hits, redacted } where hits is [{marker, offset}] in scan order and
+// redacted is the .refused copy's bytes. The replacement token is pinned by SPEC
+// s.4/F3 to the exact byte string "[REFUSED-IN-BAND-AUTHORITY]".
+const REPL_TOKEN = Buffer.from("[REFUSED-IN-BAND-AUTHORITY]", "latin1");
 function scanMarkers(hay, markers) {
   const lows = loweredMarkers(markers);
   const out = [];
-  let count = 0;
+  const hits = [];
   let i = 0;
   while (i < hay.length) {
     let ln = 0;
@@ -343,7 +424,10 @@ function scanMarkers(hay, markers) {
       }
     }
     if (ln) {
-      count++;
+      // Record the matched marker bytes (as latin1) and its byte offset so the
+      // envelope can carry the hit list (SPEC s.13). The original input is never
+      // modified; only the .refused copy carries the replacement token.
+      hits.push({ marker: hay.slice(i, i + ln).toString("latin1"), offset: i });
       for (const b of REPL_TOKEN) out.push(b);
       i += ln;
     } else {
@@ -351,7 +435,7 @@ function scanMarkers(hay, markers) {
       i += 1;
     }
   }
-  return { count, redacted: Buffer.from(out) };
+  return { hits, redacted: Buffer.from(out) };
 }
 
 // refuse FILE -- scan raw bytes against the versioned corpus; emit
@@ -363,36 +447,59 @@ function cmdRefuse(args) {
   if (args.length !== 1) return EXIT_USAGE;
   const file = args[0];
 
-  const targetBytes = readRawBytes(file);
-  if (targetBytes === null) {
-    process.stdout.write(`UNVERIFIABLE reason=E_NO_RAW_CHANNEL path=${file}\n`);
-    return EXIT_FAIL;
+  const { bytes: targetBytes, err } = tryRaw(file);
+  if (err) {
+    say(`UNVERIFIABLE ${file} reason=${err}`);
+    return emit("refuse", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: file,
+      reason: err,
+    });
   }
 
   const corpus = loadCorpus();
   if (corpus === null) {
-    process.stdout.write("UNVERIFIABLE reason=E_NO_CORPUS\n");
-    return EXIT_FAIL;
+    say("UNVERIFIABLE reason=E_NO_CORPUS");
+    return emit("refuse", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: file,
+      reason: "E_NO_CORPUS",
+    });
+  }
+  if (corpus.version === null) {
+    // The corpus resolved but lacks its version header (SPEC s.9).
+    say("UNVERIFIABLE reason=E_NO_CORPUS_VERSION");
+    return emit("refuse", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: file,
+      reason: "E_NO_CORPUS_VERSION",
+    });
   }
 
-  const { count: n, redacted } = scanMarkers(targetBytes, corpus.markers);
-  process.stdout.write(`in_band_authority_claims=${n}\n`);
-  process.stdout.write(`corpus_version=${corpus.version}\n`);
-  process.stdout.write(`corpus_sha256=${corpus.sha256}\n`);
+  const { hits, redacted } = scanMarkers(targetBytes, corpus.markers);
+  const n = hits.length;
+  say(`corpus_version=${corpus.version}`);
+  say(`corpus_sha256=${corpus.sha256}`);
+  say(`in_band_authority_claims=${n}`);
 
-  // Write the .refused copy with each matched span replaced by a redaction
-  // token. The original input is left byte-for-byte untouched (boundary 6);
-  // only the copy is written. The replacement token is implementation-defined
-  // (SPEC pins neither the token nor the .refused filename, and no vector
-  // inspects .refused contents).
+  // Write the .refused copy with each matched span replaced by the pinned
+  // redaction token "[REFUSED-IN-BAND-AUTHORITY]" (SPEC s.4/F3). The original
+  // input is left byte-for-byte untouched (boundary 6); only the copy is written.
+  const cleanCopy = file + ".refused";
   try {
-    fs.writeFileSync(file + ".refused", redacted);
+    fs.writeFileSync(cleanCopy, redacted);
   } catch (_e) {
     // A .refused write failure must not be mistaken for a marker verdict; the
     // census (stdout + exit class) is the conformance-pinned output.
   }
 
-  return n >= 1 ? EXIT_MARKERS : EXIT_OK;
+  // refuse emits a count, not a lattice verdict; the envelope carries no verdict
+  // (parity with the Python reference passing verdict=None).
+  return emit("refuse", null, n >= 1 ? EXIT_MARKERS : EXIT_OK, {
+    subject: file,
+    in_band_authority_claims: n,
+    corpus_version: corpus.version,
+    corpus_sha256: corpus.sha256,
+    hits,
+    clean_copy: cleanCopy,
+  });
 }
 
 // corroborate PATH -- hash the SAME file via DISJOINT read paths and compare.
@@ -404,24 +511,39 @@ function cmdCorroborate(args) {
   if (args.length !== 1) return EXIT_USAGE;
   const p = args[0];
 
-  const primary = hashFileRaw(p);
-  if (primary === null) {
-    process.stdout.write(`result=UNVERIFIABLE reason=E_NO_RAW_CHANNEL path=${p}\n`);
-    return EXIT_FAIL;
+  const { bytes, err } = tryRaw(p);
+  if (err) {
+    say(`result=UNVERIFIABLE reason=${err}`);
+    return emit("corroborate", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: p,
+      reason: err,
+    });
   }
+  const primary = sha256Hex(bytes);
 
   const secondary = secondReadPathHash(p);
   if (secondary === null) {
-    process.stdout.write("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH\n");
-    return EXIT_FAIL;
+    say("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
+    return emit("corroborate", "UNVERIFIABLE", EXIT_FAIL, {
+      subject: p,
+      reason: "E_NO_SECOND_READ_PATH",
+      channels: { open_rb: primary },
+    });
   }
 
-  if (secondary === primary) {
-    process.stdout.write("result=CORROBORATED\n");
-    return EXIT_OK;
-  }
-  process.stdout.write("result=QUARANTINE_READ_PATH_DIVERGENCE\n");
-  return EXIT_FAIL;
+  const channels = { open_rb: primary, subproc_read: secondary };
+  const agree = secondary === primary;
+  const res = agree ? "CORROBORATED" : "QUARANTINE_READ_PATH_DIVERGENCE";
+  say(`result=${res}`);
+  // git_read_agrees_with_open is a DETAIL field; this impl uses a subprocess
+  // read channel rather than a VCS channel (SPEC s.4 makes the channel set
+  // implementation-defined), so it reports null (no git channel consulted).
+  return emit("corroborate", res, agree ? EXIT_OK : EXIT_DIFFER, {
+    subject: p,
+    channels,
+    read_paths_agree: agree,
+    git_read_agrees_with_open: null,
+  });
 }
 
 // An independent read path: read the same bytes through a subprocess so a
@@ -459,42 +581,55 @@ function cmdAudit(args) {
   try {
     raw = fs.readFileSync(AUDIT_LOG, "utf8");
   } catch (_e) {
-    // No log: an empty chain is trivially intact (genesis state).
-    process.stdout.write("chain=INTACT\n");
-    return EXIT_OK;
+    // No log: an empty chain is trivially intact (genesis state). Emit the
+    // chain= line WITH log_entries=0 (SPEC s.13), not a special-case string.
+    say("log_entries=0 chain=INTACT");
+    return emit("audit", "INTACT", EXIT_OK, { log_entries: 0 });
   }
   const lines = raw.split("\n").filter((l) => l.length > 0);
   let expectedPrev = GENESIS_PREV;
+  let n = 0;
+  let ok = true;
+  let brokenAt = null;
   for (const line of lines) {
+    n++;
     let entry;
     try {
       entry = JSON.parse(line);
     } catch (_e) {
-      process.stdout.write("chain=BROKEN\n");
-      return EXIT_FAIL;
+      ok = false;
+      brokenAt = n;
+      break;
     }
     const { kind, fact, prev, chain } = entry;
     if (typeof kind !== "string" || typeof prev !== "string" ||
         typeof chain !== "string" || fact === undefined) {
-      process.stdout.write("chain=BROKEN\n");
-      return EXIT_FAIL;
+      ok = false;
+      brokenAt = n;
+      break;
     }
     // Linkage: stored prev must equal the prior entry's stored chain
     // (genesis = 64 zeros). Catches a forged-but-self-consistent re-chained suffix.
     if (prev !== expectedPrev) {
-      process.stdout.write("chain=BROKEN\n");
-      return EXIT_FAIL;
+      ok = false;
+      brokenAt = n;
+      break;
     }
-    // Recompute this entry's chain from its STORED prev + kind + fact.
-    const recomputed = chainHash(prev, kind, fact);
-    if (recomputed !== chain) {
-      process.stdout.write("chain=BROKEN\n");
-      return EXIT_FAIL;
+    // Recompute this entry's chain from its STORED prev + kind + fact. The chain
+    // binds kind, so relabeling an operation alone recomputes to a mismatch.
+    if (chainHash(prev, kind, fact) !== chain) {
+      ok = false;
+      brokenAt = n;
+      break;
     }
     expectedPrev = chain;
   }
-  process.stdout.write("chain=INTACT\n");
-  return EXIT_OK;
+  const v = ok ? "INTACT" : "BROKEN";
+  say(`log_entries=${n} chain=${v}`);
+  return emit("audit", v, ok ? EXIT_OK : EXIT_DIFFER, {
+    log_entries: n,
+    broken_at: brokenAt,
+  });
 }
 
 // selftest -- emit the SHA-256 of this source file (the artifact-of-record for
@@ -504,21 +639,37 @@ function cmdAudit(args) {
 // EXTERNAL verifier MUST be the check of record -- EMET is not its own root of trust.
 function cmdSelftest(args) {
   if (args.length !== 0) return EXIT_USAGE;
+  // Artifact-of-record for a single-file interpreted impl (SPEC s.14): the
+  // SHA-256 of this source file's raw bytes (unchanged basis).
   const hex = hashFileRaw(__filename);
   if (hex === null) {
     // Should not happen, but never crash: report inability honestly.
-    process.stdout.write("UNVERIFIABLE reason=E_NO_RAW_CHANNEL path=self\n");
-    return EXIT_FAIL;
+    say("UNVERIFIABLE reason=E_NO_RAW_CHANNEL path=self");
+    return emit("selftest", "UNVERIFIABLE", EXIT_FAIL, { reason: "E_NO_RAW_CHANNEL" });
   }
-  process.stdout.write(`membrane_self_sha256=${hex}\n`);
-  return EXIT_OK;
+  // SPEC s.14: the canonical token is emet_self_sha256=; the legacy
+  // membrane_self_sha256= is emitted through the 1.x window (removed at 2.0),
+  // carrying the same hex value.
+  const notes = [
+    "this hash is my only credential; re-derive it from source to verify me.",
+    "I assert no authority, grant no permission, decide no safety question.",
+  ];
+  say(`emet_self_sha256=${hex}`);
+  say(`membrane_self_sha256=${hex}  (deprecated alias; removed at 2.0)`);
+  for (const note of notes) say(`note=${note}`);
+  // selftest reports an IDENTITY, not a judgement, so it carries no verdict.
+  return emit("selftest", null, EXIT_OK, { self_sha256: hex, notes });
 }
 
 // ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
 function main(argv) {
-  const [cmd, ...rest] = argv;
+  // Global --json flag (SPEC s.13): accepted before OR after the subcommand.
+  // Strip every occurrence from argv and enable JSON envelope mode.
+  const filtered = argv.filter((a) => a !== "--json");
+  if (filtered.length !== argv.length) JSON_MODE = true;
+  const [cmd, ...rest] = filtered;
   switch (cmd) {
     case "anchor":
       return cmdAnchor(rest);

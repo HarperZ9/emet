@@ -98,8 +98,20 @@ fn sha256_hex(msg: &[u8]) -> String {
     out
 }
 
-fn sha_of_file(path: &str) -> Option<String> {
-    fs::read(path).ok().map(|b| sha256_hex(&b))
+// Read raw bytes, mapping inability to a STABLE MACHINE REASON CODE (SPEC s.9),
+// never prose: E_NOT_FOUND when the path is absent, E_NO_RAW_CHANNEL otherwise
+// (permission, is-a-directory, other OS error). Mirrors Python try_raw().
+fn read_raw(path: &str) -> Result<Vec<u8>, &'static str> {
+    match fs::read(path) {
+        Ok(b) => Ok(b),
+        Err(e) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Err("E_NOT_FOUND")
+            } else {
+                Err("E_NO_RAW_CHANNEL")
+            }
+        }
+    }
 }
 
 fn git_hash_object_path(path: &str) -> Option<String> {
@@ -211,6 +223,8 @@ enum JV {
     I(i64),
     B(bool),
     Null,
+    Arr(Vec<JV>),
+    Obj(Vec<(String, JV)>),
 }
 
 fn json_str(s: &str) -> String {
@@ -248,6 +262,80 @@ fn jv_str(v: &JV) -> String {
         JV::I(i) => i.to_string(),
         JV::B(b) => (if *b { "true" } else { "false" }).to_string(),
         JV::Null => "null".to_string(),
+        JV::Arr(items) => {
+            let mut o = String::from("[");
+            for (idx, it) in items.iter().enumerate() {
+                if idx > 0 {
+                    o.push_str(", ");
+                }
+                o.push_str(&jv_str(it));
+            }
+            o.push(']');
+            o
+        }
+        JV::Obj(pairs) => {
+            // canonical: keys sorted ascending, ", " between items, ": " after key
+            let mut sorted: Vec<&(String, JV)> = pairs.iter().collect();
+            sorted.sort_by(|a, b| a.0.cmp(&b.0));
+            let mut o = String::from("{");
+            for (idx, (k, val)) in sorted.iter().enumerate() {
+                if idx > 0 {
+                    o.push_str(", ");
+                }
+                o.push_str(&json_str(k));
+                o.push_str(": ");
+                o.push_str(&jv_str(val));
+            }
+            o.push('}');
+            o
+        }
+    }
+}
+
+// ---- --json envelope (SPEC s.13). Global mode flag, set when --json is present. --
+// Canonical JSON identical to Python report.emit(): keys sorted, ", "/": "
+// separators, ensure_ascii; None-valued fields dropped so the shape is stable.
+static mut JSON_MODE: bool = false;
+
+fn json_mode() -> bool {
+    unsafe { JSON_MODE }
+}
+
+fn enable_json() {
+    unsafe {
+        JSON_MODE = true;
+    }
+}
+
+// Emit one canonical envelope to stdout in --json mode (nothing otherwise), then
+// the caller returns the exit code. `verdict` is None for identity/no-verdict
+// commands (anchor, refuse-success, selftest). Fields whose value is JV::Null are
+// dropped, matching report.emit()'s "None-valued fields are dropped".
+fn emit_envelope(command: &str, verdict: Option<&str>, exit_code: i32, fields: Vec<(&str, JV)>) {
+    if !json_mode() {
+        return;
+    }
+    let mut pairs: Vec<(String, JV)> = Vec::new();
+    pairs.push(("command".to_string(), JV::S(command.to_string())));
+    pairs.push(("emet_version".to_string(), JV::S("1.0.0".to_string())));
+    pairs.push(("spec_version".to_string(), JV::S("1.0.0".to_string())));
+    pairs.push(("exit_code".to_string(), JV::I(exit_code as i64)));
+    if let Some(v) = verdict {
+        pairs.push(("verdict".to_string(), JV::S(v.to_string())));
+    }
+    for (k, v) in fields {
+        if let JV::Null = v {
+            continue; // drop None-valued fields (report.emit parity)
+        }
+        pairs.push((k.to_string(), v));
+    }
+    println!("{}", jv_str(&JV::Obj(pairs)));
+}
+
+// A human line printed only when NOT in --json mode (Python report.say()).
+fn say(line: &str) {
+    if !json_mode() {
+        println!("{}", line);
     }
 }
 
@@ -390,134 +478,181 @@ fn marker_len_at(bytes: &[u8], i: usize, markers: &[Vec<u8>]) -> usize {
 // ---------------- commands ----------------
 fn cmd_anchor(paths: &[String]) -> i32 {
     let mut map = read_anchors();
+    let mut bad = 0;
+    let mut results: Vec<JV> = Vec::new();
     for p in paths {
-        if let Some(h) = sha_of_file(p) {
-            println!("anchored {} sha256={}", p, h);
-            record(
-                "anchor",
-                vec![("path", JV::S(p.clone())), ("sha256", JV::S(h.clone()))],
-            );
-            map.insert(p.clone(), h);
+        match read_raw(p) {
+            Ok(b) => {
+                let h = sha256_hex(&b);
+                say(&format!("anchored {} sha256={}", p, h));
+                record(
+                    "anchor",
+                    vec![("path", JV::S(p.clone())), ("sha256", JV::S(h.clone()))],
+                );
+                results.push(JV::Obj(vec![
+                    ("path".to_string(), JV::S(p.clone())),
+                    ("sha256".to_string(), JV::S(h.clone())),
+                ]));
+                map.insert(p.clone(), h);
+            }
+            Err(reason) => {
+                // An unreadable/absent target is UNVERIFIABLE + exit 2, NEVER a
+                // silent skip (SPEC s.4). Machine reason code, never prose (s.9).
+                say(&format!("UNVERIFIABLE {} reason={}", p, reason));
+                results.push(JV::Obj(vec![
+                    ("path".to_string(), JV::S(p.clone())),
+                    ("verdict".to_string(), JV::S("UNVERIFIABLE".to_string())),
+                    ("reason".to_string(), JV::S(reason.to_string())),
+                ]));
+                bad += 1;
+            }
         }
     }
     write_anchors(&map);
-    0
+    // anchor never drifts; it is clean or UNVERIFIABLE. No verdict field (parity
+    // with the Python reference, which passes verdict=None).
+    let code = if bad > 0 { 2 } else { 0 };
+    emit_envelope("anchor", None, code, vec![("results", JV::Arr(results))]);
+    code
 }
 
 fn cmd_verify(paths: &[String]) -> i32 {
     let map = read_anchors();
-    let mut bad = 0;
+    let mut drift = 0;
+    let mut unver = 0;
+    let mut results: Vec<JV> = Vec::new();
     for p in paths {
         match map.get(p) {
             None => {
-                println!("UNVERIFIABLE {} (no anchor)", p);
-                bad += 1;
+                // No anchor for the path: machine reason code, never prose (s.9).
+                say(&format!("UNVERIFIABLE {} reason=E_NO_ANCHOR", p));
+                results.push(JV::Obj(vec![
+                    ("path".to_string(), JV::S(p.clone())),
+                    ("verdict".to_string(), JV::S("UNVERIFIABLE".to_string())),
+                    ("reason".to_string(), JV::S("E_NO_ANCHOR".to_string())),
+                ]));
+                unver += 1;
             }
-            Some(want) => match sha_of_file(p) {
-                None => {
-                    println!("UNVERIFIABLE {} (unreadable)", p);
+            Some(want) => match read_raw(p) {
+                Err(reason) => {
+                    say(&format!("UNVERIFIABLE {} reason={}", p, reason));
                     record(
                         "verify",
                         vec![
                             ("path", JV::S(p.clone())),
                             ("result", JV::S("UNVERIFIABLE".to_string())),
+                            ("reason", JV::S(reason.to_string())),
                         ],
                     );
-                    bad += 1;
+                    results.push(JV::Obj(vec![
+                        ("path".to_string(), JV::S(p.clone())),
+                        ("verdict".to_string(), JV::S("UNVERIFIABLE".to_string())),
+                        ("reason".to_string(), JV::S(reason.to_string())),
+                    ]));
+                    unver += 1;
                 }
-                Some(got) => {
-                    if &got == want {
-                        println!("MATCH {} want={} got={}", p, pre(want), pre(&got));
-                        record(
-                            "verify",
-                            vec![
-                                ("path", JV::S(p.clone())),
-                                ("result", JV::S("MATCH".to_string())),
-                            ],
-                        );
-                    } else {
-                        println!("DRIFT {} want={} got={}", p, pre(want), pre(&got));
-                        record(
-                            "verify",
-                            vec![
-                                ("path", JV::S(p.clone())),
-                                ("result", JV::S("DRIFT".to_string())),
-                            ],
-                        );
-                        bad += 1;
+                Ok(b) => {
+                    let got = sha256_hex(&b);
+                    let ok = &got == want;
+                    let v = if ok { "MATCH" } else { "DRIFT" };
+                    say(&format!("{} {} want={} got={}", v, p, pre(want), pre(&got)));
+                    record(
+                        "verify",
+                        vec![
+                            ("path", JV::S(p.clone())),
+                            ("result", JV::S(v.to_string())),
+                        ],
+                    );
+                    results.push(JV::Obj(vec![
+                        ("path".to_string(), JV::S(p.clone())),
+                        ("verdict".to_string(), JV::S(v.to_string())),
+                        ("want".to_string(), JV::S(want.clone())),
+                        ("got".to_string(), JV::S(got.clone())),
+                    ]));
+                    if !ok {
+                        drift += 1;
                     }
                 }
             },
         }
     }
-    if bad == 0 {
-        0
+    // Precedence (SPEC s.5): a confirmed difference dominates an inability to
+    // check. Exit 1 if any path DRIFTed, else 2 if any UNVERIFIABLE, else 0.
+    let (dom, code) = if drift > 0 {
+        ("DRIFT", 1)
+    } else if unver > 0 {
+        ("UNVERIFIABLE", 2)
     } else {
-        2
-    }
+        ("MATCH", 0)
+    };
+    emit_envelope("verify", Some(dom), code, vec![("results", JV::Arr(results))]);
+    code
 }
 
 fn cmd_coherence(src: &str, view: &str) -> i32 {
-    match (sha_of_file(src), sha_of_file(view)) {
-        (Some(s), Some(v)) => {
-            println!("source={}", s);
-            println!("view  ={}", v);
-            if s == v {
-                println!("result=COHERENT");
-                record(
-                    "coherence",
-                    vec![
-                        ("source", JV::S(src.to_string())),
-                        ("result", JV::S("COHERENT".to_string())),
-                    ],
-                );
-                0
-            } else {
-                println!("result=VIEW_DIFFERS_FROM_SOURCE");
-                record(
-                    "coherence",
-                    vec![
-                        ("source", JV::S(src.to_string())),
-                        ("result", JV::S("VIEW_DIFFERS_FROM_SOURCE".to_string())),
-                    ],
-                );
-                2
-            }
-        }
-        _ => {
-            println!("result=UNVERIFIABLE");
-            record(
-                "coherence",
-                vec![
-                    ("source", JV::S(src.to_string())),
-                    ("result", JV::S("UNVERIFIABLE".to_string())),
-                ],
-            );
-            2
-        }
+    let sb = read_raw(src);
+    let vb = read_raw(view);
+    if sb.is_err() || vb.is_err() {
+        // machine reason code, never prose (s.9); Python form: source:<code> /
+        // view:<code>, source taking precedence when both fail.
+        let why = if let Err(e) = &sb {
+            format!("source:{}", e)
+        } else {
+            format!("view:{}", vb.as_ref().err().unwrap())
+        };
+        say(&format!("result=UNVERIFIABLE reason={}", why));
+        record(
+            "coherence",
+            vec![
+                ("source", JV::S(src.to_string())),
+                ("result", JV::S("UNVERIFIABLE".to_string())),
+                ("reason", JV::S(why.clone())),
+            ],
+        );
+        emit_envelope(
+            "coherence",
+            Some("UNVERIFIABLE"),
+            2,
+            vec![
+                ("subject", JV::S(src.to_string())),
+                ("reason", JV::S(why)),
+            ],
+        );
+        return 2;
     }
+    let s = sha256_hex(&sb.unwrap());
+    let v = sha256_hex(&vb.unwrap());
+    let ok = s == v;
+    let res = if ok { "COHERENT" } else { "VIEW_DIFFERS_FROM_SOURCE" };
+    say(&format!("source={}", s));
+    say(&format!("view  ={}", v));
+    say(&format!("result={}", res));
+    record(
+        "coherence",
+        vec![
+            ("source", JV::S(src.to_string())),
+            ("result", JV::S(res.to_string())),
+        ],
+    );
+    let code = if ok { 0 } else { 1 };
+    emit_envelope(
+        "coherence",
+        Some(res),
+        code,
+        vec![
+            ("subject", JV::S(src.to_string())),
+            ("source", JV::S(s)),
+            ("view", JV::S(v)),
+        ],
+    );
+    code
 }
 
 fn cmd_refuse(path: &str) -> i32 {
-    let bytes = match fs::read(path) {
+    let bytes = match read_raw(path) {
         Ok(b) => b,
-        Err(_) => {
-            println!("UNVERIFIABLE {} reason=E_NOT_FOUND", path);
-            record(
-                "refuse",
-                vec![
-                    ("path", JV::S(path.to_string())),
-                    ("result", JV::S("UNVERIFIABLE".to_string())),
-                    ("reason", JV::S("E_NOT_FOUND".to_string())),
-                ],
-            );
-            return 2;
-        }
-    };
-    let (version, csha, markers) = match load_corpus() {
-        Ok(c) => c,
         Err(reason) => {
-            println!("UNVERIFIABLE {} reason={}", path, reason);
+            say(&format!("UNVERIFIABLE {} reason={}", path, reason));
             record(
                 "refuse",
                 vec![
@@ -526,34 +661,75 @@ fn cmd_refuse(path: &str) -> i32 {
                     ("reason", JV::S(reason.to_string())),
                 ],
             );
+            emit_envelope(
+                "refuse",
+                Some("UNVERIFIABLE"),
+                2,
+                vec![
+                    ("subject", JV::S(path.to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
+            return 2;
+        }
+    };
+    let (version, csha, markers) = match load_corpus() {
+        Ok(c) => c,
+        Err(reason) => {
+            say(&format!("UNVERIFIABLE {} reason={}", path, reason));
+            record(
+                "refuse",
+                vec![
+                    ("path", JV::S(path.to_string())),
+                    ("result", JV::S("UNVERIFIABLE".to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
+            emit_envelope(
+                "refuse",
+                Some("UNVERIFIABLE"),
+                2,
+                vec![
+                    ("subject", JV::S(path.to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
             return 2;
         }
     };
     // Rewrite over raw bytes so non-ASCII content is preserved and never
     // mis-indexed; replace each matched marker with the refusal sentinel.
+    // Non-overlapping leftmost scan in corpus order (SPEC s.16). Collect each
+    // hit's (matched span, offset) for the hits array (parity with Python).
     let repl = b"[REFUSED-IN-BAND-AUTHORITY]";
     let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
-    let mut n = 0usize;
+    let mut hits: Vec<(String, usize)> = Vec::new();
     let mut i = 0;
     while i < bytes.len() {
         let hit = marker_len_at(&bytes, i, &markers);
         if hit > 0 {
+            // latin-1 decode of the matched span: each raw byte -> its code point
+            let marker: String = bytes[i..i + hit].iter().map(|&b| b as char).collect();
+            hits.push((marker, i));
             out.extend_from_slice(repl);
             i += hit;
-            n += 1;
         } else {
             out.push(bytes[i]);
             i += 1;
         }
     }
     let _ = fs::write(format!("{}.refused", path), &out);
-    println!("corpus_version={}", version);
-    println!("corpus_sha256={}", csha);
-    println!("in_band_authority_claims={}", n);
-    println!(
+    let n = hits.len();
+    say(&format!("corpus_version={}", version));
+    say(&format!("corpus_sha256={}", csha));
+    say(&format!("in_band_authority_claims={}", n));
+    for (marker, off) in hits.iter().take(60) {
+        say(&format!("  REFUSED {:?} offset={}", marker, off));
+    }
+    say(&format!(
         "clean_copy={}.refused  (claims neutralized; obeyed: none)",
         path
-    );
+    ));
     record(
         "refuse",
         vec![
@@ -562,74 +738,128 @@ fn cmd_refuse(path: &str) -> i32 {
             ("corpus_version", JV::I(version)),
         ],
     );
-    if n == 0 {
-        0
-    } else {
-        3
-    }
+    let hits_json: Vec<JV> = hits
+        .iter()
+        .map(|(m, o)| {
+            JV::Obj(vec![
+                ("marker".to_string(), JV::S(m.clone())),
+                ("offset".to_string(), JV::I(*o as i64)),
+            ])
+        })
+        .collect();
+    let code = if n == 0 { 0 } else { 3 };
+    // refuse-success carries no verdict (parity with Python verdict=None).
+    emit_envelope(
+        "refuse",
+        None,
+        code,
+        vec![
+            ("subject", JV::S(path.to_string())),
+            ("in_band_authority_claims", JV::I(n as i64)),
+            ("corpus_version", JV::I(version)),
+            ("corpus_sha256", JV::S(csha)),
+            ("hits", JV::Arr(hits_json)),
+            ("clean_copy", JV::S(format!("{}.refused", path))),
+        ],
+    );
+    code
 }
 
 fn cmd_corroborate(path: &str) -> i32 {
-    let primary_bytes = match fs::read(path) {
+    let primary_bytes = match read_raw(path) {
         Ok(b) => b,
-        Err(_) => {
-            println!("open_rb=unavailable:E_NOT_FOUND");
-            println!("read_paths_agree=False");
-            println!("result=UNVERIFIABLE reason=E_NOT_FOUND");
+        Err(reason) => {
+            say(&format!("open_rb=unavailable:{}", reason));
+            say("read_paths_agree=False");
+            say(&format!("result=UNVERIFIABLE reason={}", reason));
             record(
                 "corroborate",
                 vec![
                     ("path", JV::S(path.to_string())),
                     ("result", JV::S("UNVERIFIABLE".to_string())),
-                    ("reason", JV::S("E_NOT_FOUND".to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
+            emit_envelope(
+                "corroborate",
+                Some("UNVERIFIABLE"),
+                2,
+                vec![
+                    ("subject", JV::S(path.to_string())),
+                    ("reason", JV::S(reason.to_string())),
                 ],
             );
             return 2;
         }
     };
     let primary = sha256_hex(&primary_bytes);
-    println!("open_rb={}", primary);
-    let mut cat_ok = false;
-    let mut git_agrees: Option<bool> = None;
-    let mut agree = true;
+    // channels dict, parity with Python `paths` (key -> hex or "unavailable:...").
+    let mut channels: Vec<(String, String)> = vec![("open_rb".to_string(), primary.clone())];
+
+    // cat subprocess channel
+    let mut cat_hash: Option<String> = None;
     match Command::new("cat").arg(path).output() {
         Ok(o) if o.status.success() => {
-            cat_ok = true;
-            let cat_hash = sha256_hex(&o.stdout);
-            println!("cat_subproc={}", cat_hash);
-            if cat_hash != primary {
-                agree = false;
-            }
+            let h = sha256_hex(&o.stdout);
+            channels.push(("cat_subproc".to_string(), h.clone()));
+            cat_hash = Some(h);
         }
         _ => {
-            println!("cat_subproc=unavailable");
+            channels.push(("cat_subproc".to_string(), "unavailable:CalledProcessError".to_string()));
         }
     }
+
+    // git channel: compare git's own report vs the git blot hash of the raw bytes.
+    let mut git_agrees: Option<bool> = None;
     match (
         git_hash_object_path(path),
         git_hash_object_stdin(&primary_bytes),
     ) {
         (Some(path_hash), Some(open_hash)) => {
-            let git_ok = path_hash == open_hash;
-            println!("git_read={}", path_hash);
-            println!(
-                "git_read_agrees_with_open={}",
-                if git_ok { "True" } else { "False" }
-            );
-            git_agrees = Some(git_ok);
-            if !git_ok {
-                agree = false;
-            }
+            channels.push(("git_read".to_string(), path_hash.clone()));
+            git_agrees = Some(!path_hash.is_empty() && path_hash == open_hash);
         }
         _ => {
-            println!("git_read=unavailable");
-            println!("git_read_agrees_with_open=None");
+            channels.push(("git_read".to_string(), "unavailable:CalledProcessError".to_string()));
         }
     }
-    if !cat_ok && git_agrees.is_none() {
-        // only open_rb succeeded: no independent read path to corroborate against.
-        println!("read_paths_agree=False");
-        println!("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
+
+    // sha_agree: the set of byte-hash channels (open_rb, cat_subproc), excluding
+    // unavailable, is size 1. Mirrors Python's sha_vals set logic.
+    let mut sha_vals: Vec<&String> = Vec::new();
+    for (k, v) in &channels {
+        if (k == "open_rb" || k == "cat_subproc") && !v.contains(':') {
+            if !sha_vals.iter().any(|x| *x == v) {
+                sha_vals.push(v);
+            }
+        }
+    }
+    let sha_agree = sha_vals.len() == 1;
+
+    // human grammar: channels sorted by key, then agreement flags (Python order).
+    let mut sorted_ch: Vec<&(String, String)> = channels.iter().collect();
+    sorted_ch.sort_by(|a, b| a.0.cmp(&b.0));
+    for (k, v) in sorted_ch {
+        say(&format!("{}={}", k, v));
+    }
+    say(&format!(
+        "read_paths_agree={}",
+        if sha_agree { "True" } else { "False" }
+    ));
+    say(&format!(
+        "git_read_agrees_with_open={}",
+        match git_agrees {
+            Some(true) => "True",
+            Some(false) => "False",
+            None => "None",
+        }
+    ));
+
+    let cat_ok = cat_hash.is_some();
+    let git_ok = git_agrees.is_some();
+    if !(cat_ok || git_ok) {
+        // only open_rb succeeded: no independent read path (SPEC s.9).
+        say("result=UNVERIFIABLE reason=E_NO_SECOND_READ_PATH");
         record(
             "corroborate",
             vec![
@@ -638,34 +868,65 @@ fn cmd_corroborate(path: &str) -> i32 {
                 ("reason", JV::S("E_NO_SECOND_READ_PATH".to_string())),
             ],
         );
+        emit_envelope(
+            "corroborate",
+            Some("UNVERIFIABLE"),
+            2,
+            vec![
+                ("subject", JV::S(path.to_string())),
+                ("reason", JV::S("E_NO_SECOND_READ_PATH".to_string())),
+                ("channels", channels_json(&channels)),
+            ],
+        );
         return 2;
     }
-    println!("read_paths_agree={}", if agree { "True" } else { "False" });
-    if agree {
-        println!("result=CORROBORATED");
-        let git = git_agrees.map(JV::B).unwrap_or(JV::Null);
-        record(
-            "corroborate",
-            vec![
-                ("path", JV::S(path.to_string())),
-                ("agree", JV::B(true)),
-                ("git", git),
-            ],
-        );
-        0
+
+    // ok = sha_agree AND git_agrees in (True, None); QUARANTINE otherwise.
+    let ok = sha_agree && git_agrees != Some(false);
+    let res = if ok {
+        "CORROBORATED"
     } else {
-        println!("result=QUARANTINE_READ_PATH_DIVERGENCE");
-        let git = git_agrees.map(JV::B).unwrap_or(JV::Null);
-        record(
-            "corroborate",
-            vec![
-                ("path", JV::S(path.to_string())),
-                ("agree", JV::B(false)),
-                ("git", git),
-            ],
-        );
-        2
-    }
+        "QUARANTINE_READ_PATH_DIVERGENCE"
+    };
+    say(&format!("result={}", res));
+    let git_jv = match git_agrees {
+        Some(b) => JV::B(b),
+        None => JV::Null,
+    };
+    record(
+        "corroborate",
+        vec![
+            ("path", JV::S(path.to_string())),
+            ("agree", JV::B(sha_agree)),
+            ("git", git_jv),
+        ],
+    );
+    let code = if ok { 0 } else { 1 };
+    let git_env = match git_agrees {
+        Some(b) => JV::B(b),
+        None => JV::Null,
+    };
+    emit_envelope(
+        "corroborate",
+        Some(res),
+        code,
+        vec![
+            ("subject", JV::S(path.to_string())),
+            ("channels", channels_json(&channels)),
+            ("read_paths_agree", JV::B(sha_agree)),
+            ("git_read_agrees_with_open", git_env),
+        ],
+    );
+    code
+}
+
+fn channels_json(channels: &[(String, String)]) -> JV {
+    JV::Obj(
+        channels
+            .iter()
+            .map(|(k, v)| (k.clone(), JV::S(v.clone())))
+            .collect(),
+    )
 }
 
 // -------- audit: verify the hash-chained log (SPEC sections 4, 7, 13) --------
@@ -781,13 +1042,17 @@ fn cmd_audit() -> i32 {
     let data = match fs::read("membrane_log.jsonl") {
         Ok(b) => b,
         Err(_) => {
-            println!("no log");
+            // Absent log is the genesis state: an empty chain is trivially intact.
+            // Emit the chain= line (SPEC s.13) + log_entries=0, not a special string.
+            say("log_entries=0 chain=INTACT");
+            emit_envelope("audit", Some("INTACT"), 0, vec![("log_entries", JV::I(0))]);
             return 0;
         }
     };
     let mut prev: Vec<u8> = vec![b'0'; 64];
     let mut n = 0i64;
     let mut ok = true;
+    let mut broken_at: Option<i64> = None;
     for line in data.split(|&c| c == b'\n') {
         if line.iter().all(|&c| c == b' ' || c == b'\t' || c == b'\r') {
             continue;
@@ -802,8 +1067,9 @@ fn cmd_audit() -> i32 {
         let (e_prev, e_chain, e_kind, fact) = match fields {
             (Some(p), Some(c), Some(k), Some(f)) => (p, c, k, f),
             _ => {
-                println!("BROKEN at entry {}", n);
+                say(&format!("BROKEN at entry {}", n));
                 ok = false;
+                broken_at = Some(n);
                 break;
             }
         };
@@ -814,36 +1080,73 @@ fn cmd_audit() -> i32 {
         buf.extend_from_slice(fact);
         let rec = sha256_hex(&buf);
         if e_prev != &prev[..] || e_chain != rec.as_bytes() {
-            println!("BROKEN at entry {}", n);
+            say(&format!("BROKEN at entry {}", n));
             ok = false;
+            broken_at = Some(n);
             break;
         }
         prev = e_chain.to_vec();
     }
-    println!(
-        "log_entries={} chain={}",
-        n,
-        if ok { "INTACT" } else { "BROKEN" }
+    let v = if ok { "INTACT" } else { "BROKEN" };
+    say(&format!("log_entries={} chain={}", n, v));
+    // BROKEN is a negative finding -> exit 1 (SPEC s.5); INTACT -> 0.
+    let code = if ok { 0 } else { 1 };
+    let broken_jv = match broken_at {
+        Some(x) => JV::I(x),
+        None => JV::Null,
+    };
+    emit_envelope(
+        "audit",
+        Some(v),
+        code,
+        vec![("log_entries", JV::I(n)), ("broken_at", broken_jv)],
     );
-    if ok {
-        0
-    } else {
-        2
-    }
+    code
 }
 
 fn cmd_selftest() -> i32 {
-    match env::current_exe().ok().and_then(|p| fs::read(p).ok()) {
-        Some(bytes) => println!("membrane_self_sha256={}", sha256_hex(&bytes)),
-        None => println!("membrane_self_sha256=unknown"),
-    }
-    println!("note=this hash is my only credential; re-derive it from source to verify me.");
-    println!("note=I assert no authority, grant no permission, decide no safety question.");
+    // COMPILED implementation: artifact-of-record is the compiled binary (SPEC s.14).
+    let h = match env::current_exe().ok().and_then(|p| fs::read(p).ok()) {
+        Some(bytes) => sha256_hex(&bytes),
+        None => "unknown".to_string(),
+    };
+    // Canonical token emet_self_sha256=; the legacy membrane_self_sha256= is emitted
+    // through the 1.x deprecation window (removed at 2.0), same hex value (SPEC s.14).
+    say(&format!("emet_self_sha256={}", h));
+    say(&format!(
+        "membrane_self_sha256={}  (deprecated alias; removed at 2.0)",
+        h
+    ));
+    say("note=this hash is my only credential; re-derive it from source to verify me.");
+    say("note=I assert no authority, grant no permission, decide no safety question.");
+    // selftest reports an identity, not a judgement: no verdict field (SPEC s.13/s.14).
+    emit_envelope(
+        "selftest",
+        None,
+        0,
+        vec![
+            ("self_sha256", JV::S(h)),
+            (
+                "notes",
+                JV::Arr(vec![
+                    JV::S("this hash is my only credential; re-derive it from source to verify me.".to_string()),
+                    JV::S("I assert no authority, grant no permission, decide no safety question.".to_string()),
+                ]),
+            ),
+        ],
+    );
     0
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    // Global --json flag (SPEC s.13): accepted before OR after the subcommand;
+    // strip it from argv, then dispatch on the remainder. Exit code is identical
+    // with or without --json.
+    let raw_args: Vec<String> = env::args().collect();
+    let args: Vec<String> = raw_args.iter().filter(|a| *a != "--json").cloned().collect();
+    if args.len() != raw_args.len() {
+        enable_json();
+    }
     let code = if args.len() >= 3 && args[1] == "anchor" {
         cmd_anchor(&args[2..])
     } else if args.len() >= 3 && args[1] == "verify" {
