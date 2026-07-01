@@ -1,0 +1,17 @@
+{
+  "schema": "emet.browser-evidence-anchor/v1",
+  "source_schema": "project-telos.browser-evidence/v1",
+  "witness": "emet",
+  "packet": "browser-evidence.json",
+  "commands": [
+    "emet anchor browser-evidence.json",
+    "emet verify browser-evidence.json",
+    "emet audit"
+  ],
+  "verdicts": [
+    "MATCH",
+    "DRIFT",
+    "UNVERIFIABLE"
+  ],
+  "boundary": "witness-only; no browser control"
+}
