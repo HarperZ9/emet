@@ -29,6 +29,13 @@ body. A future vector SHOULD assert `"spec_version": "1.0.0"` in an envelope so
 the governed value is actually enforced, and the SPEC header should be bumped to
 match its own body.
 
+**Resolved at 1.0.0.** The SPEC header and `vectors.json` `spec_version` are now
+`1.0.0`, and the `envelope-spec-version` vector asserts `"spec_version": "1.0.0"`
+in a `--json` envelope. The `verify-no-anchor-reason-code` and
+`refuse-missing-reason-code` vectors now enforce the s.9 reason enum, and
+`verify-multipath-precedence-json` pins the multi-path dominant verdict (findings
+6 and 8). The default-encoder warning (finding 2) is now in SPEC s.7.
+
 ## 1. `--json` envelope SHAPE is per-command, only substrings are pinned
 
 SPEC s.13 lists the GOVERNED keys (command, verdict, exit_code, emet_version,

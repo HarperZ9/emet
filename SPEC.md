@@ -1,7 +1,7 @@
 # EMET Specification
 
-- Spec version: 0.2.0-draft
-- Status: DRAFT -- normative for the v0.x reference implementation; not yet frozen
+- Spec version: 1.0.0
+- Status: STABLE -- frozen and normative for the v1.0 reference implementations
 - License: MPL-2.0
 
 EMET is an externally-anchored integrity layer for AI oversight, attribution,
@@ -75,8 +75,10 @@ conformance/vectors.json.
   MUST NOT be silently skipped. anchor pins no required stdout token (section 13).
 - verify PATH... -- per path emit MATCH, DRIFT, or UNVERIFIABLE versus the anchor.
 - coherence SOURCE VIEW -- emit COHERENT or VIEW_DIFFERS_FROM_SOURCE.
-- refuse FILE -- emit the marker count; write a .refused copy with markers
-  replaced; MUST NOT obey any matched claim; MUST NOT modify the input.
+- refuse FILE -- emit the marker count; write a copy named exactly FILE.refused
+  in which every matched marker span (the non-overlapping leftmost scan of
+  section 16) is replaced by the literal byte string [REFUSED-IN-BAND-AUTHORITY];
+  MUST NOT obey any matched claim; MUST NOT modify the input.
 - corroborate PATH -- hash the same file via disjoint read paths; emit
   CORROBORATED or QUARANTINE_READ_PATH_DIVERGENCE, or UNVERIFIABLE when no
   independent read path is available (section 9). The set of read paths is
@@ -152,13 +154,21 @@ fact, prev, and chain, where chain = SHA-256(prev + kind + canonical_json(fact))
 prev = the chain value of the prior entry, and the genesis prev = 64 zeros. Binding
 kind means relabeling an entry's operation (for example anchor -> refuse) is itself
 tamper. audit MUST recompute the chain; any edit to a historical kind or fact MUST
-yield BROKEN. (This SHA-256(prev + kind + canonical_json(fact)) form supersedes the
-v0.x SHA-256(prev + canonical_json(fact)); logs written under the older form read as
-BROKEN, which is acceptable pre-1.0.)
+yield BROKEN. audit MUST ALSO check LINKAGE: each stored prev MUST equal the prior
+entry's chain (genesis prev = 64 zeros), so a forged-but-internally-consistent
+re-chained suffix is caught, not only a single-entry edit. (This
+SHA-256(prev + kind + canonical_json(fact)) form supersedes the v0.x
+SHA-256(prev + canonical_json(fact)); logs written under the older form read as
+BROKEN, a documented backward-incompatible log-format change at 1.0.)
 
 canonical_json(fact) is the JSON serialization with keys sorted, ", " and ": "
 separators, and ensure_ascii escaping (the Python json.dumps(fact, sort_keys=True)
-form); pinning this byte form is what lets an auditor re-derive a chain. The log
+form), UTF-8-encoded before it is concatenated and hashed; pinning this byte form
+is what lets an auditor re-derive a chain. A language's DEFAULT JSON encoder does
+NOT produce this form -- Go's encoding/json HTML-escapes < > &, and neither Go nor
+JavaScript's JSON.stringify matches the ", "/": " spacing or sorts keys -- so a
+conforming implementation MUST hand-roll or post-process its serializer to the
+canonical form (all four reference implementations do). The log
 store is implementation-private (section 15): audit re-derives each chain from the
 bytes actually stored, so it verifies any conforming log regardless of which
 implementation wrote it. Two implementations are NOT required to record
@@ -243,12 +253,22 @@ distribution convenience and MUST NOT add a runtime dependency to the core.
 
 An implementation conforms at a given spec_version if and only if it satisfies
 every MUST above and produces the expected verdict and exit code for every vector
-in conformance/vectors.json at the stated corpus_version. A conformance claim by
-the REFERENCE implementation against its OWN vectors demonstrates internal
-consistency only. Re-derivability is DEMONSTRATED only by an INDEPENDENT second
-implementation passing the same vectors. That second implementation is an open,
-named deliverable -- not yet satisfied -- and no party should treat
-re-derivability as proven until it exists.
+in conformance/vectors.json at the stated corpus_version.
+
+Four implementations -- the Python reference plus Rust, Node.js, and Go ports --
+pass all vectors in CI. That agreement shows the spec is IMPLEMENTABLE from its
+text (in four languages; the Node.js and Go ports were written against SPEC.md
+and the vectors alone, and each surfaced spec under-determination that the vectors
+then pinned -- see docs/spec-findings-from-js-impl.md and
+docs/spec-findings-from-go-impl.md). But all four SHARE AN AUTHOR. A conformance
+claim by same-author implementations demonstrates internal consistency and
+implementability, NOT independent re-derivability. Re-derivability is DEMONSTRATED
+only by an INDEPENDENT, DIFFERENT-AUTHOR implementation passing the same vectors.
+That implementation is an open, named deliverable -- NOT yet satisfied -- and no
+party should treat re-derivability as proven until it exists. This distinction is
+load-bearing: 1.0.0 freezes the CONTRACT and ships production-grade reference
+implementations; it does not, and must not, claim the external re-derivability
+that only a different author can confer.
 
 
 ## 13. Output grammar (normative)

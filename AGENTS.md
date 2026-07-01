@@ -14,10 +14,10 @@ gate, or enforcement tool.
 
 Treat these as releasable product surfaces:
 
-- `membrane.py`, `organs.py`, `monitor.py`, `corpus.py`, and `verdict.py` -
-  Python reference implementation and related local verifier tools.
-- `impl/rust/` and `impl/js/` - second and third implementations for
-  cross-language re-derivation.
+- `membrane.py`, `organs.py`, `monitor.py`, `corpus.py`, `verdict.py`, and
+  `report.py` - Python reference implementation and related local verifier tools.
+- `impl/rust/`, `impl/js/`, and `impl/go/` - second, third, and fourth
+  implementations for cross-language re-derivation.
 - `conformance/` - language-agnostic vectors and marker corpus.
 - `SPEC.md`, `RATIONALE.md`, `THREAT-MODEL.md`, `SECURITY.md`,
   `CONTRIBUTING.md`, and `COVERAGE.json` - public specification and assurance
@@ -53,8 +53,8 @@ surface:
 
 - README and SPEC state the current version/status honestly.
 - `conformance/vectors.json` covers every normative command behavior that moved.
-- Python, Rust, and JavaScript implementations either pass the same vectors or
-  the gap is documented as pre-1.0 scope.
+- Python, Rust, JavaScript, and Go implementations all pass the same vectors, or
+  a gap is documented explicitly.
 - Security reporting instructions remain present.
 - Runtime state and private material are excluded from commits.
 
@@ -68,6 +68,8 @@ python conformance/run.py membrane.py
 python conformance/run.py impl/js/emet.js
 rustc -O impl/rust/emet.rs -o "$env:TEMP\emet-rust.exe"
 python conformance/run.py "$env:TEMP\emet-rust.exe"
+go build -o "$env:TEMP\emet-go.exe" impl/go/emet.go
+python conformance/run.py "$env:TEMP\emet-go.exe"
 python membrane.py selftest
 git diff --check
 ```

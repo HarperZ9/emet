@@ -180,7 +180,7 @@ $ python adapters/proof_surface_receipt.py coherence SPEC.md rendered-view.md
     "check": "coherence",
     "implementation": "emet-python-reference",
     "self_sha256": "557bb3c56443fc1afdb58b2707c8df47291c153149889729c12ac0c4ab790769",
-    "spec_version": "0.2.0-draft"
+    "spec_version": "1.0.0"
   }
 }
 ```
