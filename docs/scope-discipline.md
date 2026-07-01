@@ -288,7 +288,7 @@ in `SPEC.md` first (see §6, "fix the spec, not the code").
 | `corroborate` | `CORROBORATED`, `QUARANTINE_READ_PATH_DIVERGENCE` (or `UNVERIFIABLE` + reason) | SPEC §2, §13 |
 | marker census (`refuse`) | a non-negative integer count: `in_band_authority_claims=N` | SPEC §2, §13 |
 | `audit` | `INTACT`, `BROKEN` (chain) | SPEC §13 |
-| `selftest` | `membrane_self_sha256=<hex>` (an identity, **not** a verdict) | SPEC §13, §14 |
+| `selftest` | `emet_self_sha256=<hex>` (an identity, **not** a verdict; legacy `membrane_self_sha256=` also emitted through the 1.x window) | SPEC §13, §14 |
 
 **Monitor report -- newly governed by this document.** The monitor (`monitor.py`)
 emits `INTACT`/`CHANGED` per baseline and `MATCH`/`DRIFT`/`MISSING` per file

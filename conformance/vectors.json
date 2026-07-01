@@ -2,7 +2,7 @@
   "corpus_sha256": "aec90a7b0a164ab70545db1c8d0d473342376da296fc432515369e2be37655e0",
   "corpus_version": 1,
   "note": "A second independent implementation passing these vectors DEMONSTRATES re-derivability (SPEC section 12). The reference implementation passing them proves only internal consistency.",
-  "spec_version": "0.2.0-draft",
+  "spec_version": "1.0.0",
   "tool": "membrane.py",
   "vectors": [
     {
@@ -362,6 +362,69 @@
       "run": [
         "selftest",
         "--json"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "reason=E_NO_ANCHOR",
+      "files": {
+        "a.txt": "x\n"
+      },
+      "id": "verify-no-anchor-reason-code",
+      "note": "SPEC s.9: UNVERIFIABLE carries a stable machine reason code, not prose; verify without an anchor MUST report E_NO_ANCHOR (enforces the enum a prose-emitting impl would fail)",
+      "run": [
+        "verify",
+        "a.txt"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "reason=E_NOT_FOUND",
+      "files": {},
+      "id": "refuse-missing-reason-code",
+      "note": "SPEC s.9: an absent target reports reason=E_NOT_FOUND (distinct from E_NO_RAW_CHANNEL for a present-but-unreadable path)",
+      "run": [
+        "refuse",
+        "ghost"
+      ]
+    },
+    {
+      "anchor": [
+        "a.txt"
+      ],
+      "expect_exit": 0,
+      "expect_substr": "\"spec_version\": \"1.0.0\"",
+      "files": {
+        "a.txt": "x\n"
+      },
+      "id": "envelope-spec-version",
+      "note": "SPEC s.13: spec_version is a governed, byte-compared envelope field; pins its value so every conforming impl agrees",
+      "run": [
+        "verify",
+        "--json",
+        "a.txt"
+      ]
+    },
+    {
+      "anchor": [
+        "a.txt"
+      ],
+      "append": {
+        "a.txt": "X"
+      },
+      "expect_exit": 1,
+      "expect_substr": "\"verdict\": \"DRIFT\"",
+      "files": {
+        "a.txt": "galvanized\n",
+        "b.txt": "unanchored\n"
+      },
+      "id": "verify-multipath-precedence-json",
+      "note": "SPEC s.5 precedence: a.txt DRIFTs and b.txt is UNVERIFIABLE (no anchor); the dominant verdict is DRIFT and the exit is 1 (a confirmed difference dominates an inability to check)",
+      "run": [
+        "verify",
+        "--json",
+        "a.txt",
+        "b.txt"
       ]
     }
   ]

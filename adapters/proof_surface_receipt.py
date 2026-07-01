@@ -23,7 +23,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORE = os.path.join(os.path.dirname(HERE), "membrane.py")
-SPEC_VERSION = "0.2.0-draft"
+SPEC_VERSION = "1.0.0"
 VERDICT_TOKENS = [
     "MATCH",
     "DRIFT",

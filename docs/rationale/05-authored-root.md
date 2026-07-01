@@ -174,7 +174,8 @@ And it is the reason `selftest`, in `membrane.py`, says the two things it says
 after printing the hash (lines 206–209):
 
 ```
-membrane_self_sha256=<hex>
+emet_self_sha256=<hex>
+membrane_self_sha256=<hex>  (deprecated alias; removed at 2.0)
 note=this hash is my only credential; re-derive it from source to verify me.
 note=I assert no authority, grant no permission, decide no safety question.
 ```
@@ -208,7 +209,7 @@ together with the exact shape of `selftest` in §13–§14. Three concrete featu
 of the design are not stylistic; they are this argument, compiled:
 
 1. **`selftest` emits a hash and asserts no authority.** It prints
-   `membrane_self_sha256=` and then *declines*, in band, to claim that the hash
+   `emet_self_sha256=` and then *declines*, in band, to claim that the hash
    warrants trust. The closed verdict lattice (§2) has no `TRUSTED` for
    `selftest` to emit *about itself* any more than about anything else -- which is
    the no-aseity boundary of [./02-no-aseity.md](./02-no-aseity.md) doing its

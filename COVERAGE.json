@@ -71,5 +71,5 @@
     "policy decisions and enforcement -- a downstream policy engine adjudicates; EMET only attests",
     "model weights and training-data integrity beyond byte-hash anchoring of named artifacts"
   ],
-  "spec_version": "0.2.0-draft"
+  "spec_version": "1.0.0"
 }
