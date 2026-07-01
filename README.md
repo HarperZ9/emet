@@ -89,15 +89,23 @@ python conformance/run.py impl/go/emet           # Go:      31/31
 
 ## Use it
 
+From a checkout with `python membrane.py <cmd>`, or after `pip install emet-witness`
+with the `emet` console script - the two are equivalent:
+
 ```sh
-python membrane.py selftest                    # re-derive its own hash
-python membrane.py anchor  <path>...            # pin raw-byte hashes
-python membrane.py verify  <path>...            # MATCH / DRIFT / UNVERIFIABLE
-python membrane.py coherence <source> <view>    # is a presented view faithful to source?
-python membrane.py refuse  <file>               # detect + strip in-band authority claims
-python membrane.py corroborate <path>           # read-path-diverse agreement
-python membrane.py audit                        # recompute the tamper-evident log chain
+emet selftest                       # re-derive its own hash (emet_self_sha256=)
+emet anchor  <path>...              # pin raw-byte hashes
+emet verify  <path>...              # MATCH / DRIFT / UNVERIFIABLE
+emet coherence <source> <view>      # is a presented view faithful to source?
+emet refuse  <file>                 # detect + strip in-band authority claims
+emet corroborate <path>             # read-path-diverse agreement
+emet audit                          # recompute the tamper-evident log chain
+emet <any> --json                   # machine-readable canonical envelope (exit code unchanged)
 ```
+
+Exit codes (SPEC section 5): `0` held · `1` a difference found (DRIFT /
+VIEW_DIFFERS_FROM_SOURCE / QUARANTINE / BROKEN) · `2` UNVERIFIABLE · `3` markers ·
+`64` usage.
 
 For an install/build line, per-command worked examples with expected output, the
 companion tools (`monitor.py`, `organs.py`), and a runnable demo, see
