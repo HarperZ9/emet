@@ -78,5 +78,22 @@ class OrgansBehavior(unittest.TestCase):
         self.assertRegex(out, r"(?m)^GONE ")
         self.assertEqual(code, 1)
 
+    def test_gate_json_envelope(self):
+        # --json emits one canonical envelope; the gate FACT (REVERTIBLE/
+        # NOT_REVERTIBLE) is carried as verdict, exit 1 for NOT_REVERTIBLE, and
+        # the closed lattice holds (no authority token).
+        import json
+        f = os.path.join(self.tmp, "present.txt")
+        with open(f, "wb") as fh:
+            fh.write(b"untracked\n")
+        code, out = self.run_organs(["gate", "--json", f])
+        env = json.loads(out)
+        self.assertEqual(env["command"], "gate")
+        self.assertEqual(env["verdict"], "NOT_REVERTIBLE")
+        self.assertEqual(env["exit_code"], 1)
+        self.assertEqual(code, 1)
+        for tok in ("TRUSTED", "APPROVED", "SAFE", "AUTHORIZED"):
+            self.assertNotIn(tok, json.dumps(env))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
