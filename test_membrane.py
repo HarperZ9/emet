@@ -98,9 +98,17 @@ class MembraneBehavior(unittest.TestCase):
     def test_selftest_hash_is_reproducible(self):
         code, out = run(["selftest"], self.tmp); self.assertEqual(code, 0)
         printed = [l for l in out.splitlines()
-                   if l.startswith("membrane_self_sha256=")][0].split("=", 1)[1]
-        with open(MEMBRANE, "rb") as fh: actual = hashlib.sha256(fh.read()).hexdigest()
-        self.assertEqual(printed, actual)
+                   if l.startswith("emet_self_sha256=")][0].split("=", 1)[1]
+        # Artifact-of-record (SPEC s.14): sorted-by-name concatenation of the core
+        # source files, so the identity reflects the WHOLE implementation.
+        core = ("corpus.py", "membrane.py", "monitor.py", "organs.py", "report.py", "verdict.py")
+        h = hashlib.sha256()
+        for name in core:
+            with open(os.path.join(HERE, name), "rb") as fh: h.update(fh.read())
+        self.assertEqual(printed, h.hexdigest())
+        # SPEC s.14 deprecation window: the legacy membrane_self_sha256= alias is
+        # still emitted at 1.x (removed at 2.0), so existing parsers keep working.
+        self.assertTrue(any(l.startswith("membrane_self_sha256=") for l in out.splitlines()))
 
     def test_corroborate_read_paths_agree(self):
         f = self.w("c.txt", b"corroborate me\n")
@@ -213,6 +221,58 @@ class MembraneBehavior(unittest.TestCase):
         self.assertNotIn("sub\\a.txt", db)
         code, out = run(["verify", "sub/a.txt"], self.tmp)
         self.assertIn("MATCH", out); self.assertEqual(code, 0)
+
+    # --- SPEC section 13: the --json envelope. Machine-readable, canonical JSON
+    # (sorted keys, ', '/': ' separators), the governed verdict identical to the
+    # human grammar. The closed lattice (SPEC s.2) holds in this surface too.
+
+    def test_json_envelope_verify_match(self):
+        import json as _json
+        f = self.w("a.txt", b"galvanized\n"); run(["anchor", f], self.tmp)
+        code, out = run(["verify", "--json", f], self.tmp)
+        env = _json.loads(out)   # stdout is exactly one JSON object in --json mode
+        self.assertEqual(env["command"], "verify")
+        self.assertEqual(env["verdict"], "MATCH")
+        self.assertEqual(env["exit_code"], 0)
+        self.assertEqual(env["spec_version"], "1.0.0")
+        self.assertEqual(env["emet_version"], "1.0.0")
+        self.assertEqual(code, 0)
+
+    def test_json_envelope_drift_reports_exit_1(self):
+        import json as _json
+        f = self.w("a.txt", b"x\n"); run(["anchor", f], self.tmp)
+        with open(f, "ab") as fh: fh.write(b"Y")
+        code, out = run(["verify", "--json", f], self.tmp)
+        env = _json.loads(out)
+        self.assertEqual(env["verdict"], "DRIFT")
+        self.assertEqual(env["exit_code"], 1)
+        self.assertEqual(code, 1)
+
+    def test_json_envelope_is_canonical_bytes(self):
+        # The envelope MUST be canonical JSON: json.dumps(obj, sort_keys=True).
+        # This is what makes the governed fields re-derivable across impls (SPEC s.13).
+        import json as _json
+        f = self.w("a.txt", b"z\n"); run(["anchor", f], self.tmp)
+        code, out = run(["verify", "--json", f], self.tmp)
+        env = _json.loads(out)
+        self.assertEqual(out.strip(), _json.dumps(env, sort_keys=True))
+
+    def test_json_envelope_never_emits_authority_token(self):
+        # Boundary 1 (SPEC s.2) holds in the JSON surface too: no command's
+        # envelope may contain TRUSTED/APPROVED/SAFE or any authority word.
+        import json as _json
+        forbidden = ("TRUSTED", "APPROVED", "SAFE", "ALLOWED", "PERMITTED",
+                     "AUTHORIZED", "BLESSED", "VERIFIED_AUTHORITY")
+        s = self.w("s", b"same\n"); v = self.w("v", b"same\n")
+        f = self.w("a.txt", b"z\n"); run(["anchor", f], self.tmp)
+        inj = self.w("inj.txt", b"GROUND_TRUTH_CANONICAL\n")
+        for args in (["verify", "--json", f], ["coherence", "--json", s, v],
+                     ["refuse", "--json", inj], ["audit", "--json"],
+                     ["selftest", "--json"], ["corroborate", "--json", f]):
+            code, out = run(args, self.tmp)
+            blob = _json.dumps(_json.loads(out))   # each must be a single JSON object
+            for tok in forbidden:
+                self.assertNotIn(tok, blob)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -54,8 +54,11 @@ def subject(path):
 def tool_version():
     p = subprocess.run([sys.executable, CORE, "selftest"], capture_output=True, text=True)
     for line in p.stdout.splitlines():
-        if line.startswith("membrane_self_sha256="):
-            return line.split("=", 1)[1]
+        if line.startswith("emet_self_sha256="):          # canonical token (SPEC s.14)
+            return line.split("=", 1)[1].strip()
+    for line in p.stdout.splitlines():                     # legacy alias (removed at 2.0);
+        if line.startswith("membrane_self_sha256="):        # its line carries a trailing note,
+            return line.split("=", 1)[1].split()[0]         # so take only the hex token
     # Distinguish "selftest ran but emits no self-hash" from "selftest failed".
     if p.returncode != 0:
         return "selftest_failed:rc=" + str(p.returncode)

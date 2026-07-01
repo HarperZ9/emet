@@ -66,8 +66,11 @@ def run_core(args, cwd=None):
 def tool_version():
     result = run_core(["selftest"])
     for line in result.stdout.splitlines():
-        if line.startswith("membrane_self_sha256="):
-            return line.split("=", 1)[1]
+        if line.startswith("emet_self_sha256="):          # canonical token (SPEC s.14)
+            return line.split("=", 1)[1].strip()
+    for line in result.stdout.splitlines():                # legacy alias (removed at 2.0);
+        if line.startswith("membrane_self_sha256="):        # its line carries a trailing note,
+            return line.split("=", 1)[1].split()[0]         # so take only the hex token
     return "unknown"
 
 

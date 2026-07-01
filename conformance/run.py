@@ -60,7 +60,7 @@ def main():
             for name, extra in v.get("append", {}).items():
                 with open(os.path.join(tmp, name), "a", encoding="utf-8", newline="") as fh:
                     fh.write(extra)
-            args = [a if a in SUBCMDS else os.path.join(tmp, a) for a in v["run"]]
+            args = [a if (a in SUBCMDS or a.startswith("-")) else os.path.join(tmp, a) for a in v["run"]]
             p = subprocess.run(invoke(TOOL) + args, cwd=tmp, capture_output=True, text=True, env=env)
             ok = (v["expect_substr"] in p.stdout) and (p.returncode == v["expect_exit"])
             print(("PASS " if ok else "FAIL ") + v["id"] + " exit=" + str(p.returncode) + " want=" + str(v["expect_exit"]))
