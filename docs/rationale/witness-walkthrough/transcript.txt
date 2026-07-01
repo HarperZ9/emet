@@ -7,7 +7,7 @@ governed(REVERT, 'REVERTIBLE') -> 'REVERTIBLE'  (verbatim: True)
 # (2) THE INDEPENDENT WITNESS  -  the run, not a review
 $ python test_organs.py
 test_gate_absent_path_is_revertible_exit_0 (__main__.OrgansBehavior.test_gate_absent_path_is_revertible_exit_0) ... ok
-test_gate_present_untracked_is_not_revertible_exit_2 (__main__.OrgansBehavior.test_gate_present_untracked_is_not_revertible_exit_2) ... ok
+test_gate_present_untracked_is_not_revertible_exit_1 (__main__.OrgansBehavior.test_gate_present_untracked_is_not_revertible_exit_1) ... ok
 test_observe_emits_new_unchanged_drifted_and_gone (__main__.OrgansBehavior.test_observe_emits_new_unchanged_drifted_and_gone) ... ok
 
 ----------------------------------------------------------------------
@@ -18,10 +18,10 @@ OK
 
 # (3) ONE WITNESS THRICE  -  same vectors, membrane.py
 $ python conformance/run.py membrane.py
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 (exit 0)
 
 # (3) ONE WITNESS THRICE  -  same vectors, impl/js/emet.js
 $ python conformance/run.py impl/js/emet.js
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 (exit 0)
