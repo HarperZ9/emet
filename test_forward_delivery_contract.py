@@ -47,7 +47,7 @@ class ForwardDeliveryContractTests(unittest.TestCase):
             "LICENSE",
             ".github/FUNDING.yml",
             ".github/workflows/conformance.yml",
-            "assets/emet-hero.svg",
+            "assets/emet-hero.png",
         ]
 
         missing = [path for path in required if not (ROOT / path).is_file()]
@@ -59,7 +59,7 @@ class ForwardDeliveryContractTests(unittest.TestCase):
 
         for heading in ["## Why it matters", "## Usage", "## For developers"]:
             self.assertIn(heading, text)
-        self.assertIn("assets/emet-hero.svg", text)
+        self.assertIn("assets/emet-hero.png", text)
         self.assertIn("public value", text.lower())
         self.assertIn("advisory integrity witness", text.lower())
         self.assertIn("python test_forward_delivery_contract.py", text)
