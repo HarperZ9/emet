@@ -24,7 +24,7 @@ jobs:
         run: python test_forward_delivery_contract.py
       - name: proof surface receipt test
         run: python test_proof_surface_receipt.py
-      - name: conformance, Python reference (expect 31 of 31)
+      - name: conformance, Python reference (expect 35 of 35)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity (emet_self_sha256=)
         run: python membrane.py selftest
@@ -51,7 +51,7 @@ jobs:
           python-version: "3.12"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, Rust second implementation (expect 31 of 31)
+      - name: conformance, Rust second implementation (expect 35 of 35)
         run: python conformance/run.py impl/rust/emet
 
   js-third-implementation:
@@ -64,7 +64,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: conformance, Node.js third implementation (expect 31 of 31)
+      - name: conformance, Node.js third implementation (expect 35 of 35)
         run: python conformance/run.py impl/js/emet.js
 
   go-fourth-implementation:
@@ -79,7 +79,7 @@ jobs:
           python-version: "3.12"
       - name: build go impl (standard library only, no modules)
         run: CGO_ENABLED=0 go build -o impl/go/emet impl/go/emet.go
-      - name: conformance, Go fourth implementation (expect 31 of 31)
+      - name: conformance, Go fourth implementation (expect 35 of 35)
         run: python conformance/run.py impl/go/emet
 
   packaging:
@@ -93,5 +93,5 @@ jobs:
         run: python -m pip install .
       - name: the installed emet console script re-derives its own identity
         run: emet selftest
-      - name: conformance against the INSTALLED emet console script (expect 31 of 31)
+      - name: conformance against the INSTALLED emet console script (expect 35 of 35)
         run: python conformance/run.py "$(python -c 'import shutil; print(shutil.which("emet"))')"

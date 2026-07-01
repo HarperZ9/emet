@@ -426,6 +426,55 @@
         "a.txt",
         "b.txt"
       ]
+    },
+    {
+      "expect_exit": 0,
+      "expect_substr": "chain=INTACT",
+      "files": {
+        "membrane_log.jsonl": "{\"chain\": \"e486f9bcd84c7baa35574d11576cb25af7b9bed9a26d8596fea44dc9dfdeeed4\", \"fact\": {\"path\": \"e_\\ud83d\\ude00.txt\", \"result\": \"MATCH\"}, \"kind\": \"verify\", \"prev\": \"0000000000000000000000000000000000000000000000000000000000000000\"}\n"
+      },
+      "id": "audit-astral-char-intact",
+      "note": "SPEC s.7: audit re-derives any conforming log regardless of which impl wrote it. A fact whose path holds a non-BMP/astral char (emoji, stored ASCII-escaped as a UTF-16 surrogate pair) MUST re-serialize identically and audit INTACT; an impl that mishandles surrogate pairs would falsely report BROKEN",
+      "run": [
+        "audit"
+      ]
+    },
+    {
+      "expect_exit": 1,
+      "expect_substr": "chain=BROKEN",
+      "files": {
+        "membrane_log.jsonl": "GARBAGE-NOT-JSON\n"
+      },
+      "id": "audit-unparseable-line-broken",
+      "note": "SPEC s.7: a log line that cannot be parsed is a tamper event and MUST audit BROKEN (exit 1), not UNVERIFIABLE - a corrupt line is a detected difference from a well-formed chain, never an inability to check",
+      "run": [
+        "audit"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "reason=E_NO_ANCHOR",
+      "files": {},
+      "id": "verify-missing-unanchored-reason",
+      "note": "SPEC s.9/s.13: verify is anchor-relative, so a path that is both absent AND unanchored reports reason=E_NO_ANCHOR (the anchor check precedes the read); pins the governed reason so an existence-check-first impl cannot emit E_NOT_FOUND here",
+      "run": [
+        "verify",
+        "ghost.txt"
+      ]
+    },
+    {
+      "expect_exit": 2,
+      "expect_substr": "reason=source:E_NOT_FOUND",
+      "files": {
+        "v": "x\n"
+      },
+      "id": "coherence-missing-source-reason",
+      "note": "SPEC s.9/s.13: the governed coherence reason carries the failing leg - source:<code> or view:<code> - so a consumer can tell which side was unreadable; pins the prefix an impl that drops it would fail",
+      "run": [
+        "coherence",
+        "ghost",
+        "v"
+      ]
     }
   ]
 }

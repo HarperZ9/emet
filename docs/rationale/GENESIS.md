@@ -53,7 +53,7 @@ same commitments re-expressed:
 | "an unverified membrane is net-negative -- it **launders falsehood with ground-truth authority**" | EMET **cannot be its own root of trust**; selftest asserts no authority ([05](./05-authored-root.md), SPEC §11) |
 | **read-gate** (nothing enters as fact unless witnessed) | `verify` / `coherence` / `corroborate` -- the byte-witness path |
 | **write-gate** (nothing leaves as effect unless witnessed) -- *named as the missing organ* | the actuation boundary EMET holds by **refusing to act at all** (the operator owns the write) |
-| host selftests gate every oracle (`bindings.py` 8/8, `raw_eyes.py` 12/12) | `selftest` + the conformance suite (31 vectors) |
+| host selftests gate every oracle (`bindings.py` 8/8, `raw_eyes.py` 12/12) | `selftest` + the conformance suite (35 vectors) |
 | "convert confident-but-wrong-in-head into a **checkable claim with a witness**" | the whole witness thesis ([09](./09-witnesses.md)–[14](./14-witness-walkthrough.md)) |
 
 The genesis doc even pre-stated EMET's deepest reflexive result -- that you cannot

@@ -73,18 +73,18 @@ grants authority or permission.
 - A clean-room Go fourth implementation - `impl/go/emet.go`, standard library only (no third-party modules).
 - A normative, frozen v1.0 spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) all four implementations load and re-derive identically.
-- All four implementations pass the same 31 conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify).
+- All four implementations pass the same 35 conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify).
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py            # Python reference: 31/31
+python conformance/run.py membrane.py            # Python reference: 35/35
 ( cd impl/rust && rustc -O emet.rs -o emet )     # build the Rust second implementation
-python conformance/run.py impl/rust/emet         # Rust:    31/31
-python conformance/run.py impl/js/emet.js        # Node.js: 31/31
+python conformance/run.py impl/rust/emet         # Rust:    35/35
+python conformance/run.py impl/js/emet.js        # Node.js: 35/35
 ( cd impl/go && go build -o emet emet.go )       # build the Go fourth implementation
-python conformance/run.py impl/go/emet           # Go:      31/31
+python conformance/run.py impl/go/emet           # Go:      35/35
 ```
 
 ## Use it
@@ -152,7 +152,7 @@ Those constraints are the point, not limitations - see [SPEC.md](SPEC.md) sectio
 v1.0.0 - the spec is **frozen and stable** (v1.0.0). The byte-hash core, the
 exit-code split, the `--json` envelope, the marker path (a single versioned corpus
 matched identically across the implementations), and the audit chain (write and
-verify) all re-derive across four languages and are checked in CI (31 conformance
+verify) all re-derive across four languages and are checked in CI (35 conformance
 vectors, all four implementations). What 1.0.0 asserts is exactly two things: the
 **contract is frozen**, and the **reference implementations are production-grade**.
 It deliberately does **not** claim re-derivability is *proven* - that is a distinct,
@@ -183,7 +183,7 @@ reading the existing code), in any language, that passes `conformance/vectors.js
 
 ```sh
 # build your implementation, then:
-python conformance/run.py ./your-emet     # expected: CONFORMANCE 31/31
+python conformance/run.py ./your-emet     # expected: CONFORMANCE 35/35
 ```
 
 Where your implementation and the spec disagree, **the spec is wrong** - open an

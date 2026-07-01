@@ -22,7 +22,7 @@ A change that bends one of these is out of scope no matter how useful. See
 
 ```sh
 python test_membrane.py                  # behavior proof (23 tests)
-python conformance/run.py membrane.py    # reference conformance (31/31)
+python conformance/run.py membrane.py    # reference conformance (35/35)
 python membrane.py selftest              # self-hash
 ```
 

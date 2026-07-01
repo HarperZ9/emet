@@ -26,7 +26,7 @@ Added:
   byte-identical across implementations; the closed lattice holds in JSON too.
 - **A fourth implementation, Go** (`impl/go/emet.go`, stdlib-only, clean-room from
   the spec), joining the Python reference, Rust, and Node.js. All four pass the
-  same 31 conformance vectors in CI.
+  same 35 conformance vectors in CI.
 - **Packaging:** installable as `emet-witness` with an `emet` console script,
   zero runtime dependencies; the run-from-checkout story is preserved.
 
@@ -35,6 +35,16 @@ check and UTF-8 canonical-hash encoding (s.7), the `.refused` replacement token
 and filename (s.4), the absent-log genesis behavior (s.13), and a warning that
 default JSON encoders do not produce the canonical form. New vectors enforce the
 reason codes, the governed `spec_version`, and multi-path verify precedence.
+
+An adversarial verification pass then pinned four more edge cases with vectors and
+aligned all four implementations on them: a logged fact containing an astral
+(surrogate-pair) character audits INTACT (s.7); an unparseable log line is BROKEN,
+not UNVERIFIABLE (s.7); `verify` of an absent+unanchored path reports E_NO_ANCHOR
+(anchor-relative, s.13); and `coherence` carries the failing leg as
+`source:`/`view:` in its reason (s.13). It also corrected the docs to stop listing
+`self_sha256` among the cross-impl byte-identical fields - it is a per-implementation
+identity (s.14), never compared across implementations. 35 conformance vectors, all
+four implementations.
 
 ## 2026-06-29 - EMET Forward Delivery Contract
 
