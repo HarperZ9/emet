@@ -124,7 +124,7 @@ re-derive the run.)
 
 3. **One witness thrice -- and the located seam (the thesis, cashed).** The same
    conformance vectors, run against the Python reference and the Node port, both
-   print `CONFORMANCE 19/19`. They **agree**. And the annotation that makes this
+   print `CONFORMANCE 31/31`. They **agree**. And the annotation that makes this
    essay honest rather than triumphant: *they share an author.* Their agreement
    demonstrates the spec is **implementable**, not that it is **independently
    re-derivable** (SPEC §12). The seam -- the exact location where a real
@@ -184,12 +184,12 @@ OK
 
 # (3) ONE WITNESS THRICE  -  same vectors, membrane.py
 $ python conformance/run.py membrane.py
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 (exit 0)
 
 # (3) ONE WITNESS THRICE  -  same vectors, impl/js/emet.js
 $ python conformance/run.py impl/js/emet.js
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 (exit 0)
 ```
 <!-- END GENERATED TRANSCRIPT -->
@@ -311,14 +311,14 @@ and the exit codes are advisory -- never a grant, never an act.
 
 ```
 $ python conformance/run.py membrane.py
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 
 $ python conformance/run.py impl/js/emet.js
-CONFORMANCE 19/19 vectors pass
+CONFORMANCE 31/31 vectors pass
 ```
 
 Two implementations -- the Python reference and the from-scratch Node port -- run the
-*same* 19 conformance vectors through the *same* language-agnostic runner
+*same* 31 conformance vectors through the *same* language-agnostic runner
 ([`conformance/run.py`](../../conformance/run.py)) and **agree** completely. The
 runner is honest about what it tests: its own docstring states that "a second,
 INDEPENDENT implementation passing these vectors is what DEMONSTRATES
@@ -330,7 +330,7 @@ cannot. **The agreement is real and it is not yet the witness that matters.** Bo
 implementations share an author. By the same-author result ([§5](./05-authored-root.md)
 §5.1), two artifacts that share a model carry **zero independent** confirmatory
 weight: if the author misread the spec, *both* encode the misreading and agree --
-confidently, reproducibly, 19/19 in CI -- on the wrong answer. Their agreement
+confidently, reproducibly, 31/31 in CI -- on the wrong answer. Their agreement
 confirms the author was self-consistent; it says nothing about whether the author
 was *right*, because there is no second model for the first to have been checked
 against. The README states exactly this scoping and declines to over-claim from it:
@@ -344,7 +344,7 @@ not warrant; the part this capture rests on is only the self-standing first half
 So the "one witness thrice" is precisely *one* witness, played three times -- and
 that is the point of the heading. Three runs agreeing is not three witnesses; it is
 one author's single reading, re-rendered. **The seam is thereby located.** The arc
-does not end at `19/19`; it ends at the named coordinate where a genuine
+does not end at `31/31`; it ends at the named coordinate where a genuine
 independent witness is still missing: a *different-author* implementation, written
 from `SPEC.md` alone (not by reading the existing code), passing the same vectors.
 That is the README's open "Call for an independent implementation" and SPEC §12's
@@ -371,7 +371,7 @@ altitudes.
 It proves the discipline is **operative and structural**, not merely intended: the
 lattice really *raises* on an authority verdict inside the core, the organs-gate
 fix really emits a re-derivable fact and actuates nothing under a run that exercises
-both branches, and two implementations really agree on all 19 vectors. Each is a
+both branches, and two implementations really agree on all 31 vectors. Each is a
 fact you regenerate, not a sentence you trust.
 
 It does **not** prove the things a witness-essay must be careful never to claim:

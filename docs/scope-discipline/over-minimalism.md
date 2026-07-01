@@ -15,7 +15,7 @@ The unifying fact the whole of EMET encodes is that **integrity is witnessed,
 not self-attested**: nothing can be its own independent witness. A compromised
 substrate re-derives a compromised self-hash and reports itself intact
 (SPEC §11, trust-root regress); a same-author second port agrees with its own
-authors' misreading (SPEC §12, why the Rust and Node.js implementations do not
+authors' misreading (SPEC §12, why the Rust, Node.js, and Go implementations do not
 yet satisfy the bar); one coordinate chart always leaves a singularity it cannot
 see. The scope-discipline rubric is the governance layer that keeps EMET the
 kind of artifact that can carry that fact. It governs what EMET may *become*:
@@ -103,7 +103,7 @@ harness itself anchored a moment earlier. That is correct *as a walkthrough* -- 
 deterministic, re-derivable teaching transcript needs a fixed input. The failure
 is not having it; the failure is *stopping there*.
 
-The honest reading of the repository's current state: the 19 conformance vectors
+The honest reading of the repository's current state: the 31 conformance vectors
 (`conformance/vectors.json`, counted by `id` field -- high confidence) and the
 walkthrough together pin behavior on **inputs EMET's own authors constructed**.
 This is not a flaw to apologize for -- pinned vectors are how an independent
@@ -261,8 +261,8 @@ What, then, justifies any of it? Only one thing, and it is the same standard the
 prose itself must meet: **doc-mass earns its place exactly insofar as it makes the
 tool more re-derivable by a second author, and is bloat exactly insofar as it does
 not.** SPEC §12 sets the project's actual open deliverable: an *independent,
-different-author* implementation passing the conformance vectors. The Rust and
-Node.js ports are clean-room but same-author (README §Status), so they demonstrate
+different-author* implementation passing the conformance vectors. The Rust,
+Node.js, and Go ports are clean-room but same-author (README §Status), so they demonstrate
 the spec is *implementable*, not that it is *independently re-derivable* -- the
 witness thesis, applied to the implementations. Documentation that lets a stranger
 re-derive EMET from the spec alone -- that turns "you'd have to read the code" into

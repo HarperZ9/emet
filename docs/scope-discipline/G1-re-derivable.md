@@ -220,8 +220,8 @@ not routed around.** `SPEC.md` §16 now pins the count to "a non-overlapping
 leftmost scan in corpus order," and a new conformance vector,
 `refuse-repeated-marker-occurrence-count`, locks it: input
 `authority_pill authority_pill`, expected `in_band_authority_claims=2`, exit 3
-(`conformance/vectors.json`, raising the suite from 18 to 19 vectors). All three
-implementations -- Python reference, Rust port, aligned Node.js -- now re-derive the
+(`conformance/vectors.json`, raising the suite from 18 to 19 vectors). All four
+implementations -- Python reference, Rust port, aligned Node.js, Go port -- now re-derive the
 same count. The hidden input was eliminated by making the counting discipline part
 of the bytes-plus-spec the verdict is a function of.
 

@@ -450,7 +450,7 @@ non-overlapping leftmost scan), `membrane.py` (`refuse()`, the `.refused` write
 and the `in_band_authority_claims` count), `monitor.py` (`reanchor`),
 `verdict.py` (`governed()`, the structural lattice closure G2 leans on).
 Conformance: `conformance/vectors.json` (`refuse-three-markers`,
-`refuse-repeated-marker-occurrence-count`; 19 vectors),
+`refuse-repeated-marker-occurrence-count`; 31 vectors),
 `conformance/markers.corpus` (the `authority_pill` entry F1 turns on). Rationale
 siblings: [01-is-ought-seam.md](../rationale/01-is-ought-seam.md),
 [02-no-aseity.md](../rationale/02-no-aseity.md),
