@@ -36,12 +36,15 @@ Usage:
   membrane.py corroborate <path>                 -> read-path-diverse agreement
   membrane.py audit                              -> verify the tamper-evident log
   membrane.py selftest                           -> re-derive my own identity
+  membrane.py receipt --from-json <file|->       -> emit a portable witness receipt
+  membrane.py check <receipt.json>               -> offline re-verify a receipt
 """
 import sys, os, json, hashlib, subprocess
 from . import corpus
 from . import report
+from . import witness_receipt
 from .report import say, emit
-from .verdict import governed, LATTICE, COHERENCE, CORROBORATE, AUDIT
+from .verdict import governed, LATTICE, COHERENCE, CORROBORATE, AUDIT, RECEIPT
 
 ANCHORS, LOG = "anchors.json", "membrane_log.jsonl"
 
@@ -283,6 +286,71 @@ def selftest():
          notes=["this hash is my only credential; re-derive it from source to verify me.",
                 "I assert no authority, grant no permission, decide no safety question."])
 
+RECEIPT_USAGE = (
+    "usage: emet receipt --from-json <file|->   emit a portable witness receipt\n"
+    "       emet check <receipt.json> [--recompute-from-paths]   offline re-verify\n"
+    "\n"
+    "receipt reads a command envelope (verify/anchor/coherence/corroborate --json)\n"
+    "from a file or stdin (-) and prints a self-contained, content-addressed\n"
+    "witness receipt (SPEC s.17) to stdout. A DIFFERENT party can re-derive and\n"
+    "check it on their own machine with `emet check`, zero shared state.\n"
+)
+
+def _receipt_signing_key():
+    # Optional HMAC key from the env (out-of-spec, SPEC s.17). Absent -> None ->
+    # content-addressing alone. Never logged, never echoed.
+    k = os.environ.get(witness_receipt.SIGNING_KEY_ENV)
+    return k.encode("utf-8") if k else None
+
+def receipt_cmd(args):
+    # args are the tokens AFTER "receipt". Only --from-json <file|-> is supported.
+    if len(args) >= 2 and args[0] == "--from-json":
+        src = args[1]
+        try:
+            raw_json = sys.stdin.read() if src == "-" else open(src, encoding="utf-8").read()
+            env = json.loads(raw_json)
+        except (OSError, ValueError, UnicodeDecodeError) as e:
+            sys.stderr.write("emet receipt: cannot read --from-json source (" + type(e).__name__ + ")\n")
+            sys.exit(EXIT_USAGE)
+        # issued_at is the one wall-clock field; pin it here so the receipt is
+        # self-describing. Tests inject a fixed value via the library seam.
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        r = witness_receipt.emit_receipt(env, base_dir=os.getcwd(), now=now,
+                                         signing_key=_receipt_signing_key())
+        print(report.canonical(r))
+        sys.exit(EXIT_OK)
+    sys.stderr.write(RECEIPT_USAGE)
+    sys.exit(EXIT_USAGE)
+
+def check_cmd(args):
+    # emet check <receipt.json> [--recompute-from-paths]. Stateless offline
+    # re-verification: RECEIPT_VALID (0) / RECEIPT_TAMPERED (1) / RECEIPT_UNVERIFIABLE (2).
+    recompute = "--recompute-from-paths" in args
+    positional = [x for x in args if not x.startswith("-")]
+    if not positional:
+        sys.stderr.write(RECEIPT_USAGE)
+        sys.exit(EXIT_USAGE)
+    path = positional[0]
+    try:
+        r = witness_receipt.load_receipt(path)
+    except ValueError as e:
+        say(governed(RECEIPT, "RECEIPT_UNVERIFIABLE") + " " + path + " reason=" + str(e))
+        emit("check", governed(RECEIPT, "RECEIPT_UNVERIFIABLE"), EXIT_UNVERIFIABLE,
+             subject=path, reason=str(e))
+        return
+    # Subjects are recorded relative to the receipt's producer cwd; re-derive them
+    # relative to the receipt file's directory so a portable receipt+subject pair
+    # checks in place.
+    base = os.path.dirname(os.path.abspath(path)) or "."
+    verdict, detail = witness_receipt.check_receipt(
+        r, base_dir=base, recompute=recompute, signing_key=_receipt_signing_key())
+    say("result=" + verdict + " reason=" + detail)
+    code = {"RECEIPT_VALID": EXIT_OK, "RECEIPT_TAMPERED": EXIT_DIFF,
+            "RECEIPT_UNVERIFIABLE": EXIT_UNVERIFIABLE}[verdict]
+    emit("check", verdict, code, subject=path, detail=detail,
+         receipt_id=r.get("receipt_id"))
+
 def main():
     a = [x for x in sys.argv if x != "--json"]
     if len(a) != len(sys.argv):
@@ -294,6 +362,8 @@ def main():
     elif len(a) >= 3 and a[1] == "corroborate": corroborate(a[2])
     elif len(a) >= 2 and a[1] == "audit":       audit()
     elif len(a) >= 2 and a[1] == "selftest":    selftest()
+    elif len(a) >= 2 and a[1] == "receipt":     receipt_cmd(a[2:])
+    elif len(a) >= 3 and a[1] == "check":       check_cmd(a[2:])
     else: print(__doc__); sys.exit(EXIT_USAGE)
 
 if __name__ == "__main__":

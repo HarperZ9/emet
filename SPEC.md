@@ -393,3 +393,92 @@ refuse-repeated-marker-occurrence-count together pin it.)
 The corpus is not enumerated here. Conformance pins specific counts for specific inputs at a stated
 corpus_version (see conformance/vectors.json). Absence of a marker is never absence
 of injection (section 11).
+
+## 17. Portable witness receipt (normative)
+
+The anchor store (section 15) is implementation-private, so a raw anchor/verify
+verdict cannot leave the machine that produced it. The PORTABLE WITNESS RECEIPT is
+the standardized, cross-implementable form that CAN travel: a self-contained JSON
+object encoding one or more EMET verdicts plus the re-derivation method, such that
+a DIFFERENT party re-derives and checks it on their own machine with ZERO shared
+state, zero trust in the producer, and zero network access.
+
+A receipt asserts a FACT of re-derivation, never authority. `RECEIPT_VALID` means
+the receipt's own content address is intact (and, if subject re-derivation was
+requested, the recorded bytes still hash to the recorded digests) at check time.
+It is NOT trust, approval, or a release decision, and maps to no authority word
+(Boundary 1). A receipt is a point-in-time snapshot: when a subject's bytes
+change, re-derivation diverges.
+
+### 17.1 Receipt schema (`emet-witness-receipt/v1`)
+
+A receipt is a JSON object with these fields:
+
+- `format` (string): the literal `"emet-witness-receipt/v1"`.
+- `receipt_id` (hex string): the content address (section 17.2).
+- `issued_at` (string): ISO-8601 UTC timestamp `YYYY-MM-DDThh:mm:ssZ` of issuance.
+- `witness` (object): `implementation`, `spec_version`, and `self_sha256` (the
+  producing implementation's artifact-of-record hash, section 14).
+- `subject` (array): each entry `{ "path": <string>, "sha256": <hex string> }`
+  pinning a subject's recorded digest. A subject with no derivable digest carries
+  `"sha256": null` and a stable `reason` code rather than being omitted.
+- `verdict_record` (array): each entry `{ "subject_index": <int>, "command":
+  <string>, "verdict": <closed-lattice token> }`, optionally with `want`/`got`.
+  The verdict MUST be a member of the closed lattice (section 2); a receipt never
+  carries an authority token.
+- `corpus_version` (int|null) and `corpus_sha256` (hex|null): pinned when the
+  source command referenced the marker corpus (section 16), else null.
+- `signature` (hex string|null) and `signature_algorithm` (string): the optional
+  HMAC signature (section 17.4) and its algorithm label.
+- `re_derivation_method` (string): `"hash"` for the v1 content-addressing method.
+- `notes` (string): the facts-only disclaimer.
+
+### 17.2 Content address (re-derivation guarantee)
+
+`receipt_id` is `sha256` over the canonical JSON byte form (section 7) of the
+receipt with the `receipt_id` and `signature` fields EXCLUDED. Because the byte
+form is pinned, the address is byte-identical across conforming implementations.
+
+RE-DERIVATION GUARANTEE: the SAME subject bytes, the SAME `spec_version`, the
+SAME `corpus_version`, and the SAME `issued_at` yield a byte-identical
+`receipt_id`. Tampering ANY governed field re-hashes to a different id, so a
+doctored receipt is detectable with no shared secret. `issued_at` is part of the
+addressed body, so two receipts issued at different instants legitimately differ.
+
+### 17.3 Offline verifier contract (`emet check`)
+
+`emet check <receipt.json> [--recompute-from-paths]` is STATELESS: no anchor
+store, no audit log, no network, no shared key. It:
+
+1. Loads the receipt; a malformed file or wrong `format` is `RECEIPT_UNVERIFIABLE`.
+2. Re-derives `receipt_id` from the rest of the receipt (section 17.2) and
+   compares. A mismatch is `RECEIPT_TAMPERED`.
+3. If the receipt is signed and a key is available, verifies the signature; a
+   failure is `RECEIPT_TAMPERED`, a signed receipt with no available key is
+   `RECEIPT_UNVERIFIABLE`.
+4. If `--recompute-from-paths` is given, re-hashes each subject's live bytes and
+   compares against the recorded digest: a divergence is `RECEIPT_TAMPERED`, an
+   unreadable subject is `RECEIPT_UNVERIFIABLE`.
+
+The result is a member of the closed RECEIPT lattice `{ RECEIPT_VALID,
+RECEIPT_TAMPERED, RECEIPT_UNVERIFIABLE }`. TAMPERED dominates UNVERIFIABLE (a
+confirmed difference outranks an inability to check), mirroring section 5. Exit
+codes: `RECEIPT_VALID` -> 0, `RECEIPT_TAMPERED` -> 1, `RECEIPT_UNVERIFIABLE` -> 2,
+usage -> 64. A non-zero exit is data, never an authority decision (Boundary 4).
+
+### 17.4 Optional signature
+
+`EMET_RECEIPT_SIGNING_KEY`, when set, adds an HMAC-SHA256 `signature` over the
+SAME canonical body the content address covers. This is OUT-OF-SPEC and optional:
+it strengthens integrity only when producer and verifier already share a key
+channel. With no key the signature is null and content-addressing stands alone; a
+conforming verifier without the key still checks the content address.
+
+### 17.5 Boundary between portable encoding and operational state
+
+The receipt format and content-addressing scheme are named core (section 10):
+normative and cross-language-implementable. The anchor store (section 15), the
+audit log (section 7), and the convenience adapter (`adapters/
+witness_receipt_portable.py`) are NOT part of the receipt contract. A receipt
+carries the portable verdict encoding; it never carries or requires operational
+state.

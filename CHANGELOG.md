@@ -4,6 +4,23 @@
 
 Added:
 
+- **Portable witness receipt** (SPEC section 17): `emet receipt --from-json
+  <file|->` turns a `verify`/`anchor`/`coherence`/`corroborate --json` envelope
+  into a self-contained, content-addressed JSON receipt that a DIFFERENT party
+  re-derives and checks on their own machine with the new stateless verifier
+  `emet check <receipt.json> [--recompute-from-paths]` - zero shared state, zero
+  trust in the producer, zero network. This lifts the section 15 limit that the
+  anchor store is implementation-private so a verdict could not leave the machine
+  that made it. `receipt_id` content-addresses the receipt
+  (`sha256(canonical(receipt minus receipt_id + signature))`); tampering any
+  field re-hashes to a different id. An optional HMAC-SHA256 `signature` keyed by
+  `EMET_RECEIPT_SIGNING_KEY` adds integrity when producer and verifier share a
+  key channel. The check emits the new closed `RECEIPT` lattice
+  (`RECEIPT_VALID` -> exit 0, `RECEIPT_TAMPERED` -> 1, `RECEIPT_UNVERIFIABLE` ->
+  2), which maps to no authority word. Core in `emet/witness_receipt.py`; optional
+  offline re-verifier convenience wrapper in
+  `adapters/witness_receipt_portable.py`.
+
 - **Proof-surface bundle witness** in `adapters/proof_surface_receipt.py`: a new
   `bundle <bundle.json>` subcommand that re-derives a content-addressed
   `proof-surface-bundle/v0` manifest. For every `files[]` entry it recomputes the
