@@ -141,6 +141,12 @@ outside the EMET core and does not change governed stdout, signing, enforcement,
 or actuation boundaries. The adapter only accepts governed verdict tokens as
 whole tokens and refuses authority-shaped stdout before it enters a receipt.
 
+Its `bundle <bundle.json>` witness re-derives a content-addressed proof-surface
+packet: for every file listed in the `proof-surface-bundle/v0` manifest it
+recomputes the sibling file's sha256 and reports `MATCH` (all files re-derive),
+`DRIFT` (a recorded digest no longer matches disk), or `UNVERIFIABLE` (a listed
+file is missing or the manifest is malformed). It runs entirely inside EMET.
+
 ## What it won't do
 
 It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model is
