@@ -19,12 +19,14 @@ not a new surface.
 import sys
 from . import membrane, organs, monitor
 
-_MEMBRANE = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit", "selftest")
+_MEMBRANE = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit",
+             "selftest", "receipt", "check")
 _ORGANS = ("watch", "observe", "confirm", "gate")
 
 USAGE = (
     "usage: emet <command> [args...] [--json]\n"
     "  byte-hash core: anchor verify coherence refuse corroborate audit selftest\n"
+    "  portable receipt: receipt --from-json <file|-> | check <receipt.json>\n"
     "  perception/gate: watch observe confirm gate\n"
     "  monitor:         monitor report <manifest> | monitor reanchor <manifest>\n"
     "  --json emits a machine-readable canonical envelope (SPEC s.13)."
