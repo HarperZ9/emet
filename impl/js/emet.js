@@ -661,6 +661,321 @@ function cmdSelftest(args) {
   return emit("selftest", null, EXIT_OK, { self_sha256: hex, notes });
 }
 
+// ===========================================================================
+// witness_receipt -- SPEC s.17: the portable, offline-verifiable witness receipt.
+//
+// A receipt is a self-contained JSON object encoding one or more EMET verdicts
+// plus the METHOD (hash algorithm, spec version, corpus version) so a DIFFERENT
+// party re-derives and checks it on their OWN machine with ZERO shared state,
+// zero trust in the producer, and zero network access.
+//
+// Two independent integrity checks compose, neither a trust decision:
+//   1. content-addressing (default): receipt_id = sha256(canonical(receipt minus
+//      receipt_id, signature, and the per-implementation witness block, s.17.2)).
+//   2. subject re-derivation (--recompute-from-paths): re-hash the subject files'
+//      live bytes and compare against the recorded digests.
+//
+// An optional HMAC-SHA256 signature (crypto.createHmac) over the SAME addressed
+// body strengthens integrity only when producer and verifier share a key channel;
+// with no key the signature is null and content-addressing stands alone. The
+// receipt-level verdict is a member of the closed RECEIPT lattice { RECEIPT_VALID
+// | RECEIPT_TAMPERED | RECEIPT_UNVERIFIABLE } and maps to no authority word.
+//
+// Reuses the existing spine: canonicalJson (s.7 byte form), sha256Hex, readRawBytes
+// (subject re-derivation), emit (--json, s.13). The content address is
+// byte-identical to the Python and Rust ports for the same subject/verdict/spec/
+// issued_at.
+// ===========================================================================
+
+const RECEIPT_FORMAT = "emet-witness-receipt/v1";
+const RECEIPT_IMPL = "emet-node-reference";
+const RECEIPT_SIG_ALGO = "hmac-sha256-optional";
+const RECEIPT_REDERIV = "hash";
+const RECEIPT_SIGNING_KEY_ENV = "EMET_RECEIPT_SIGNING_KEY";
+const RECEIPT_NOTES =
+  "EMET emits witness facts only. The receipt preserves the closed verdict " +
+  "lattice and carries no authority, permission, or release decision.";
+
+// The artifact-of-record hash for this source file (SPEC s.14): descriptive-only
+// (the witness block is NOT part of the content address, s.17.2).
+function nodeSelfSha256() {
+  const hex = hashFileRaw(__filename);
+  return hex === null ? "unknown" : hex;
+}
+
+// Re-hash a subject's live bytes from disk; null if unreadable (reported as a
+// reason code by the caller, never a throw).
+function receiptRecompute(p, baseDir) {
+  const full = baseDir == null ? p : path.join(baseDir, p);
+  const bytes = readRawBytes(full);
+  return bytes === null ? null : sha256Hex(bytes);
+}
+
+function subjectEntry(p, digest) {
+  if (digest == null) return { path: p, sha256: null, reason: "E_NO_DIGEST" };
+  return { path: p, sha256: digest };
+}
+
+// Derive the subject list from a parsed command envelope (verify/anchor carry a
+// results[] array; coherence carries a single subject). Mirrors Python
+// _subjects_from_envelope.
+function subjectsFromEnvelope(env, baseDir) {
+  const subjects = [];
+  const results = env.results;
+  if (Array.isArray(results) && results.length > 0) {
+    for (const r of results) {
+      if (typeof r !== "object" || r === null) continue;
+      const p = r.path;
+      if (typeof p !== "string") continue;
+      let digest = typeof r.got === "string" ? r.got : (typeof r.sha256 === "string" ? r.sha256 : null);
+      if (digest == null) digest = receiptRecompute(p, baseDir);
+      subjects.push(subjectEntry(p, digest));
+    }
+    return subjects;
+  }
+  const p = env.subject;
+  if (typeof p === "string") {
+    let digest = typeof env.source === "string" ? env.source : null;
+    if (digest == null) digest = receiptRecompute(p, baseDir);
+    subjects.push(subjectEntry(p, digest));
+  }
+  return subjects;
+}
+
+// Extract governed verdict records from a parsed command envelope. verify carries
+// per-path verdicts under results[]; coherence/corroborate carry a single
+// top-level verdict; anchor carries none. Mirrors Python _verdict_records.
+function verdictRecords(env) {
+  const command = typeof env.command === "string" ? env.command : null;
+  const records = [];
+  const results = env.results;
+  if (Array.isArray(results) && results.length > 0) {
+    results.forEach((r, i) => {
+      if (typeof r !== "object" || r === null) return;
+      const v = r.verdict;
+      if (typeof v !== "string") return;
+      const rec = { subject_index: i, command, verdict: v };
+      if (typeof r.want === "string") rec.want = r.want;
+      if (typeof r.got === "string") rec.got = r.got;
+      records.push(rec);
+    });
+    return records;
+  }
+  if (typeof env.verdict === "string") {
+    records.push({ subject_index: 0, command, verdict: env.verdict });
+  }
+  return records;
+}
+
+// The addressed body: the receipt object minus receipt_id, signature, and the
+// per-implementation witness block (SPEC s.17.2). Canonicalized identically to
+// Python/Rust so the content address is byte-identical across implementations.
+function receiptAddressedCanonical(receipt) {
+  const body = {};
+  for (const k of Object.keys(receipt)) {
+    if (k === "receipt_id" || k === "signature" || k === "witness") continue;
+    body[k] = receipt[k];
+  }
+  return canonicalJson(body);
+}
+
+function receiptIdHash(receipt) {
+  return sha256Hex(Buffer.from(receiptAddressedCanonical(receipt), "utf8"));
+}
+
+// HMAC-SHA256 over the SAME addressed body the content address covers, hex-encoded.
+function signReceipt(receipt, signingKey) {
+  return crypto
+    .createHmac("sha256", signingKey)
+    .update(receiptAddressedCanonical(receipt), "utf8")
+    .digest("hex");
+}
+
+// Explicit key wins; else the env var (out-of-spec, optional); else null (content
+// address alone). Returns a Buffer or null.
+function resolveKey(signingKey) {
+  if (signingKey != null) return signingKey;
+  const e = process.env[RECEIPT_SIGNING_KEY_ENV];
+  return e ? Buffer.from(e, "utf8") : null;
+}
+
+// Build a portable receipt from a parsed command envelope. Mirrors Python
+// emit_receipt field-for-field. `now` is the injected issued_at (the one
+// wall-clock field). `signingKey` (Buffer) adds the optional HMAC signature.
+function emitReceipt(env, baseDir, now, signingKey) {
+  const subjects = subjectsFromEnvelope(env, baseDir);
+  const records = verdictRecords(env);
+  const receipt = {
+    format: RECEIPT_FORMAT,
+    issued_at: now,
+    witness: {
+      implementation: RECEIPT_IMPL,
+      spec_version: SPEC_VERSION,
+      self_sha256: nodeSelfSha256(),
+    },
+    subject: subjects,
+    verdict_record: records,
+    corpus_version: typeof env.corpus_version === "number" ? env.corpus_version : null,
+    corpus_sha256: typeof env.corpus_sha256 === "string" ? env.corpus_sha256 : null,
+    signature_algorithm: RECEIPT_SIG_ALGO,
+    re_derivation_method: RECEIPT_REDERIV,
+    notes: RECEIPT_NOTES,
+  };
+  // Content-address first, then (optionally) sign the SAME body.
+  receipt.signature = signingKey ? signReceipt(receipt, signingKey) : null;
+  receipt.receipt_id = receiptIdHash(receipt);
+  return receipt;
+}
+
+// Constant-time hex compare (avoids early-exit timing leak on id/signature).
+function ctEqHex(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a, "utf8"), Buffer.from(b, "utf8"));
+  } catch (_e) {
+    return false;
+  }
+}
+
+// Load + shallow-validate a receipt JSON file. Throws Error on a malformed file or
+// a wrong/absent format tag -- callers turn that into RECEIPT_UNVERIFIABLE, never
+// a stack trace.
+function loadReceipt(p) {
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch (e) {
+    const kind = e && e.code === "ENOENT" ? "OSError" : "ValueError";
+    throw new Error("receipt unreadable or malformed: " + kind);
+  }
+  if (typeof data !== "object" || data === null || data.format !== RECEIPT_FORMAT) {
+    throw new Error("not an " + RECEIPT_FORMAT + " receipt");
+  }
+  return data;
+}
+
+// Stateless offline re-verification. Returns { verdict, detail } where verdict is
+// a governed RECEIPT token. TAMPERED dominates UNVERIFIABLE (SPEC s.5/s.17).
+function checkReceipt(receipt, baseDir, recompute, signingKey) {
+  if (typeof receipt !== "object" || receipt === null || receipt.format !== RECEIPT_FORMAT) {
+    return { verdict: "RECEIPT_UNVERIFIABLE", detail: "not an " + RECEIPT_FORMAT + " receipt" };
+  }
+  const storedId = receipt.receipt_id;
+  if (typeof storedId !== "string") {
+    return { verdict: "RECEIPT_UNVERIFIABLE", detail: "receipt_id absent or malformed" };
+  }
+  const derived = receiptIdHash(receipt);
+  if (!ctEqHex(storedId, derived)) {
+    return {
+      verdict: "RECEIPT_TAMPERED",
+      detail: "receipt_id mismatch: stored " + storedId.slice(0, 16) + " != re-derived " + derived.slice(0, 16),
+    };
+  }
+  // Optional signature check: if signed, a key MUST verify it.
+  const sig = receipt.signature;
+  const key = resolveKey(signingKey);
+  if (sig != null) {
+    if (key == null) {
+      return {
+        verdict: "RECEIPT_UNVERIFIABLE",
+        detail: "receipt is signed but no key provided to verify the signature",
+      };
+    }
+    if (!ctEqHex(sig, signReceipt(receipt, key))) {
+      return { verdict: "RECEIPT_TAMPERED", detail: "signature does not verify" };
+    }
+  }
+  // Optional subject re-derivation from live bytes. DRIFT dominates unreadable.
+  if (recompute) {
+    let drift = null;
+    let unver = null;
+    const subjects = Array.isArray(receipt.subject) ? receipt.subject : [];
+    for (const s of subjects) {
+      if (typeof s !== "object" || s === null) {
+        unver = unver || "malformed subject entry";
+        continue;
+      }
+      const p = s.path;
+      const recorded = s.sha256;
+      if (typeof p !== "string" || typeof recorded !== "string") {
+        unver = unver || "subject with no recorded digest to re-derive";
+        continue;
+      }
+      const actual = receiptRecompute(p, baseDir);
+      if (actual === null) unver = unver || "subject unreadable: " + p;
+      else if (actual !== recorded) drift = drift || "subject digest diverged: " + p;
+    }
+    if (drift !== null) return { verdict: "RECEIPT_TAMPERED", detail: drift };
+    if (unver !== null) return { verdict: "RECEIPT_UNVERIFIABLE", detail: unver };
+  }
+  return { verdict: "RECEIPT_VALID", detail: "receipt re-derived" };
+}
+
+const RECEIPT_USAGE =
+  "usage: emet receipt --from-json <file|->   emit a portable witness receipt\n" +
+  "       emet check <receipt.json> [--recompute-from-paths]   offline re-verify\n";
+
+// receipt --from-json <file|-> : read a command envelope (verify/anchor/coherence/
+// corroborate --json), print a self-contained content-addressed receipt to stdout.
+function cmdReceipt(args) {
+  if (args.length >= 2 && args[0] === "--from-json") {
+    const src = args[1];
+    let raw;
+    try {
+      raw = src === "-" ? fs.readFileSync(0, "utf8") : fs.readFileSync(src, "utf8");
+    } catch (_e) {
+      process.stderr.write("emet receipt: cannot read --from-json source (OSError)\n");
+      return EXIT_USAGE;
+    }
+    let env;
+    try {
+      env = JSON.parse(raw);
+    } catch (_e) {
+      process.stderr.write("emet receipt: cannot read --from-json source (ValueError)\n");
+      return EXIT_USAGE;
+    }
+    if (typeof env !== "object" || env === null || Array.isArray(env)) {
+      process.stderr.write("emet receipt: cannot read --from-json source (ValueError)\n");
+      return EXIT_USAGE;
+    }
+    // issued_at is the one wall-clock field; an injected env value keeps receipts
+    // deterministic under test (parity with the Rust EMET_RECEIPT_NOW seam).
+    const now = process.env.EMET_RECEIPT_NOW || new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+    const key = resolveKey(null);
+    const receipt = emitReceipt(env, process.cwd(), now, key);
+    process.stdout.write(canonicalJson(receipt) + "\n");
+    return EXIT_OK;
+  }
+  process.stderr.write(RECEIPT_USAGE);
+  return EXIT_USAGE;
+}
+
+// check <receipt.json> [--recompute-from-paths] : stateless offline re-verify.
+// RECEIPT_VALID->0, RECEIPT_TAMPERED->1, RECEIPT_UNVERIFIABLE->2.
+function cmdCheck(args) {
+  const recompute = args.includes("--recompute-from-paths");
+  const positional = args.filter((a) => !a.startsWith("-"));
+  if (positional.length === 0) {
+    process.stderr.write(RECEIPT_USAGE);
+    return EXIT_USAGE;
+  }
+  const p = positional[0];
+  let receipt;
+  try {
+    receipt = loadReceipt(p);
+  } catch (e) {
+    say(`RECEIPT_UNVERIFIABLE ${p} reason=${e.message}`);
+    return emit("check", "RECEIPT_UNVERIFIABLE", EXIT_FAIL, { subject: p, reason: e.message });
+  }
+  // Subjects are recorded relative to the producer cwd; re-derive relative to the
+  // receipt file's directory so a portable receipt+subject pair checks in place.
+  const base = path.dirname(path.resolve(p)) || ".";
+  const { verdict, detail } = checkReceipt(receipt, base, recompute, null);
+  say(`result=${verdict} reason=${detail}`);
+  const code = verdict === "RECEIPT_VALID" ? EXIT_OK : verdict === "RECEIPT_TAMPERED" ? EXIT_DIFFER : EXIT_FAIL;
+  return emit("check", verdict, code, { subject: p, detail, receipt_id: receipt.receipt_id });
+}
+
 // ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
@@ -685,12 +1000,34 @@ function main(argv) {
       return cmdAudit(rest);
     case "selftest":
       return cmdSelftest(rest);
+    case "receipt":
+      return cmdReceipt(rest);
+    case "check":
+      return cmdCheck(rest);
     default:
       process.stderr.write(
-        "usage: emet <anchor|verify|coherence|refuse|corroborate|audit|selftest> [args...]\n"
+        "usage: emet <anchor|verify|coherence|refuse|corroborate|audit|selftest|receipt|check> [args...]\n"
       );
       return EXIT_USAGE;
   }
 }
 
-process.exit(main(process.argv.slice(2)));
+// Run as a CLI only when invoked directly (node emet.js ...); when required by a
+// test module, export the receipt seam instead of exiting so the behavior can be
+// exercised in-process (SPEC s.17). The conformance runner always invokes this
+// file directly, so the CLI path is unchanged.
+if (require.main === module) {
+  process.exit(main(process.argv.slice(2)));
+} else {
+  module.exports = {
+    emitReceipt,
+    checkReceipt,
+    receiptIdHash,
+    signReceipt,
+    subjectsFromEnvelope,
+    verdictRecords,
+    canonicalJson,
+    sha256Hex,
+    RECEIPT_FORMAT,
+  };
+}
