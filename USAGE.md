@@ -222,6 +222,48 @@ $ python adapters/proof_surface_receipt.py coherence SPEC.md rendered-view.md
 (The `receipt_id` and `self_sha256` values shown are illustrative of the format;
 the receipt is keyed to the bytes and the tool's own hash on your machine.)
 
+### The bundle witness - re-derive a proof-surface packet
+
+A proof-surface packet folder ships a `bundle.json`, a content-addressed manifest
+of the sibling files (`packet.json`, `report.md`, and so on):
+
+```json
+{
+  "schema": "proof-surface-bundle/v0",
+  "domain": "example",
+  "packet_id": "packet-0001",
+  "bundle_hash": "0000...",
+  "files": [
+    { "name": "packet.json", "sha256": "..." },
+    { "name": "report.md",   "sha256": "..." }
+  ]
+}
+```
+
+The `bundle` subcommand recomputes each sibling file's sha256 and compares it to
+the recorded digest, then emits a witness receipt:
+
+```sh
+$ python adapters/proof_surface_receipt.py bundle path/to/packet/bundle.json
+{
+  "evidence": {
+    "exit_code": 0,
+    "files_rederived": 2,
+    "files_total": 2,
+    "stdout_verdict_line": "MATCH bundle re-derived"
+  },
+  ...
+  "verdict": "MATCH",
+  "witness": { "check": "bundle", ... }
+}
+```
+
+`MATCH` means every listed file re-derived to its recorded digest. `DRIFT` means a
+recorded digest no longer matches the file on disk (a view drifted from its
+recorded source). `UNVERIFIABLE` means a listed file is missing or unreadable, or
+`bundle.json` is malformed or off-schema. The witness runs entirely inside EMET and
+refuses authority tokens: nothing in the manifest can make the verdict `TRUSTED`.
+
 ## A runnable demo
 
 [`examples/demo.sh`](examples/demo.sh) drives the full surface end-to-end on a

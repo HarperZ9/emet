@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Added:
+
+- **Proof-surface bundle witness** in `adapters/proof_surface_receipt.py`: a new
+  `bundle <bundle.json>` subcommand that re-derives a content-addressed
+  `proof-surface-bundle/v0` manifest. For every `files[]` entry it recomputes the
+  sha256 of the sibling file next to `bundle.json` and compares it to the recorded
+  digest. It emits an EMET witness receipt in the existing receipt shape and keeps
+  the closed lattice: `MATCH` when every file re-derives, `DRIFT` when a recorded
+  digest no longer matches the file on disk, `UNVERIFIABLE` when a listed file is
+  missing/unreadable or the manifest is malformed or off-schema. The witness runs
+  entirely in EMET (it does not import proof-surface) and preserves the
+  no-authority contract: an authority-shaped token anywhere in the manifest is
+  refused and the verdict never becomes `TRUSTED`.
+
 ## 1.0.0 - 2026-06-30 - Frozen contract, four implementations
 
 First tagged release. The spec is frozen at 1.0.0; the reference implementations
