@@ -178,7 +178,7 @@ so the claim is scoped to exactly what CI reproduces today.
 ## Call for an independent implementation
 
 EMET's only credential is reproduction: same bytes, same verdict. Four
-implementations (Python reference + Rust + Node.js + Go) already agree on all 31
+implementations (Python reference + Rust + Node.js + Go) already agree on all 35
 conformance vectors in CI - but they all share an author, so that agreement shows
 the spec is *implementable* (in four languages, from its text alone), not yet
 that it is *independently re-derivable*.
