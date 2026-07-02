@@ -14,10 +14,18 @@ or wrote to a transparency log would breach EMET. EMET attests; the operator act
   `verdict`, `witness`, `subject`, and evidence metadata for proof-index and
   release-readiness workflows.
 
+The `bundle` witness re-derives a content-addressed proof-surface bundle: for
+every `files[]` entry in `bundle.json` it recomputes the sibling file's sha256 and
+compares it to the recorded digest. `MATCH` iff every file re-derives; `DRIFT` if a
+recorded digest no longer matches disk; `UNVERIFIABLE` if a listed file is missing
+or the manifest is malformed. It runs entirely inside EMET (no proof-surface
+import) and refuses authority tokens exactly as the other checks do.
+
 Receipt adapter examples:
 
 ```sh
 python adapters/proof_surface_receipt.py verify README.md anchors.json
 python adapters/proof_surface_receipt.py coherence SPEC.md rendered-view.md
 python adapters/proof_surface_receipt.py corroborate SPEC.md
+python adapters/proof_surface_receipt.py bundle path/to/packet/bundle.json
 ```
