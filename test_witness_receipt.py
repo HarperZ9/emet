@@ -68,9 +68,26 @@ class ReceiptCore(unittest.TestCase):
     def test_receipt_id_is_content_address_of_the_rest(self):
         env = self.anchor_and_verify("a.txt", b"hello world\n")
         r = wr.emit_receipt(env, base_dir=self.tmp, now=FIXED_NOW)
-        # Re-derive the id from the receipt minus id + signature, canonical form.
-        body = {k: v for k, v in r.items() if k not in ("receipt_id", "signature")}
+        # Re-derive the id from the receipt minus id + signature + witness
+        # (SPEC s.17.2: the per-implementation witness block is producer identity,
+        # not a re-derivation-governed field, so it is excluded from the address).
+        body = {k: v for k, v in r.items()
+                if k not in ("receipt_id", "signature", "witness")}
         self.assertEqual(r["receipt_id"], sha256_hex(canonical(body).encode()))
+
+    def test_witness_block_does_not_govern_the_content_address(self):
+        # Cross-impl parity (SPEC s.17.2): mutating the per-implementation witness
+        # identity must NOT change receipt_id, so a Python/Rust/Node receipt over
+        # the same subject/verdict/spec/issued_at re-derives the SAME address.
+        env = self.anchor_and_verify("a.txt", b"hello world\n")
+        r = wr.emit_receipt(env, base_dir=self.tmp, now=FIXED_NOW)
+        original = r["receipt_id"]
+        r["witness"] = {"implementation": "emet-rust-reference",
+                        "spec_version": "1.0.0", "self_sha256": "deadbeef" * 8}
+        self.assertEqual(wr.receipt_id_hash(r), original)
+        # And check still says VALID: the id was computed over the addressed body.
+        verdict, _detail = wr.check_receipt(r)
+        self.assertEqual(verdict, "RECEIPT_VALID")
 
     def test_receipt_records_subject_digest_and_verdict(self):
         env = self.anchor_and_verify("a.txt", b"hello world\n")
