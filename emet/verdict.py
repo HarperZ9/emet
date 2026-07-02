@@ -41,6 +41,17 @@ CORROBORATE = frozenset({"CORROBORATED", "QUARANTINE_READ_PATH_DIVERGENCE", "UNV
 # --- Tamper-evident chain result (SPEC sections 7, 13: chain=INTACT|BROKEN).
 AUDIT = frozenset({"INTACT", "BROKEN"})
 
+# --- Portable witness receipt result (SPEC section 17). The stateless offline
+# verifier (`emet check`) re-derives a receipt's content address and, optionally,
+# its subject digests, and emits exactly one of these. RECEIPT_VALID is a FACT of
+# re-derivation (the recorded bytes still hash to the recorded digests, and the
+# receipt's own content address is intact), NOT a trust or release decision - it
+# maps to no authority word. RECEIPT_TAMPERED is a confirmed divergence (a
+# doctored field or a changed subject); RECEIPT_UNVERIFIABLE is an inability to
+# check (malformed receipt, missing subject). Like the primary lattice, absence of
+# TAMPERED is VALID or UNVERIFIABLE - never trust.
+RECEIPT = frozenset({"RECEIPT_VALID", "RECEIPT_TAMPERED", "RECEIPT_UNVERIFIABLE"})
+
 # --- Governed monitor judgements (SPEC section 13 grammar + the monitor report).
 # Per-file MATCH / DRIFT / MISSING; per-baseline INTACT / CHANGED. These are the
 # exact tokens monitor.py already ships; this change ENUMERATES them as governed
@@ -66,7 +77,7 @@ REVERT = frozenset({"REVERTIBLE", "NOT_REVERTIBLE"})
 # channel may admit a token outside this union, and the union excludes every
 # authority/permission word by construction.
 _ALL = (LATTICE | COHERENCE | CORROBORATE | AUDIT | MONITOR_FILE
-        | MONITOR_BASELINE | PERCEPTION | REVERT)
+        | MONITOR_BASELINE | PERCEPTION | REVERT | RECEIPT)
 
 # Tokens that asserting would breach Boundary 1 (SPEC section 2 / section 6.1).
 # Belt-and-suspenders: the channel sets above already exclude these, but pinning

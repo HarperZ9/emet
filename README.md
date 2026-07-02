@@ -100,8 +100,16 @@ emet coherence <source> <view>      # is a presented view faithful to source?
 emet refuse  <file>                 # detect + strip in-band authority claims
 emet corroborate <path>             # read-path-diverse agreement
 emet audit                          # recompute the tamper-evident log chain
+emet receipt --from-json <file|->   # portable, content-addressed witness receipt (SPEC s.17)
+emet check <receipt.json>           # stateless offline re-verify: RECEIPT_VALID / TAMPERED / UNVERIFIABLE
 emet <any> --json                   # machine-readable canonical envelope (exit code unchanged)
 ```
+
+A **witness receipt** lets a verdict travel: `emet verify <path> --json | emet
+receipt --from-json -` emits a self-contained, content-addressed JSON object that
+a DIFFERENT party re-derives on their own machine with `emet check`, zero shared
+state and zero trust in the producer. Add `--recompute-from-paths` to `emet check`
+to re-hash the subject bytes on disk against the recorded digests (SPEC s.17).
 
 Exit codes (SPEC section 5): `0` held · `1` a difference found (DRIFT /
 VIEW_DIFFERS_FROM_SOURCE / QUARANTINE / BROKEN) · `2` UNVERIFIABLE · `3` markers ·
