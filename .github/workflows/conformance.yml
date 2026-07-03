@@ -24,7 +24,9 @@ jobs:
         run: python test_forward_delivery_contract.py
       - name: proof surface receipt test
         run: python test_proof_surface_receipt.py
-      - name: conformance, Python reference (expect 35 of 35)
+      - name: portable witness receipt behavior proof
+        run: python test_witness_receipt.py
+      - name: conformance, Python reference (expect 40 of 40)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity (emet_self_sha256=)
         run: python membrane.py selftest
@@ -51,7 +53,9 @@ jobs:
           python-version: "3.12"
       - name: build rust impl (rustc is preinstalled on ubuntu-latest)
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
-      - name: conformance, Rust second implementation (expect 35 of 35)
+      - name: rust receipt behavior tests (cargo test)
+        run: cargo test --release --manifest-path impl/rust/Cargo.toml
+      - name: conformance, Rust second implementation (expect 40 of 40)
         run: python conformance/run.py impl/rust/emet
 
   js-third-implementation:
@@ -64,7 +68,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: conformance, Node.js third implementation (expect 35 of 35)
+      - name: node receipt behavior tests
+        run: node --test impl/js/test_receipt.js
+      - name: conformance, Node.js third implementation (expect 40 of 40)
         run: python conformance/run.py impl/js/emet.js
 
   go-fourth-implementation:
@@ -79,8 +85,41 @@ jobs:
           python-version: "3.12"
       - name: build go impl (standard library only, no modules)
         run: CGO_ENABLED=0 go build -o impl/go/emet impl/go/emet.go
-      - name: conformance, Go fourth implementation (expect 35 of 35)
+      # The Go impl passes the 35 core vectors; the portable witness receipt
+      # (SPEC s.17) is not yet ported to Go, so its 5 vectors are skipped by
+      # capability here. Drop EMET_SKIP_CAPABILITIES once Go implements receipt.
+      - name: conformance, Go fourth implementation (expect 35 of 35, receipt skipped)
         run: python conformance/run.py impl/go/emet
+        env:
+          EMET_SKIP_CAPABILITIES: receipt
+
+  cross-lang-receipt-parity:
+    # The load-bearing proof of this wave: the portable witness receipt
+    # (SPEC s.17) emits a BYTE-IDENTICAL receipt_id across Python, Rust and
+    # Node, they verify each other's HMAC signatures, and every can-it-FAIL
+    # negative (tampered id, mutated governed field, malformed input, subject
+    # drift, wrong/absent key) actually FAILS in all three. This gate exists so
+    # a future cross-language divergence (canonical-JSON escaping, a type
+    # mismatch, a path-join difference) breaks CI instead of silently breaking
+    # the guarantee. EMET_REQUIRE_CROSS_LANG=1 makes a missing impl a hard
+    # failure, never a vacuous single-impl pass.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: build rust impl into the path the parity test discovers first
+        run: |
+          mkdir -p impl/rust/target/release
+          rustc -O impl/rust/emet.rs -o impl/rust/target/release/emet
+      - name: cross-language receipt parity + can-it-FAIL negatives (Py/Rust/Node)
+        run: python test_witness_receipt_cross_lang.py
+        env:
+          EMET_REQUIRE_CROSS_LANG: "1"
 
   packaging:
     runs-on: ubuntu-latest
@@ -93,5 +132,5 @@ jobs:
         run: python -m pip install .
       - name: the installed emet console script re-derives its own identity
         run: emet selftest
-      - name: conformance against the INSTALLED emet console script (expect 35 of 35)
+      - name: conformance against the INSTALLED emet console script (expect 40 of 40)
         run: python conformance/run.py "$(python -c 'import shutil; print(shutil.which("emet"))')"

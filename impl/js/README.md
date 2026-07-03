@@ -11,8 +11,18 @@ this one shares the operator. See Status.
 ## Build and test
 
   python conformance/run.py impl/js/emet.js
+  node --test impl/js/test_receipt.js        # 13 receipt behavior tests
 
-(Run from the repository root.) Expected: CONFORMANCE 35/35 vectors pass.
+(Run from the repository root.) Expected: CONFORMANCE 40/40 vectors pass.
+
+## Receipt support (SPEC s.17)
+
+This impl implements `emet receipt --from-json <file|->` and `emet check
+<receipt.json> [--recompute-from-paths]`. The content address (`receipt_id`) is
+byte-identical to the Python and Rust receipts for the same
+subject/verdict/spec/issued_at (the per-implementation `witness` block is excluded
+from the address, s.17.2). HMAC-SHA256 signatures use the built-in
+`crypto.createHmac`; an unsigned receipt verifies on the content address alone.
 
 ## What this implementation surfaced
 

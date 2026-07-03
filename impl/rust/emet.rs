@@ -10,7 +10,8 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
 
 // ---------------- SHA-256 ----------------
@@ -26,6 +27,17 @@ const K: [u32; 64] = [
 ];
 
 fn sha256_hex(msg: &[u8]) -> String {
+    let d = sha256_bytes(msg);
+    let mut out = String::with_capacity(64);
+    for x in d.iter() {
+        out.push_str(&format!("{:02x}", x));
+    }
+    out
+}
+
+// Raw 32-byte SHA-256 digest (same core as sha256_hex, exposed so HMAC-SHA256 can
+// compose it over the existing primitive with no external crate; SPEC s.17.4).
+fn sha256_bytes(msg: &[u8]) -> [u8; 32] {
     let mut h: [u32; 8] = [
         0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
         0x5be0cd19,
@@ -91,11 +103,57 @@ fn sha256_hex(msg: &[u8]) -> String {
         h[7] = h[7].wrapping_add(hh);
         chunk += 64;
     }
-    let mut out = String::with_capacity(64);
-    for x in h.iter() {
-        out.push_str(&format!("{:08x}", x));
+    let mut out = [0u8; 32];
+    for (i, x) in h.iter().enumerate() {
+        out[i * 4..i * 4 + 4].copy_from_slice(&x.to_be_bytes());
     }
     out
+}
+
+// HMAC-SHA256(key, msg) as lowercase hex (RFC 2104), composed over sha256_bytes so
+// the Rust port needs no external crate. Block size B=64 for SHA-256. Keys longer
+// than B are hashed first; shorter keys are zero-padded to B.
+fn hmac_sha256_hex(key: &[u8], msg: &[u8]) -> String {
+    const B: usize = 64;
+    let mut k = [0u8; B];
+    if key.len() > B {
+        k[..32].copy_from_slice(&sha256_bytes(key));
+    } else {
+        k[..key.len()].copy_from_slice(key);
+    }
+    let mut ipad = [0u8; B];
+    let mut opad = [0u8; B];
+    for i in 0..B {
+        ipad[i] = k[i] ^ 0x36;
+        opad[i] = k[i] ^ 0x5c;
+    }
+    let mut inner = Vec::with_capacity(B + msg.len());
+    inner.extend_from_slice(&ipad);
+    inner.extend_from_slice(msg);
+    let inner_digest = sha256_bytes(&inner);
+    let mut outer = Vec::with_capacity(B + 32);
+    outer.extend_from_slice(&opad);
+    outer.extend_from_slice(&inner_digest);
+    let d = sha256_bytes(&outer);
+    let mut out = String::with_capacity(64);
+    for x in d.iter() {
+        out.push_str(&format!("{:02x}", x));
+    }
+    out
+}
+
+// Constant-time-ish equality for two hex strings (avoids early-exit timing leak on
+// the signature/id compare; both inputs are fixed-length hex so length is public).
+fn ct_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for i in 0..a.len() {
+        diff |= a[i] ^ b[i];
+    }
+    diff == 0
 }
 
 // Read raw bytes, mapping inability to a STABLE MACHINE REASON CODE (SPEC s.9),
@@ -1138,6 +1196,727 @@ fn cmd_selftest() -> i32 {
     0
 }
 
+// ===========================================================================
+// witness_receipt -- SPEC s.17: the portable, offline-verifiable witness receipt.
+//
+// A receipt is a self-contained JSON object encoding one or more EMET verdicts
+// plus the METHOD (hash algorithm, spec version, corpus version) so a DIFFERENT
+// party can statelessly re-derive and check it on their OWN machine with ZERO
+// shared state, zero trust in the producer, and zero network access.
+//
+// Two independent integrity checks compose, neither a trust decision:
+//   1. content-addressing (default): receipt_id = sha256(canonical(receipt minus
+//      receipt_id, signature, and the per-implementation witness block, s.17.2)).
+//      Tampering ANY addressed field re-hashes to a different id.
+//   2. subject re-derivation (--recompute-from-paths): re-hash the subject files'
+//      live bytes and compare against the recorded digests.
+//
+// An optional HMAC-SHA256 signature over the SAME addressed body strengthens
+// integrity only when producer and verifier share a key channel; with no key the
+// signature is null and content-addressing stands alone. The receipt-level verdict
+// lives in the closed RECEIPT lattice { RECEIPT_VALID | RECEIPT_TAMPERED |
+// RECEIPT_UNVERIFIABLE } and maps to no authority word (Boundary 1).
+//
+// This reuses the existing spine: sha256_hex / jv_str (canonical JSON, s.7) /
+// read_raw (subject re-derivation) / emit_envelope (--json, s.13). The receipt
+// content address is byte-identical to the Python and Node ports for the same
+// subject/verdict/spec/issued_at.
+// ===========================================================================
+
+const RECEIPT_FORMAT: &str = "emet-witness-receipt/v1";
+const RECEIPT_IMPL: &str = "emet-rust-reference";
+const RECEIPT_SIG_ALGO: &str = "hmac-sha256-optional";
+const RECEIPT_REDERIV: &str = "hash";
+const RECEIPT_SIGNING_KEY_ENV: &str = "EMET_RECEIPT_SIGNING_KEY";
+const RECEIPT_NOTES: &str =
+    "EMET emits witness facts only. The receipt preserves the closed verdict \
+lattice and carries no authority, permission, or release decision.";
+
+// -------- a minimal JSON parser into JV (envelope + receipt inputs) --------
+struct JsonParser<'a> {
+    b: &'a [u8],
+    i: usize,
+}
+
+impl<'a> JsonParser<'a> {
+    fn new(s: &'a str) -> Self {
+        JsonParser { b: s.as_bytes(), i: 0 }
+    }
+    fn ws(&mut self) {
+        while self.i < self.b.len() && matches!(self.b[self.i], b' ' | b'\t' | b'\n' | b'\r') {
+            self.i += 1;
+        }
+    }
+    fn parse(&mut self) -> Option<JV> {
+        self.ws();
+        let v = self.value()?;
+        self.ws();
+        Some(v)
+    }
+    fn value(&mut self) -> Option<JV> {
+        self.ws();
+        if self.i >= self.b.len() {
+            return None;
+        }
+        match self.b[self.i] {
+            b'{' => self.object(),
+            b'[' => self.array(),
+            b'"' => self.string().map(JV::S),
+            b't' => self.lit("true", JV::B(true)),
+            b'f' => self.lit("false", JV::B(false)),
+            b'n' => self.lit("null", JV::Null),
+            _ => self.number(),
+        }
+    }
+    fn lit(&mut self, word: &str, v: JV) -> Option<JV> {
+        let w = word.as_bytes();
+        if self.i + w.len() <= self.b.len() && &self.b[self.i..self.i + w.len()] == w {
+            self.i += w.len();
+            Some(v)
+        } else {
+            None
+        }
+    }
+    fn number(&mut self) -> Option<JV> {
+        let start = self.i;
+        if self.i < self.b.len() && self.b[self.i] == b'-' {
+            self.i += 1;
+        }
+        let mut is_float = false;
+        while self.i < self.b.len() {
+            match self.b[self.i] {
+                b'0'..=b'9' => self.i += 1,
+                b'.' | b'e' | b'E' | b'+' | b'-' => {
+                    is_float = true;
+                    self.i += 1;
+                }
+                _ => break,
+            }
+        }
+        let s = std::str::from_utf8(&self.b[start..self.i]).ok()?;
+        if is_float {
+            // Receipts carry only integers/strings; a float is preserved as a raw
+            // string so canonical re-emission is byte-stable (no lossy re-format).
+            Some(JV::S(s.to_string()))
+        } else {
+            s.parse::<i64>().ok().map(JV::I)
+        }
+    }
+    fn string(&mut self) -> Option<String> {
+        // self.b[self.i] == b'"'
+        self.i += 1;
+        let mut out = String::new();
+        while self.i < self.b.len() {
+            let c = self.b[self.i];
+            match c {
+                b'"' => {
+                    self.i += 1;
+                    return Some(out);
+                }
+                b'\\' => {
+                    self.i += 1;
+                    if self.i >= self.b.len() {
+                        return None;
+                    }
+                    match self.b[self.i] {
+                        b'"' => out.push('"'),
+                        b'\\' => out.push('\\'),
+                        b'/' => out.push('/'),
+                        b'b' => out.push('\u{08}'),
+                        b'f' => out.push('\u{0c}'),
+                        b'n' => out.push('\n'),
+                        b'r' => out.push('\r'),
+                        b't' => out.push('\t'),
+                        b'u' => {
+                            let cp = self.hex4()?;
+                            if (0xd800..=0xdbff).contains(&cp) {
+                                // high surrogate: expect a low surrogate next
+                                if self.i + 2 <= self.b.len()
+                                    && self.b[self.i + 1] == b'\\'
+                                    && self.b[self.i + 2] == b'u'
+                                {
+                                    self.i += 2;
+                                    let lo = self.hex4()?;
+                                    let c = 0x10000 + ((cp - 0xd800) << 10) + (lo - 0xdc00);
+                                    out.push(char::from_u32(c)?);
+                                } else {
+                                    return None;
+                                }
+                            } else {
+                                out.push(char::from_u32(cp)?);
+                            }
+                        }
+                        _ => return None,
+                    }
+                    self.i += 1;
+                }
+                _ => {
+                    // copy a UTF-8 continuation run verbatim
+                    let start = self.i;
+                    while self.i < self.b.len() && self.b[self.i] != b'"' && self.b[self.i] != b'\\'
+                    {
+                        self.i += 1;
+                    }
+                    out.push_str(std::str::from_utf8(&self.b[start..self.i]).ok()?);
+                }
+            }
+        }
+        None
+    }
+    fn hex4(&mut self) -> Option<u32> {
+        // self.b[self.i] == b'u'; read the next 4 hex digits
+        let s = self.b.get(self.i + 1..self.i + 5)?;
+        let hs = std::str::from_utf8(s).ok()?;
+        let v = u32::from_str_radix(hs, 16).ok()?;
+        self.i += 4;
+        Some(v)
+    }
+    fn array(&mut self) -> Option<JV> {
+        self.i += 1; // '['
+        let mut items = Vec::new();
+        self.ws();
+        if self.i < self.b.len() && self.b[self.i] == b']' {
+            self.i += 1;
+            return Some(JV::Arr(items));
+        }
+        loop {
+            let v = self.value()?;
+            items.push(v);
+            self.ws();
+            match self.b.get(self.i)? {
+                b',' => {
+                    self.i += 1;
+                }
+                b']' => {
+                    self.i += 1;
+                    return Some(JV::Arr(items));
+                }
+                _ => return None,
+            }
+        }
+    }
+    fn object(&mut self) -> Option<JV> {
+        self.i += 1; // '{'
+        let mut pairs: Vec<(String, JV)> = Vec::new();
+        self.ws();
+        if self.i < self.b.len() && self.b[self.i] == b'}' {
+            self.i += 1;
+            return Some(JV::Obj(pairs));
+        }
+        loop {
+            self.ws();
+            if self.b.get(self.i)? != &b'"' {
+                return None;
+            }
+            let key = self.string()?;
+            self.ws();
+            if self.b.get(self.i)? != &b':' {
+                return None;
+            }
+            self.i += 1;
+            let v = self.value()?;
+            pairs.push((key, v));
+            self.ws();
+            match self.b.get(self.i)? {
+                b',' => {
+                    self.i += 1;
+                }
+                b'}' => {
+                    self.i += 1;
+                    return Some(JV::Obj(pairs));
+                }
+                _ => return None,
+            }
+        }
+    }
+}
+
+fn json_parse(s: &str) -> Option<JV> {
+    JsonParser::new(s).parse()
+}
+
+fn jv_get<'a>(v: &'a JV, key: &str) -> Option<&'a JV> {
+    if let JV::Obj(pairs) = v {
+        for (k, val) in pairs {
+            if k == key {
+                return Some(val);
+            }
+        }
+    }
+    None
+}
+
+fn jv_str_opt(v: &JV) -> Option<&str> {
+    if let JV::S(s) = v {
+        Some(s)
+    } else {
+        None
+    }
+}
+
+// -------- receipt build (emit) --------
+// Resolve a subject path against an optional base_dir with the SAME semantics
+// as Python's os.path.join and Node's path.join: an absolute subject path
+// ignores base_dir, a relative one is joined platform-natively (no hardcoded
+// '/'), and a trailing separator on base_dir does not double up. This keeps
+// --recompute-from-paths resolving the same subject across all three impls on
+// every platform (SPEC s.17 cross-impl parity).
+fn recompute_join(path: &str, base_dir: Option<&str>) -> PathBuf {
+    match base_dir {
+        Some(d) => Path::new(d).join(path),
+        None => PathBuf::from(path),
+    }
+}
+
+// Re-hash a subject's live bytes from disk; None if unreadable (reported as a
+// reason code by the caller, never a panic).
+fn receipt_recompute(path: &str, base_dir: Option<&str>) -> Option<String> {
+    let full = recompute_join(path, base_dir);
+    fs::read(&full).ok().map(|b| sha256_hex(&b))
+}
+
+fn subject_entry(path: &str, digest: Option<&str>) -> JV {
+    match digest {
+        Some(d) => JV::Obj(vec![
+            ("path".to_string(), JV::S(path.to_string())),
+            ("sha256".to_string(), JV::S(d.to_string())),
+        ]),
+        None => JV::Obj(vec![
+            ("path".to_string(), JV::S(path.to_string())),
+            ("sha256".to_string(), JV::Null),
+            ("reason".to_string(), JV::S("E_NO_DIGEST".to_string())),
+        ]),
+    }
+}
+
+// Derive the subject list from a parsed command envelope (verify/anchor carry a
+// results[] array; coherence carries a single subject). Mirrors Python
+// _subjects_from_envelope: each subject's digest is the got/sha256 the envelope
+// already computed, else a recompute from base_dir, else a reason code.
+fn subjects_from_envelope(env: &JV, base_dir: Option<&str>) -> Vec<JV> {
+    let mut subjects = Vec::new();
+    if let Some(JV::Arr(results)) = jv_get(env, "results") {
+        if !results.is_empty() {
+            for r in results {
+                let path = match jv_get(r, "path").and_then(jv_str_opt) {
+                    Some(p) => p,
+                    None => continue,
+                };
+                let digest = jv_get(r, "got")
+                    .and_then(jv_str_opt)
+                    .or_else(|| jv_get(r, "sha256").and_then(jv_str_opt))
+                    .map(|s| s.to_string())
+                    .or_else(|| receipt_recompute(path, base_dir));
+                subjects.push(subject_entry(path, digest.as_deref()));
+            }
+            return subjects;
+        }
+    }
+    if let Some(path) = jv_get(env, "subject").and_then(jv_str_opt) {
+        let digest = jv_get(env, "source")
+            .and_then(jv_str_opt)
+            .map(|s| s.to_string())
+            .or_else(|| receipt_recompute(path, base_dir));
+        subjects.push(subject_entry(path, digest.as_deref()));
+    }
+    subjects
+}
+
+// Extract the governed verdict records from a parsed command envelope. verify
+// carries per-path verdicts under results[]; coherence/corroborate carry a single
+// top-level verdict; anchor carries none. Mirrors Python _verdict_records.
+fn verdict_records(env: &JV) -> Vec<JV> {
+    let command = jv_get(env, "command").and_then(jv_str_opt);
+    let mut records = Vec::new();
+    if let Some(JV::Arr(results)) = jv_get(env, "results") {
+        if !results.is_empty() {
+            for (i, r) in results.iter().enumerate() {
+                let v = match jv_get(r, "verdict").and_then(jv_str_opt) {
+                    Some(v) => v,
+                    None => continue,
+                };
+                let mut rec: Vec<(String, JV)> = vec![
+                    ("subject_index".to_string(), JV::I(i as i64)),
+                    (
+                        "command".to_string(),
+                        match command {
+                            Some(c) => JV::S(c.to_string()),
+                            None => JV::Null,
+                        },
+                    ),
+                    ("verdict".to_string(), JV::S(v.to_string())),
+                ];
+                if let Some(w) = jv_get(r, "want").and_then(jv_str_opt) {
+                    rec.push(("want".to_string(), JV::S(w.to_string())));
+                }
+                if let Some(g) = jv_get(r, "got").and_then(jv_str_opt) {
+                    rec.push(("got".to_string(), JV::S(g.to_string())));
+                }
+                records.push(JV::Obj(rec));
+            }
+            return records;
+        }
+    }
+    if let Some(v) = jv_get(env, "verdict").and_then(jv_str_opt) {
+        records.push(JV::Obj(vec![
+            ("subject_index".to_string(), JV::I(0)),
+            (
+                "command".to_string(),
+                match command {
+                    Some(c) => JV::S(c.to_string()),
+                    None => JV::Null,
+                },
+            ),
+            ("verdict".to_string(), JV::S(v.to_string())),
+        ]));
+    }
+    records
+}
+
+// The addressed body: the receipt object minus receipt_id, signature, and the
+// per-implementation witness block (SPEC s.17.2). Canonicalized identically to
+// Python/Node, so the content address is byte-identical across implementations.
+fn receipt_addressed_canonical(receipt_pairs: &[(String, JV)]) -> String {
+    let mut body: Vec<(String, JV)> = Vec::new();
+    for (k, v) in receipt_pairs {
+        if k == "receipt_id" || k == "signature" || k == "witness" {
+            continue;
+        }
+        body.push((k.clone(), clone_jv(v)));
+    }
+    jv_str(&JV::Obj(body))
+}
+
+fn clone_jv(v: &JV) -> JV {
+    match v {
+        JV::S(s) => JV::S(s.clone()),
+        JV::I(i) => JV::I(*i),
+        JV::B(b) => JV::B(*b),
+        JV::Null => JV::Null,
+        JV::Arr(items) => JV::Arr(items.iter().map(clone_jv).collect()),
+        JV::Obj(pairs) => JV::Obj(pairs.iter().map(|(k, val)| (k.clone(), clone_jv(val))).collect()),
+    }
+}
+
+fn receipt_id_hash(receipt_pairs: &[(String, JV)]) -> String {
+    sha256_hex(receipt_addressed_canonical(receipt_pairs).as_bytes())
+}
+
+fn receipt_sign(receipt_pairs: &[(String, JV)], key: &[u8]) -> String {
+    hmac_sha256_hex(key, receipt_addressed_canonical(receipt_pairs).as_bytes())
+}
+
+fn receipt_signing_key() -> Option<Vec<u8>> {
+    match env::var(RECEIPT_SIGNING_KEY_ENV) {
+        Ok(k) if !k.is_empty() => Some(k.into_bytes()),
+        _ => None,
+    }
+}
+
+// Build a receipt (as ordered pairs; jv_str sorts keys canonically at emit) from a
+// parsed command envelope. Mirrors Python emit_receipt field-for-field.
+fn emit_receipt(env: &JV, base_dir: Option<&str>, now: &str, key: Option<&[u8]>) -> Vec<(String, JV)> {
+    let subjects = subjects_from_envelope(env, base_dir);
+    let records = verdict_records(env);
+    let corpus_version = match jv_get(env, "corpus_version") {
+        Some(JV::I(i)) => JV::I(*i),
+        _ => JV::Null,
+    };
+    let corpus_sha256 = match jv_get(env, "corpus_sha256").and_then(jv_str_opt) {
+        Some(s) => JV::S(s.to_string()),
+        None => JV::Null,
+    };
+    let mut receipt: Vec<(String, JV)> = vec![
+        ("format".to_string(), JV::S(RECEIPT_FORMAT.to_string())),
+        ("issued_at".to_string(), JV::S(now.to_string())),
+        (
+            "witness".to_string(),
+            JV::Obj(vec![
+                ("implementation".to_string(), JV::S(RECEIPT_IMPL.to_string())),
+                ("spec_version".to_string(), JV::S("1.0.0".to_string())),
+                ("self_sha256".to_string(), JV::S(rust_self_sha256())),
+            ]),
+        ),
+        ("subject".to_string(), JV::Arr(subjects)),
+        ("verdict_record".to_string(), JV::Arr(records)),
+        ("corpus_version".to_string(), corpus_version),
+        ("corpus_sha256".to_string(), corpus_sha256),
+        ("signature_algorithm".to_string(), JV::S(RECEIPT_SIG_ALGO.to_string())),
+        ("re_derivation_method".to_string(), JV::S(RECEIPT_REDERIV.to_string())),
+        ("notes".to_string(), JV::S(RECEIPT_NOTES.to_string())),
+    ];
+    // Content-address first, then (optionally) sign the SAME body.
+    let sig = match key {
+        Some(k) => JV::S(receipt_sign(&receipt, k)),
+        None => JV::Null,
+    };
+    receipt.push(("signature".to_string(), sig));
+    let id = receipt_id_hash(&receipt);
+    receipt.push(("receipt_id".to_string(), JV::S(id)));
+    receipt
+}
+
+// The artifact-of-record hash for this compiled binary (SPEC s.14): the SHA-256 of
+// the running executable's bytes. Descriptive-only (witness is not addressed).
+fn rust_self_sha256() -> String {
+    match env::current_exe().ok().and_then(|p| fs::read(p).ok()) {
+        Some(bytes) => sha256_hex(&bytes),
+        None => "unknown".to_string(),
+    }
+}
+
+// -------- receipt check (offline re-verification) --------
+// Returns (verdict_token, detail). TAMPERED dominates UNVERIFIABLE (SPEC s.5/s.17).
+fn check_receipt(
+    receipt: &JV,
+    base_dir: Option<&str>,
+    recompute: bool,
+    key: Option<&[u8]>,
+) -> (&'static str, String) {
+    let pairs = match receipt {
+        JV::Obj(p) => p,
+        _ => return ("RECEIPT_UNVERIFIABLE", format!("not an {} receipt", RECEIPT_FORMAT)),
+    };
+    if jv_get(receipt, "format").and_then(jv_str_opt) != Some(RECEIPT_FORMAT) {
+        return ("RECEIPT_UNVERIFIABLE", format!("not an {} receipt", RECEIPT_FORMAT));
+    }
+    let stored_id = match jv_get(receipt, "receipt_id").and_then(jv_str_opt) {
+        Some(s) => s,
+        None => return ("RECEIPT_UNVERIFIABLE", "receipt_id absent or malformed".to_string()),
+    };
+    let derived = receipt_id_hash(pairs);
+    if !ct_eq(stored_id, &derived) {
+        return (
+            "RECEIPT_TAMPERED",
+            format!(
+                "receipt_id mismatch: stored {} != re-derived {}",
+                &stored_id[..stored_id.len().min(16)],
+                &derived[..derived.len().min(16)]
+            ),
+        );
+    }
+    // Optional signature check: if the receipt carries one, a key MUST verify it.
+    match jv_get(receipt, "signature") {
+        Some(JV::S(sig)) => match key {
+            None => {
+                return (
+                    "RECEIPT_UNVERIFIABLE",
+                    "receipt is signed but no key provided to verify the signature".to_string(),
+                )
+            }
+            Some(k) => {
+                if !ct_eq(sig, &receipt_sign(pairs, k)) {
+                    return ("RECEIPT_TAMPERED", "signature does not verify".to_string());
+                }
+            }
+        },
+        _ => {}
+    }
+    // Optional subject re-derivation from live bytes. DRIFT dominates unreadable.
+    if recompute {
+        let mut drift: Option<String> = None;
+        let mut unver: Option<String> = None;
+        if let Some(JV::Arr(subjects)) = jv_get(receipt, "subject") {
+            for s in subjects {
+                let path = jv_get(s, "path").and_then(jv_str_opt);
+                let recorded = jv_get(s, "sha256").and_then(jv_str_opt);
+                match (path, recorded) {
+                    (Some(p), Some(rec)) => match receipt_recompute(p, base_dir) {
+                        None => {
+                            if unver.is_none() {
+                                unver = Some(format!("subject unreadable: {}", p));
+                            }
+                        }
+                        Some(actual) => {
+                            if actual != rec && drift.is_none() {
+                                drift = Some(format!("subject digest diverged: {}", p));
+                            }
+                        }
+                    },
+                    _ => {
+                        if unver.is_none() {
+                            unver = Some("subject with no recorded digest to re-derive".to_string());
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(d) = drift {
+            return ("RECEIPT_TAMPERED", d);
+        }
+        if let Some(u) = unver {
+            return ("RECEIPT_UNVERIFIABLE", u);
+        }
+    }
+    ("RECEIPT_VALID", "receipt re-derived".to_string())
+}
+
+// -------- receipt CLI handlers --------
+const RECEIPT_USAGE: &str =
+    "usage: emet receipt --from-json <file|->   emit a portable witness receipt\n\
+     \x20      emet check <receipt.json> [--recompute-from-paths]   offline re-verify\n";
+
+fn cmd_receipt(args: &[String]) -> i32 {
+    if args.len() >= 2 && args[0] == "--from-json" {
+        let src = &args[1];
+        let raw = if src == "-" {
+            let mut s = String::new();
+            if std::io::stdin().read_to_string(&mut s).is_err() {
+                eprint!("emet receipt: cannot read --from-json source (stdin)\n");
+                return 64;
+            }
+            s
+        } else {
+            match fs::read_to_string(src) {
+                Ok(s) => s,
+                Err(_) => {
+                    eprint!("emet receipt: cannot read --from-json source (OSError)\n");
+                    return 64;
+                }
+            }
+        };
+        let env = match json_parse(&raw) {
+            Some(v @ JV::Obj(_)) => v,
+            _ => {
+                eprint!("emet receipt: cannot read --from-json source (ValueError)\n");
+                return 64;
+            }
+        };
+        // issued_at is the one wall-clock field; pin it here. An injected value via
+        // the env seam keeps receipts deterministic under test.
+        let now = env::var("EMET_RECEIPT_NOW")
+            .unwrap_or_else(|_| utc_now_iso8601());
+        let cwd = env::current_dir()
+            .ok()
+            .map(|p| p.to_string_lossy().to_string());
+        let key = receipt_signing_key();
+        let receipt = emit_receipt(&env, cwd.as_deref(), &now, key.as_deref());
+        println!("{}", jv_str(&JV::Obj(receipt)));
+        return 0;
+    }
+    eprint!("{}", RECEIPT_USAGE);
+    64
+}
+
+fn cmd_check(args: &[String]) -> i32 {
+    let recompute = args.iter().any(|a| a == "--recompute-from-paths");
+    let positional: Vec<&String> = args.iter().filter(|a| !a.starts_with('-')).collect();
+    if positional.is_empty() {
+        eprint!("{}", RECEIPT_USAGE);
+        return 64;
+    }
+    let path = positional[0];
+    let raw = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(_) => {
+            let reason = "receipt unreadable or malformed: OSError";
+            say(&format!("RECEIPT_UNVERIFIABLE {} reason={}", path, reason));
+            emit_envelope(
+                "check",
+                Some("RECEIPT_UNVERIFIABLE"),
+                2,
+                vec![
+                    ("subject", JV::S(path.to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
+            return 2;
+        }
+    };
+    let receipt = match json_parse(&raw) {
+        Some(v @ JV::Obj(_)) => v,
+        _ => {
+            let reason = "receipt unreadable or malformed: ValueError";
+            say(&format!("RECEIPT_UNVERIFIABLE {} reason={}", path, reason));
+            emit_envelope(
+                "check",
+                Some("RECEIPT_UNVERIFIABLE"),
+                2,
+                vec![
+                    ("subject", JV::S(path.to_string())),
+                    ("reason", JV::S(reason.to_string())),
+                ],
+            );
+            return 2;
+        }
+    };
+    if jv_get(&receipt, "format").and_then(jv_str_opt) != Some(RECEIPT_FORMAT) {
+        let reason = format!("not an {} receipt", RECEIPT_FORMAT);
+        say(&format!("RECEIPT_UNVERIFIABLE {} reason={}", path, reason));
+        emit_envelope(
+            "check",
+            Some("RECEIPT_UNVERIFIABLE"),
+            2,
+            vec![
+                ("subject", JV::S(path.to_string())),
+                ("reason", JV::S(reason)),
+            ],
+        );
+        return 2;
+    }
+    // Subjects are recorded relative to the producer cwd; re-derive relative to the
+    // receipt file's directory so a portable receipt+subject pair checks in place.
+    let base = parent_dir(path);
+    let key = receipt_signing_key();
+    let (verdict, detail) = check_receipt(&receipt, Some(&base), recompute, key.as_deref());
+    say(&format!("result={} reason={}", verdict, detail));
+    let code = match verdict {
+        "RECEIPT_VALID" => 0,
+        "RECEIPT_TAMPERED" => 1,
+        _ => 2,
+    };
+    let rid = match jv_get(&receipt, "receipt_id").and_then(jv_str_opt) {
+        Some(s) => JV::S(s.to_string()),
+        None => JV::Null,
+    };
+    emit_envelope(
+        "check",
+        Some(verdict),
+        code,
+        vec![
+            ("subject", JV::S(path.to_string())),
+            ("detail", JV::S(detail)),
+            ("receipt_id", rid),
+        ],
+    );
+    code
+}
+
+fn parent_dir(path: &str) -> String {
+    let p = std::path::Path::new(path);
+    match p.parent() {
+        Some(d) if !d.as_os_str().is_empty() => d.to_string_lossy().to_string(),
+        _ => ".".to_string(),
+    }
+}
+
+// ISO-8601 UTC (YYYY-MM-DDThh:mm:ssZ) from the system clock, no external crate.
+fn utc_now_iso8601() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let days = secs / 86400;
+    let rem = secs % 86400;
+    let (hh, mm, ss) = (rem / 3600, (rem % 3600) / 60, rem % 60);
+    // Civil-from-days (Howard Hinnant's algorithm), proleptic Gregorian.
+    let z = days as i64 + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        y, m, d, hh, mm, ss
+    )
+}
+
 fn main() {
     // Global --json flag (SPEC s.13): accepted before OR after the subcommand;
     // strip it from argv, then dispatch on the remainder. Exit code is identical
@@ -1161,9 +1940,230 @@ fn main() {
         cmd_audit()
     } else if args.len() >= 2 && args[1] == "selftest" {
         cmd_selftest()
+    } else if args.len() >= 2 && args[1] == "receipt" {
+        cmd_receipt(&args[2..])
+    } else if args.len() >= 2 && args[1] == "check" {
+        cmd_check(&args[2..])
     } else {
-        eprintln!("usage: emet anchor|verify|coherence|refuse|corroborate|audit|selftest ...");
+        eprintln!(
+            "usage: emet anchor|verify|coherence|refuse|corroborate|audit|selftest|receipt|check ..."
+        );
         64
     };
     exit(code);
+}
+
+// ===========================================================================
+// Receipt behavior tests (SPEC s.17). Run with: cargo test --release
+// These prove the verifier can FAIL: a receipt that always returned
+// RECEIPT_VALID would be a certificate of authenticity, violating facts-only.
+// ===========================================================================
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const NOW: &str = "2026-07-02T12:34:56Z";
+
+    // A verify --json envelope over a subject whose recorded digest is `digest`.
+    fn verify_env(path: &str, digest: &str) -> JV {
+        json_parse(&format!(
+            "{{\"command\": \"verify\", \"results\": [{{\"got\": \"{d}\", \"path\": \"{p}\", \"verdict\": \"MATCH\", \"want\": \"{d}\"}}], \"verdict\": \"MATCH\"}}",
+            d = digest,
+            p = path
+        ))
+        .unwrap()
+    }
+
+    fn built(env: &JV, key: Option<&[u8]>) -> JV {
+        JV::Obj(emit_receipt(env, None, NOW, key))
+    }
+
+    // 1. HMAC-SHA256 matches the RFC 4231 test vector 2 (key "Jefe", data
+    //    "what do ya want for nothing?"), proving the hand-rolled HMAC is correct.
+    #[test]
+    fn hmac_rfc4231_vector2() {
+        let got = hmac_sha256_hex(b"Jefe", b"what do ya want for nothing?");
+        assert_eq!(
+            got,
+            "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
+        );
+    }
+
+    // 2. Format + stable schema fields are present.
+    #[test]
+    fn receipt_has_stable_format() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), None);
+        assert_eq!(jv_get(&r, "format").and_then(jv_str_opt), Some(RECEIPT_FORMAT));
+        assert_eq!(jv_get(&r, "issued_at").and_then(jv_str_opt), Some(NOW));
+        assert_eq!(jv_get(&r, "re_derivation_method").and_then(jv_str_opt), Some("hash"));
+    }
+
+    // 3. receipt_id is the content address of the addressed body (id/sig/witness
+    //    excluded), so it is byte-stable and re-derivable.
+    #[test]
+    fn receipt_id_is_content_address() {
+        let r = built(&verify_env("a.txt", &"b".repeat(64)), None);
+        let stored = jv_get(&r, "receipt_id").and_then(jv_str_opt).unwrap();
+        if let JV::Obj(pairs) = &r {
+            assert_eq!(stored, receipt_id_hash(pairs));
+        } else {
+            panic!("receipt not an object");
+        }
+    }
+
+    // 4. The per-implementation witness block does NOT govern the content address
+    //    (cross-impl parity, SPEC s.17.2): mutating it leaves receipt_id fixed.
+    #[test]
+    fn witness_does_not_govern_address() {
+        let r = built(&verify_env("a.txt", &"c".repeat(64)), None);
+        let original = jv_get(&r, "receipt_id").and_then(jv_str_opt).unwrap().to_string();
+        if let JV::Obj(mut pairs) = clone_jv(&r) {
+            for p in pairs.iter_mut() {
+                if p.0 == "witness" {
+                    p.1 = JV::Obj(vec![
+                        ("implementation".to_string(), JV::S("emet-python-reference".to_string())),
+                        ("spec_version".to_string(), JV::S("1.0.0".to_string())),
+                        ("self_sha256".to_string(), JV::S("dead".repeat(16))),
+                    ]);
+                }
+            }
+            assert_eq!(receipt_id_hash(&pairs), original);
+        }
+    }
+
+    // 5. subject digest + verdict record are carried faithfully.
+    #[test]
+    fn records_subject_and_verdict() {
+        let dg = "d".repeat(64);
+        let r = built(&verify_env("a.txt", &dg), None);
+        let subj = jv_get(&r, "subject").unwrap();
+        if let JV::Arr(items) = subj {
+            assert_eq!(jv_get(&items[0], "path").and_then(jv_str_opt), Some("a.txt"));
+            assert_eq!(jv_get(&items[0], "sha256").and_then(jv_str_opt), Some(dg.as_str()));
+        } else {
+            panic!("subject not array");
+        }
+        let vr = jv_get(&r, "verdict_record").unwrap();
+        if let JV::Arr(items) = vr {
+            assert_eq!(jv_get(&items[0], "verdict").and_then(jv_str_opt), Some("MATCH"));
+            assert_eq!(jv_get(&items[0], "command").and_then(jv_str_opt), Some("verify"));
+        } else {
+            panic!("verdict_record not array");
+        }
+    }
+
+    // 6. spec_version is pinned in the witness block.
+    #[test]
+    fn pins_spec_version() {
+        let r = built(&verify_env("a.txt", &"e".repeat(64)), None);
+        let w = jv_get(&r, "witness").unwrap();
+        assert_eq!(jv_get(w, "spec_version").and_then(jv_str_opt), Some("1.0.0"));
+        assert_eq!(jv_get(w, "implementation").and_then(jv_str_opt), Some("emet-rust-reference"));
+    }
+
+    // 7. An untouched receipt checks VALID.
+    #[test]
+    fn check_untouched_is_valid() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), None);
+        let (v, _d) = check_receipt(&r, None, false, None);
+        assert_eq!(v, "RECEIPT_VALID");
+    }
+
+    // 8. CAN-IT-FAIL: a flipped receipt_id is TAMPERED (not VALID).
+    #[test]
+    fn flipped_id_is_tampered() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), None);
+        let mut pairs = if let JV::Obj(p) = clone_jv(&r) { p } else { panic!() };
+        for p in pairs.iter_mut() {
+            if p.0 == "receipt_id" {
+                if let JV::S(s) = &p.1 {
+                    let first = if s.starts_with('0') { '1' } else { '0' };
+                    p.1 = JV::S(format!("{}{}", first, &s[1..]));
+                }
+            }
+        }
+        let (v, d) = check_receipt(&JV::Obj(pairs), None, false, None);
+        assert_eq!(v, "RECEIPT_TAMPERED");
+        assert!(d.contains("receipt_id"));
+    }
+
+    // 9. CAN-IT-FAIL: mutating a governed field (verdict) without recomputing the
+    //    id yields a mismatch -> TAMPERED.
+    #[test]
+    fn tampered_verdict_field_is_tampered() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), None);
+        let mut pairs = if let JV::Obj(p) = clone_jv(&r) { p } else { panic!() };
+        for p in pairs.iter_mut() {
+            if p.0 == "verdict_record" {
+                p.1 = JV::Arr(vec![JV::Obj(vec![
+                    ("subject_index".to_string(), JV::I(0)),
+                    ("command".to_string(), JV::S("verify".to_string())),
+                    ("verdict".to_string(), JV::S("DRIFT".to_string())),
+                ])]);
+            }
+        }
+        let (v, _d) = check_receipt(&JV::Obj(pairs), None, false, None);
+        assert_eq!(v, "RECEIPT_TAMPERED");
+    }
+
+    // 10. CAN-IT-FAIL: malformed / wrong-format receipt is UNVERIFIABLE, not a panic.
+    #[test]
+    fn malformed_is_unverifiable() {
+        let bad = json_parse("{\"format\": \"not-a-receipt\"}").unwrap();
+        let (v, _d) = check_receipt(&bad, None, false, None);
+        assert_eq!(v, "RECEIPT_UNVERIFIABLE");
+    }
+
+    // 11. CAN-IT-FAIL: HMAC signature verifies with the correct key, fails with a
+    //     wrong key (TAMPERED), and is UNVERIFIABLE with no key.
+    #[test]
+    fn signature_key_matrix() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), Some(b"keyA"));
+        assert!(matches!(jv_get(&r, "signature"), Some(JV::S(_))));
+        assert_eq!(check_receipt(&r, None, false, Some(b"keyA")).0, "RECEIPT_VALID");
+        assert_eq!(check_receipt(&r, None, false, Some(b"keyB")).0, "RECEIPT_TAMPERED");
+        assert_eq!(check_receipt(&r, None, false, None).0, "RECEIPT_UNVERIFIABLE");
+    }
+
+    // 12. Unsigned receipt has a null signature and verifies on the content
+    //     address alone (signature-optional, SPEC s.17.4).
+    #[test]
+    fn unsigned_null_signature_valid() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), None);
+        assert!(matches!(jv_get(&r, "signature"), Some(JV::Null)));
+        assert_eq!(check_receipt(&r, None, false, None).0, "RECEIPT_VALID");
+    }
+
+    // 13. No authority token appears anywhere in an emitted receipt.
+    #[test]
+    fn no_authority_token() {
+        let r = built(&verify_env("a.txt", &"a".repeat(64)), Some(b"k"));
+        let s = jv_str(&r);
+        for tok in ["TRUSTED", "APPROVED", "SAFE", "AUTHORIZED", "PERMITTED", "VERIFIED_AUTHORITY"] {
+            assert!(!s.contains(tok), "authority token {} leaked", tok);
+        }
+    }
+
+    // 14. Subject path resolution matches os.path.join / path.join semantics so
+    //     --recompute-from-paths resolves the same subject as Python/Node given
+    //     the same (base_dir, path) pair, cross-platform.
+    #[test]
+    fn recompute_join_matches_python_node_semantics() {
+        // None base_dir -> path is used verbatim.
+        assert_eq!(recompute_join("a/b.txt", None), PathBuf::from("a/b.txt"));
+        // Relative subject under a base_dir -> platform-native join.
+        assert_eq!(
+            recompute_join("sub/file.txt", Some("base")),
+            Path::new("base").join("sub/file.txt")
+        );
+        // An absolute subject path IGNORES base_dir, exactly like os.path.join
+        // and path.join. The old hardcoded format!("{}/{}") got this wrong.
+        let abs = if cfg!(windows) { "C:\\etc\\x" } else { "/etc/x" };
+        assert_eq!(recompute_join(abs, Some("base")), PathBuf::from(abs));
+        // Trailing separators on base_dir do not produce a doubled separator.
+        assert_eq!(
+            recompute_join("f.txt", Some("base/")),
+            Path::new("base").join("f.txt")
+        );
+    }
 }

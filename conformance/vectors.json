@@ -475,6 +475,81 @@
         "ghost",
         "v"
       ]
+    },
+    {
+      "capability": "receipt",
+      "expect_exit": 0,
+      "expect_substr": "RECEIPT_VALID",
+      "files": {
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"771c16998b4c8ac936860d32471691f0a9ba27437d41594c1d3e5a68f7f310f0\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"a.txt\", \"sha256\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"verdict_record\": [{\"command\": \"verify\", \"got\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\", \"subject_index\": 0, \"verdict\": \"MATCH\", \"want\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"761711e155ea14827117e37d933df0753405f36c9a77707f3dbe69a67947d56b\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "receipt-valid",
+      "note": "SPEC s.17.3: a content-addressed receipt re-derives its own id offline (zero shared state) and checks RECEIPT_VALID; the same receipt bytes check identically across implementations (byte-identical content address, s.17.2)",
+      "run": [
+        "check",
+        "r.json"
+      ]
+    },
+    {
+      "capability": "receipt",
+      "expect_exit": 1,
+      "expect_substr": "RECEIPT_TAMPERED",
+      "files": {
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"071c16998b4c8ac936860d32471691f0a9ba27437d41594c1d3e5a68f7f310f0\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"a.txt\", \"sha256\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"verdict_record\": [{\"command\": \"verify\", \"got\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\", \"subject_index\": 0, \"verdict\": \"MATCH\", \"want\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"761711e155ea14827117e37d933df0753405f36c9a77707f3dbe69a67947d56b\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "receipt-tampered-id-flip",
+      "note": "SPEC s.17.3: a doctored receipt_id no longer matches the re-derived content address, so check is RECEIPT_TAMPERED (exit 1) -- the verifier can FAIL, it is not a rubber stamp",
+      "run": [
+        "check",
+        "r.json"
+      ]
+    },
+    {
+      "capability": "receipt",
+      "env": {
+        "EMET_RECEIPT_SIGNING_KEY": "wrong-key"
+      },
+      "expect_exit": 1,
+      "expect_substr": "RECEIPT_TAMPERED",
+      "files": {
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"771c16998b4c8ac936860d32471691f0a9ba27437d41594c1d3e5a68f7f310f0\", \"signature\": \"44e6cc5e1d9be8c7bc1f5991b56c343c7c7d56750cd7c364a04a245050f225e4\", \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"a.txt\", \"sha256\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"verdict_record\": [{\"command\": \"verify\", \"got\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\", \"subject_index\": 0, \"verdict\": \"MATCH\", \"want\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"761711e155ea14827117e37d933df0753405f36c9a77707f3dbe69a67947d56b\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "receipt-tampered-signature",
+      "note": "SPEC s.17.4: a signed receipt whose HMAC does not verify under the available key is RECEIPT_TAMPERED (exit 1); the fixture was signed with a different key. Python + Node compute the HMAC natively, Rust composes it over its own SHA-256",
+      "run": [
+        "check",
+        "r.json"
+      ]
+    },
+    {
+      "capability": "receipt",
+      "expect_exit": 2,
+      "expect_substr": "RECEIPT_UNVERIFIABLE",
+      "files": {
+        "bad.json": "{not valid json"
+      },
+      "id": "receipt-unverifiable-malformed",
+      "note": "SPEC s.17.3: a malformed receipt is RECEIPT_UNVERIFIABLE (exit 2) with a stable reason code, never a stack trace -- an inability to check, not a detected difference",
+      "run": [
+        "check",
+        "bad.json"
+      ]
+    },
+    {
+      "capability": "receipt",
+      "expect_exit": 1,
+      "expect_substr": "RECEIPT_TAMPERED",
+      "files": {
+        "a.txt": "changed\n",
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"771c16998b4c8ac936860d32471691f0a9ba27437d41594c1d3e5a68f7f310f0\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"a.txt\", \"sha256\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"verdict_record\": [{\"command\": \"verify\", \"got\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\", \"subject_index\": 0, \"verdict\": \"MATCH\", \"want\": \"a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447\"}], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"761711e155ea14827117e37d933df0753405f36c9a77707f3dbe69a67947d56b\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "receipt-subject-drift",
+      "note": "SPEC s.17.3 step 4: with --recompute-from-paths the subject bytes on disk differ from the recorded digest, so subject re-derivation diverges -> RECEIPT_TAMPERED (a point-in-time snapshot, not a blanket certificate)",
+      "run": [
+        "check",
+        "r.json",
+        "--recompute-from-paths"
+      ]
     }
   ]
 }

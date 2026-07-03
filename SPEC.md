@@ -436,14 +436,22 @@ A receipt is a JSON object with these fields:
 ### 17.2 Content address (re-derivation guarantee)
 
 `receipt_id` is `sha256` over the canonical JSON byte form (section 7) of the
-receipt with the `receipt_id` and `signature` fields EXCLUDED. Because the byte
-form is pinned, the address is byte-identical across conforming implementations.
+receipt with the `receipt_id`, `signature`, and `witness` fields EXCLUDED. Because
+the byte form is pinned, the address is byte-identical across conforming
+implementations. The `witness` block is excluded because it is PRODUCER IDENTITY
+(the implementation name and that implementation's own artifact-of-record hash,
+section 14), which is intrinsically per-implementation; including it in the
+address would make the same subject/verdict/spec/issued_at hash to a different id
+in one implementation than another, defeating the guarantee below. The witness
+block still travels in the receipt as descriptive metadata (a verifier may read
+it to learn who produced the receipt), it just does not govern the address.
 
 RE-DERIVATION GUARANTEE: the SAME subject bytes, the SAME `spec_version`, the
 SAME `corpus_version`, and the SAME `issued_at` yield a byte-identical
-`receipt_id`. Tampering ANY governed field re-hashes to a different id, so a
-doctored receipt is detectable with no shared secret. `issued_at` is part of the
-addressed body, so two receipts issued at different instants legitimately differ.
+`receipt_id` ACROSS conforming implementations. Tampering ANY addressed field
+re-hashes to a different id, so a doctored receipt is detectable with no shared
+secret. `issued_at` is part of the addressed body, so two receipts issued at
+different instants legitimately differ.
 
 ### 17.3 Offline verifier contract (`emet check`)
 

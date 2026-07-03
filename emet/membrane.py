@@ -313,9 +313,12 @@ def receipt_cmd(args):
             sys.stderr.write("emet receipt: cannot read --from-json source (" + type(e).__name__ + ")\n")
             sys.exit(EXIT_USAGE)
         # issued_at is the one wall-clock field; pin it here so the receipt is
-        # self-describing. Tests inject a fixed value via the library seam.
+        # self-describing. Tests inject a fixed value via the library seam or the
+        # EMET_RECEIPT_NOW env seam (mirrored by the Rust/Node ports) so a
+        # cross-implementation receipt_id parity check is deterministic.
         import datetime
-        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        now = os.environ.get("EMET_RECEIPT_NOW") or \
+            datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         r = witness_receipt.emit_receipt(env, base_dir=os.getcwd(), now=now,
                                          signing_key=_receipt_signing_key())
         print(report.canonical(r))
