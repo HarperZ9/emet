@@ -73,7 +73,7 @@ grants authority or permission.
 - A clean-room Go fourth implementation - `impl/go/emet.go`, standard library only (no third-party modules).
 - A normative, frozen v1.0 spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) all four implementations load and re-derive identically.
-- All four implementations pass the same 35 core conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify). Five further vectors cover the portable witness receipt (SPEC s.17); Python, Rust, and Node.js pass all 40. The Go implementation passes the 35 core vectors and does not yet implement `receipt`/`check` (see [Receipt support](#receipt-support)).
+- All four implementations pass the same 35 core conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify). Five further vectors cover the portable witness receipt (SPEC s.17); Python, Rust, and Node.js pass all 40. The Go implementation passes the 35 core vectors and does not yet implement `receipt`/`check` (see [Receipt support](#receipt-support)). Four further `capability: "rebind"` vectors cover the experimental stripped-credential rebind (SPEC s.18); the Python reference passes them, and cross-language parity is follow-on (`docs/REBIND-SPEC.md`) - a partial impl declares `EMET_SKIP_CAPABILITIES=rebind` and is scored only on what it claims.
 
 ## Reproduce it
 
@@ -102,6 +102,7 @@ emet corroborate <path>             # read-path-diverse agreement
 emet audit                          # recompute the tamper-evident log chain
 emet receipt --from-json <file|->   # portable, content-addressed witness receipt (SPEC s.17)
 emet check <receipt.json>           # stateless offline re-verify: RECEIPT_VALID / TAMPERED / UNVERIFIABLE
+emet rebind <naked> --manifest <m>  # rebind stripped bytes to a known anchor (SPEC s.18, EXPERIMENTAL)
 emet <any> --json                   # machine-readable canonical envelope (exit code unchanged)
 ```
 
@@ -110,6 +111,17 @@ receipt --from-json -` emits a self-contained, content-addressed JSON object tha
 a DIFFERENT party re-derives on their own machine with `emet check`, zero shared
 state and zero trust in the producer. Add `--recompute-from-paths` to `emet check`
 to re-hash the subject bytes on disk against the recorded digests (SPEC s.17).
+
+**Stripped-credential rebind (experimental).** When a C2PA-style embedded
+credential is stripped by a re-encode, screenshot, or copy, the artifact is
+orphaned to an embedded-credential verifier. EMET never bound to embedded
+metadata: it anchors the sha256 of the raw bytes out of band, so `emet rebind`
+re-derives the naked bytes' content hash and rebinds them to a known anchor in a
+portable rebind manifest, emitting `MATCH` (rebound), `DRIFT` (a claimed identity
+with substituted bytes), or `UNVERIFIABLE` (no known anchor - the honest default).
+A rebind verdict seals into a witness receipt like any other. See [SPEC.md
+section 18](SPEC.md) and the cross-language port spec
+[docs/REBIND-SPEC.md](docs/REBIND-SPEC.md).
 
 Exit codes (SPEC section 5): `0` held · `1` a difference found (DRIFT /
 VIEW_DIFFERS_FROM_SOURCE / QUARANTINE / BROKEN) · `2` UNVERIFIABLE · `3` markers ·

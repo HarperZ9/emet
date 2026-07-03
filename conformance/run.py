@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "membrane.py"))
 VECT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "vectors.json")
 SUBCMDS = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit",
-           "selftest", "receipt", "check")
+           "selftest", "receipt", "check", "rebind")
 CORPUS = os.path.abspath(os.path.join(HERE, "markers.corpus"))
 
 def invoke(tool):
@@ -76,7 +76,13 @@ def main():
             for name, extra in v.get("append", {}).items():
                 with open(os.path.join(tmp, name), "a", encoding="utf-8", newline="") as fh:
                     fh.write(extra)
-            args = [a if (a in SUBCMDS or a.startswith("-")) else os.path.join(tmp, a) for a in v["run"]]
+            # `run` entries are tmp-joined into file paths unless they are a
+            # subcommand or a flag; a vector may also list entries under `literal`
+            # (verbatim tokens, e.g. a rebind --claim identity or a
+            # <path>=<identity> manifest pair) that must NOT be treated as paths.
+            literal = set(v.get("literal", []))
+            args = [a if (a in SUBCMDS or a.startswith("-") or a in literal)
+                    else os.path.join(tmp, a) for a in v["run"]]
             p = subprocess.run(invoke(TOOL) + args, cwd=tmp, capture_output=True, text=True, env=env)
             ok = (v["expect_substr"] in p.stdout) and (p.returncode == v["expect_exit"])
             print(("PASS " if ok else "FAIL ") + v["id"] + " exit=" + str(p.returncode) + " want=" + str(v["expect_exit"]))

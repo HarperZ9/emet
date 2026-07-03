@@ -490,3 +490,73 @@ audit log (section 7), and the convenience adapter (`adapters/
 witness_receipt_portable.py`) are NOT part of the receipt contract. A receipt
 carries the portable verdict encoding; it never carries or requires operational
 state.
+
+## 18. Stripped-credential rebind (EXPERIMENTAL)
+
+STATUS: EXPERIMENTAL. This section describes a capability shipped in the Python
+reference implementation with conformance vectors tagged `capability: "rebind"`.
+It is NOT yet a required conformance capability, and the cross-language port
+contract is SPECced separately (`docs/REBIND-SPEC.md`) as follow-on. Treat the
+`emet-rebind-manifest/v1` shape as provisional until cross-language parity lands.
+
+THE FAILURE MODE. Embedded-credential provenance schemes (the C2PA class) bind
+provenance to an artifact IN BAND: the manifest, signature, or certificate travel
+INSIDE the file. Re-encoding, screenshotting, copying the bytes out of a
+container, or stripping the metadata block removes the credential, and the
+artifact is orphaned: naked bytes an embedded-credential verifier cannot place.
+
+THE ANSWER. EMET's anchor is the sha256 of the RAW BYTES (section 3), held out of
+band, never inside the artifact. A stripped artifact is therefore not orphaned to
+EMET: re-derive the content hash of the naked bytes and look it up in a known
+anchor. This is content-addressed rebinding. It does not recover the stripped
+credential; it makes recovery unnecessary, because the binding was to the content.
+
+### 18.1 The rebind manifest (`emet-rebind-manifest/v1`)
+
+The out-of-band anchor a stripped artifact rebinds against is a portable,
+content-addressed JSON object holding the anchors a verifier knows. Fields:
+
+- `format` (string): the literal `"emet-rebind-manifest/v1"`.
+- `manifest_id` (hex string): the content address (section 18.2).
+- `issued_at` (string|null): ISO-8601 UTC timestamp of issuance.
+- `records` (array): each entry `{ "digest": <hex sha256>, "identity": <string> }`
+  pinning one known anchor: the content digest of an artifact's raw bytes and the
+  identity that anchor stands for. A digest maps to at most one identity; an
+  ambiguous anchor set is a build error.
+- `notes` (string): the facts-only disclaimer.
+
+The rebind manifest is DISTINCT from the implementation-private anchor store
+(section 15): the store cannot travel, the manifest is the standardized, portable
+"anchors I know" a second party can hold or fetch over a trusted channel.
+
+### 18.2 Manifest content address
+
+`manifest_id` is `sha256` over the canonical JSON byte form (section 7) of the
+manifest with `manifest_id` EXCLUDED. Tampering any record re-hashes to a
+different id, so a doctored anchor set is detectable before any rebind.
+
+### 18.3 Rebind verdict contract (`emet rebind`)
+
+`emet rebind <naked> --manifest <manifest.json> [--claim <identity>]` re-derives
+`sha256` of the naked bytes and emits a member of the closed PRIMARY lattice
+(section 2):
+
+  MATCH        the derived digest is recorded in the manifest. The artifact
+               rebinds to that anchor's identity. If a `--claim` was given it must
+               agree with the anchored identity, else the result is DRIFT.
+  DRIFT        `--claim` names an identity the manifest anchors, but the naked
+               bytes hash to a different digest than that identity's anchor(s) - a
+               confirmed substitution (right name, wrong bytes); OR the bytes match
+               a known anchor but under a DIFFERENT identity than claimed.
+  UNVERIFIABLE no anchor records the bytes and no claim resolves to a mismatch (the
+               honest default, reason `E_NO_ANCHOR`); OR the manifest's own
+               `manifest_id` does not re-derive (`E_MANIFEST_TAMPERED`) or is
+               absent (`E_MANIFEST_UNVERIFIABLE`); OR the naked bytes are unreadable
+               (the section 9 raw-channel reason codes).
+
+MATCH is a FACT of re-derivation, never trust, approval, or a release decision,
+and maps to no authority word (Boundary 1). DRIFT (a confirmed difference)
+dominates UNVERIFIABLE, mirroring section 5. Exit codes follow section 5: MATCH
+-> 0, DRIFT -> 1, UNVERIFIABLE -> 2, usage -> 64. A rebind verdict may be sealed
+into a portable witness receipt (section 17) so the FACT travels off-machine where
+the stripped credential could not.

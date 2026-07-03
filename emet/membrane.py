@@ -38,11 +38,13 @@ Usage:
   membrane.py selftest                           -> re-derive my own identity
   membrane.py receipt --from-json <file|->       -> emit a portable witness receipt
   membrane.py check <receipt.json>               -> offline re-verify a receipt
+  membrane.py rebind <naked> --manifest <m.json> -> rebind stripped bytes (EXPERIMENTAL)
 """
 import sys, os, json, hashlib, subprocess
 from . import corpus
 from . import report
 from . import witness_receipt
+from . import rebind as rebind_mod
 from .report import say, emit
 from .verdict import governed, LATTICE, COHERENCE, CORROBORATE, AUDIT, RECEIPT
 
@@ -354,6 +356,103 @@ def check_cmd(args):
     emit("check", verdict, code, subject=path, detail=detail,
          receipt_id=r.get("receipt_id"))
 
+REBIND_USAGE = (
+    "usage: emet rebind <naked-bytes> --manifest <manifest.json> [--claim <identity>]\n"
+    "       emet rebind --build-manifest <path>=<identity> [<path>=<identity> ...]\n"
+    "\n"
+    "rebind re-derives the content hash of stripped naked bytes and rebinds them to\n"
+    "a KNOWN anchor recorded in a portable rebind manifest (SPEC s.18, EXPERIMENTAL),\n"
+    "emitting MATCH / DRIFT / UNVERIFIABLE. UNVERIFIABLE is the honest default when\n"
+    "no anchor records the bytes. --build-manifest constructs a manifest from\n"
+    "path=identity pairs (each path's raw bytes are hashed into an anchor record).\n"
+)
+
+
+def build_manifest_cmd(pairs):
+    # emet rebind --build-manifest <path>=<identity> ... -> print a content-addressed
+    # rebind manifest to stdout. Each pair anchors a path's raw-byte digest to an
+    # identity; an unreadable path is UNVERIFIABLE + exit 2, never a silent skip.
+    records = []
+    for pair in pairs:
+        if "=" not in pair:
+            sys.stderr.write("emet rebind --build-manifest: expected <path>=<identity>, got " + repr(pair) + "\n")
+            sys.exit(EXIT_USAGE)
+        path, identity = pair.split("=", 1)
+        b, err = try_raw(path)
+        if err:
+            say(governed(LATTICE, "UNVERIFIABLE") + " " + path + " reason=" + err)
+            emit("rebind-build-manifest", governed(LATTICE, "UNVERIFIABLE"),
+                 EXIT_UNVERIFIABLE, subject=_key(path), reason=err)
+            return
+        records.append({"digest": sha(b), "identity": identity})
+    now = os.environ.get("EMET_REBIND_NOW")
+    if now is None:
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        manifest = rebind_mod.build_manifest(records, issued_at=now)
+    except ValueError as e:
+        sys.stderr.write("emet rebind --build-manifest: " + str(e) + "\n")
+        sys.exit(EXIT_USAGE)
+    print(report.canonical(manifest))
+    sys.exit(EXIT_OK)
+
+
+def rebind_cmd(args):
+    # emet rebind <naked> --manifest <m.json> [--claim <id>]
+    #   | emet rebind --build-manifest <path>=<identity> ...
+    if args and args[0] == "--build-manifest":
+        pairs = args[1:]
+        if not pairs:
+            sys.stderr.write(REBIND_USAGE)
+            sys.exit(EXIT_USAGE)
+        build_manifest_cmd(pairs)
+        return
+    naked = manifest_path = claim = None
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok == "--manifest" and i + 1 < len(args):
+            manifest_path = args[i + 1]; i += 2; continue
+        if tok == "--claim" and i + 1 < len(args):
+            claim = args[i + 1]; i += 2; continue
+        if not tok.startswith("-") and naked is None:
+            naked = tok; i += 1; continue
+        i += 1
+    if naked is None or manifest_path is None:
+        sys.stderr.write(REBIND_USAGE)
+        sys.exit(EXIT_USAGE)
+    # The naked bytes: read raw, never a mediated view. Unreadable -> UNVERIFIABLE.
+    b, err = try_raw(naked)
+    if err:
+        say("result=" + governed(LATTICE, "UNVERIFIABLE") + " reason=" + err)
+        record("rebind", {"naked": _key(naked), "result": "UNVERIFIABLE", "reason": err})
+        emit("rebind", governed(LATTICE, "UNVERIFIABLE"), EXIT_UNVERIFIABLE,
+             subject=_key(naked), reason=err, experimental=True)
+        return
+    try:
+        manifest = rebind_mod.load_manifest(manifest_path)
+    except ValueError as e:
+        say("result=" + governed(LATTICE, "UNVERIFIABLE") + " reason=" + str(e))
+        record("rebind", {"naked": _key(naked), "result": "UNVERIFIABLE", "reason": "E_MANIFEST_UNREADABLE"})
+        emit("rebind", governed(LATTICE, "UNVERIFIABLE"), EXIT_UNVERIFIABLE,
+             subject=_key(naked), reason=str(e), experimental=True)
+        return
+    verdict, detail, digest = rebind_mod.rebind_manifest(b, manifest, claim=claim)
+    say("naked=" + _key(naked))
+    say("derived_digest=" + digest)
+    if claim is not None:
+        say("claim=" + claim)
+    say("manifest_id=" + str(manifest.get("manifest_id"))[:16])
+    say("result=" + verdict + " reason=" + detail)
+    record("rebind", {"naked": _key(naked), "digest": digest, "result": verdict,
+                      "claim": claim, "manifest_id": manifest.get("manifest_id")})
+    code = EXIT_OK if verdict == "MATCH" else (EXIT_DIFF if verdict == "DRIFT" else EXIT_UNVERIFIABLE)
+    emit("rebind", verdict, code, subject=_key(naked), derived_digest=digest,
+         claim=claim, detail=detail, manifest_id=manifest.get("manifest_id"),
+         experimental=True)
+
+
 def main():
     a = [x for x in sys.argv if x != "--json"]
     if len(a) != len(sys.argv):
@@ -367,6 +466,7 @@ def main():
     elif len(a) >= 2 and a[1] == "selftest":    selftest()
     elif len(a) >= 2 and a[1] == "receipt":     receipt_cmd(a[2:])
     elif len(a) >= 3 and a[1] == "check":       check_cmd(a[2:])
+    elif len(a) >= 3 and a[1] == "rebind":      rebind_cmd(a[2:])
     else: print(__doc__); sys.exit(EXIT_USAGE)
 
 if __name__ == "__main__":
