@@ -93,6 +93,34 @@ jobs:
         env:
           EMET_SKIP_CAPABILITIES: receipt
 
+  cross-lang-receipt-parity:
+    # The load-bearing proof of this wave: the portable witness receipt
+    # (SPEC s.17) emits a BYTE-IDENTICAL receipt_id across Python, Rust and
+    # Node, they verify each other's HMAC signatures, and every can-it-FAIL
+    # negative (tampered id, mutated governed field, malformed input, subject
+    # drift, wrong/absent key) actually FAILS in all three. This gate exists so
+    # a future cross-language divergence (canonical-JSON escaping, a type
+    # mismatch, a path-join difference) breaks CI instead of silently breaking
+    # the guarantee. EMET_REQUIRE_CROSS_LANG=1 makes a missing impl a hard
+    # failure, never a vacuous single-impl pass.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: build rust impl into the path the parity test discovers first
+        run: |
+          mkdir -p impl/rust/target/release
+          rustc -O impl/rust/emet.rs -o impl/rust/target/release/emet
+      - name: cross-language receipt parity + can-it-FAIL negatives (Py/Rust/Node)
+        run: python test_witness_receipt_cross_lang.py
+        env:
+          EMET_REQUIRE_CROSS_LANG: "1"
+
   packaging:
     runs-on: ubuntu-latest
     steps:

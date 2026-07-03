@@ -93,6 +93,27 @@ IMPLS = [
 ]
 ACTIVE = [i for i in IMPLS if i.available]
 
+# A parity assertion over a SINGLE impl is vacuously true (a set of one id has
+# length one), so this suite only proves cross-language parity when >= 2 impls
+# are present. Locally an absent toolchain is skipped gracefully. In CI the
+# guarantee this wave exists to prove MUST actually be exercised, so setting
+# EMET_REQUIRE_CROSS_LANG=1 turns a missing port into a hard failure rather than
+# a silent vacuous pass.
+REQUIRED = {"python", "rust", "node"}
+
+
+def setUpModule():
+    if os.environ.get("EMET_REQUIRE_CROSS_LANG"):
+        active_names = {i.name for i in ACTIVE}
+        missing = REQUIRED - active_names
+        if missing:
+            raise RuntimeError(
+                "EMET_REQUIRE_CROSS_LANG is set but these impls are not active "
+                "(toolchain missing or build failed): "
+                + ", ".join(sorted(missing))
+                + ". Cross-lang parity cannot be proven; refusing a vacuous pass."
+            )
+
 
 class CrossLangReceipt(unittest.TestCase):
     def setUp(self):
