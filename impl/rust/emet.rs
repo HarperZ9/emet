@@ -11,6 +11,7 @@ use std::env;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
 
 // ---------------- SHA-256 ----------------
@@ -1454,13 +1455,23 @@ fn jv_str_opt(v: &JV) -> Option<&str> {
 }
 
 // -------- receipt build (emit) --------
+// Resolve a subject path against an optional base_dir with the SAME semantics
+// as Python's os.path.join and Node's path.join: an absolute subject path
+// ignores base_dir, a relative one is joined platform-natively (no hardcoded
+// '/'), and a trailing separator on base_dir does not double up. This keeps
+// --recompute-from-paths resolving the same subject across all three impls on
+// every platform (SPEC s.17 cross-impl parity).
+fn recompute_join(path: &str, base_dir: Option<&str>) -> PathBuf {
+    match base_dir {
+        Some(d) => Path::new(d).join(path),
+        None => PathBuf::from(path),
+    }
+}
+
 // Re-hash a subject's live bytes from disk; None if unreadable (reported as a
 // reason code by the caller, never a panic).
 fn receipt_recompute(path: &str, base_dir: Option<&str>) -> Option<String> {
-    let full = match base_dir {
-        Some(d) => format!("{}/{}", d.trim_end_matches('/'), path),
-        None => path.to_string(),
-    };
+    let full = recompute_join(path, base_dir);
     fs::read(&full).ok().map(|b| sha256_hex(&b))
 }
 
@@ -2131,5 +2142,28 @@ mod tests {
         for tok in ["TRUSTED", "APPROVED", "SAFE", "AUTHORIZED", "PERMITTED", "VERIFIED_AUTHORITY"] {
             assert!(!s.contains(tok), "authority token {} leaked", tok);
         }
+    }
+
+    // 14. Subject path resolution matches os.path.join / path.join semantics so
+    //     --recompute-from-paths resolves the same subject as Python/Node given
+    //     the same (base_dir, path) pair, cross-platform.
+    #[test]
+    fn recompute_join_matches_python_node_semantics() {
+        // None base_dir -> path is used verbatim.
+        assert_eq!(recompute_join("a/b.txt", None), PathBuf::from("a/b.txt"));
+        // Relative subject under a base_dir -> platform-native join.
+        assert_eq!(
+            recompute_join("sub/file.txt", Some("base")),
+            Path::new("base").join("sub/file.txt")
+        );
+        // An absolute subject path IGNORES base_dir, exactly like os.path.join
+        // and path.join. The old hardcoded format!("{}/{}") got this wrong.
+        let abs = if cfg!(windows) { "C:\\etc\\x" } else { "/etc/x" };
+        assert_eq!(recompute_join(abs, Some("base")), PathBuf::from(abs));
+        // Trailing separators on base_dir do not produce a doubled separator.
+        assert_eq!(
+            recompute_join("f.txt", Some("base/")),
+            Path::new("base").join("f.txt")
+        );
     }
 }
