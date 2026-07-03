@@ -16,8 +16,11 @@ receipt is the standardized, cross-implementable form that CAN travel.
 Two independent integrity checks compose here, and neither is a trust decision:
 
   1. content-addressing (default): receipt_id = sha256(canonical(receipt minus
-     receipt_id and signature)). Tampering ANY governed field re-hashes to a
-     different id, so a doctored receipt is detectable with no shared secret.
+     receipt_id, signature, and the per-implementation witness block)). Tampering
+     ANY governed field re-hashes to a different id, so a doctored receipt is
+     detectable with no shared secret. The witness block is excluded because it is
+     producer identity (SPEC s.17.2): including it would make the same subject +
+     spec + issued_at hash differently in Python vs Rust vs Node.
   2. subject re-derivation (optional): given the subject files on disk, re-hash
      their bytes and compare against the recorded digests. This proves the
      receipt is a POINT-IN-TIME snapshot, not a blanket certificate: when the
@@ -156,19 +159,36 @@ def _verdict_records(env):
     return records
 
 
+# Fields EXCLUDED from the content address (SPEC s.17.2). receipt_id and signature
+# are excluded because they wrap the body. witness is excluded because it is
+# PRODUCER IDENTITY (implementation name + that implementation's own
+# artifact-of-record hash, SPEC s.14), which is intrinsically per-implementation:
+# including it would make the same subject/verdict/spec/issued_at hash to a
+# DIFFERENT id in Python vs Rust vs Node, breaking the s.17.2 re-derivation
+# guarantee (which enumerates subject bytes + spec_version + corpus_version +
+# issued_at, NOT the producer identity). The witness block still travels in the
+# receipt as descriptive metadata; it just does not govern the address.
+_UNADDRESSED = ("receipt_id", "signature", "witness")
+
+
+def _addressed_body(receipt):
+    return {k: v for k, v in receipt.items() if k not in _UNADDRESSED}
+
+
 def receipt_id_hash(receipt):
-    """The content address (SPEC s.17): sha256 of the canonical JSON form of the
-    receipt with receipt_id and signature EXCLUDED. Byte-identical across
-    conforming implementations because report.canonical() pins the byte form."""
-    body = {k: v for k, v in receipt.items() if k not in ("receipt_id", "signature")}
-    return _sha256_hex(report.canonical(body).encode("utf-8"))
+    """The content address (SPEC s.17.2): sha256 of the canonical JSON form of the
+    receipt with receipt_id, signature, and the per-implementation witness block
+    EXCLUDED. Byte-identical across conforming implementations because
+    report.canonical() pins the byte form and only re-derivation-governed fields
+    (subject, verdict_record, issued_at, corpus_*, format, method) are hashed."""
+    return _sha256_hex(report.canonical(_addressed_body(receipt)).encode("utf-8"))
 
 
 def _sign(receipt, signing_key):
-    # HMAC-SHA256 over the canonical body (id + signature excluded), so the
-    # signature covers exactly what the content address covers.
-    body = {k: v for k, v in receipt.items() if k not in ("receipt_id", "signature")}
-    return hmac.new(signing_key, report.canonical(body).encode("utf-8"),
+    # HMAC-SHA256 over the SAME canonical body the content address covers
+    # (id + signature + witness excluded), so signature and address agree.
+    return hmac.new(signing_key,
+                    report.canonical(_addressed_body(receipt)).encode("utf-8"),
                     hashlib.sha256).hexdigest()
 
 

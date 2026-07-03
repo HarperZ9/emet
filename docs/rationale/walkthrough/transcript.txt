@@ -1,6 +1,6 @@
 $ python membrane.py selftest
-emet_self_sha256=b75ae75283ae774d4d8fc68452de34636fc5e47fd544d1d2d1c9783f1f282f1a
-membrane_self_sha256=b75ae75283ae774d4d8fc68452de34636fc5e47fd544d1d2d1c9783f1f282f1a  (deprecated alias; removed at 2.0)
+emet_self_sha256=81da622235be0b55f74bcfe3836aa1f9a0ad7b0b4ac3ab078e7245419fb354e9
+membrane_self_sha256=81da622235be0b55f74bcfe3836aa1f9a0ad7b0b4ac3ab078e7245419fb354e9  (deprecated alias; removed at 2.0)
 note=this hash is my only credential; re-derive it from source to verify me.
 note=I assert no authority, grant no permission, decide no safety question.
 (exit 0)

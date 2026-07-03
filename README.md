@@ -73,18 +73,18 @@ grants authority or permission.
 - A clean-room Go fourth implementation - `impl/go/emet.go`, standard library only (no third-party modules).
 - A normative, frozen v1.0 spec, a language-agnostic conformance suite, a STRIDE threat model, and an in-toto attestation adapter.
 - A versioned marker corpus (`conformance/markers.corpus`) all four implementations load and re-derive identically.
-- All four implementations pass the same 35 conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify).
+- All four implementations pass the same 35 core conformance vectors in CI on every push - byte-hash core, the exit-code split, the `--json` envelope, the marker path, and the audit chain (write and verify). Five further vectors cover the portable witness receipt (SPEC s.17); Python, Rust, and Node.js pass all 40. The Go implementation passes the 35 core vectors and does not yet implement `receipt`/`check` (see [Receipt support](#receipt-support)).
 
 ## Reproduce it
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py            # Python reference: 35/35
+python conformance/run.py membrane.py            # Python reference: 40/40
 ( cd impl/rust && rustc -O emet.rs -o emet )     # build the Rust second implementation
-python conformance/run.py impl/rust/emet         # Rust:    35/35
-python conformance/run.py impl/js/emet.js        # Node.js: 35/35
+python conformance/run.py impl/rust/emet         # Rust:    40/40
+python conformance/run.py impl/js/emet.js        # Node.js: 40/40
 ( cd impl/go && go build -o emet emet.go )       # build the Go fourth implementation
-python conformance/run.py impl/go/emet           # Go:      35/35
+python conformance/run.py impl/go/emet           # Go:      35/40 (core; receipt/check not yet ported)
 ```
 
 ## Use it
@@ -118,6 +118,27 @@ VIEW_DIFFERS_FROM_SOURCE / QUARANTINE / BROKEN) · `2` UNVERIFIABLE · `3` marke
 For an install/build line, per-command worked examples with expected output, the
 companion tools (`monitor.py`, `organs.py`), and a runnable demo, see
 [USAGE.md](USAGE.md) and [examples/](examples/).
+
+### Receipt support
+
+The portable witness receipt (SPEC s.17) is content-addressed, so the same
+subject/verdict/spec/issued_at yields a **byte-identical `receipt_id` across
+implementations** (the per-implementation `witness` block is producer identity and
+is excluded from the address, s.17.2). A receipt produced by one implementation
+re-verifies unchanged under any other.
+
+| Implementation | `receipt` / `check` | Signature (HMAC-SHA256) |
+| --- | --- | --- |
+| Python (reference) | yes | native (`hmac`) |
+| Rust (`impl/rust`) | yes | hand-composed over its own SHA-256 (no external crate); verified against RFC 4231 |
+| Node.js (`impl/js`) | yes | native (`crypto.createHmac`) |
+| Go (`impl/go`) | not yet ported | -- |
+
+An unsigned receipt verifies on the content address alone; the signature is
+optional and only strengthens integrity when producer and verifier share a key
+channel (`EMET_RECEIPT_SIGNING_KEY`). The Go clean-room implementation passes the
+35 core conformance vectors; porting `receipt`/`check` to Go is the remaining
+parity item.
 
 ## Proof-surface use
 
