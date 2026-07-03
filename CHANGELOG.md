@@ -12,14 +12,40 @@ Added:
   trust in the producer, zero network. This lifts the section 15 limit that the
   anchor store is implementation-private so a verdict could not leave the machine
   that made it. `receipt_id` content-addresses the receipt
-  (`sha256(canonical(receipt minus receipt_id + signature))`); tampering any
-  field re-hashes to a different id. An optional HMAC-SHA256 `signature` keyed by
+  (`sha256(canonical(receipt minus receipt_id, signature, and witness))`, s.17.2);
+  tampering any addressed field re-hashes to a different id. An optional HMAC-SHA256 `signature` keyed by
   `EMET_RECEIPT_SIGNING_KEY` adds integrity when producer and verifier share a
   key channel. The check emits the new closed `RECEIPT` lattice
   (`RECEIPT_VALID` -> exit 0, `RECEIPT_TAMPERED` -> 1, `RECEIPT_UNVERIFIABLE` ->
   2), which maps to no authority word. Core in `emet/witness_receipt.py`; optional
   offline re-verifier convenience wrapper in
   `adapters/witness_receipt_portable.py`.
+
+- **Cross-language receipt parity (Rust + Node.js).** `receipt`/`check` are now
+  ported to the Rust (`impl/rust/emet.rs`) and Node.js (`impl/js/emet.js`)
+  implementations, so three of the four impls can emit and offline-verify a
+  receipt. The content address (`receipt_id`) is **byte-identical across
+  implementations** for the same subject/verdict/spec/issued_at. Rust composes
+  HMAC-SHA256 over its own hand-rolled SHA-256 (no external crate; pinned to RFC
+  4231) and Node.js uses the built-in `crypto`, so both verify signed receipts as
+  well as unsigned ones. Five new conformance vectors (`receipt-valid`,
+  `receipt-tampered-id-flip`, `receipt-tampered-signature`,
+  `receipt-unverifiable-malformed`, `receipt-subject-drift`) lock the cross-impl
+  behavior; the suite is now 40 vectors. The Go implementation passes the 35 core
+  vectors and does not yet implement `receipt`/`check` (its 5 receipt vectors are
+  skipped by capability via `EMET_SKIP_CAPABILITIES=receipt`), the remaining
+  parity item.
+
+Changed:
+
+- **Receipt content address excludes the `witness` block (SPEC s.17.2).** The
+  per-implementation `witness` (implementation name + that implementation's own
+  artifact-of-record `self_sha256`) is producer identity, not a
+  re-derivation-governed field; including it made `receipt_id` intrinsically
+  per-implementation and would have broken the byte-identical-across-impls
+  guarantee. The address is now `sha256(canonical(receipt minus receipt_id,
+  signature, and witness))`; the witness block still travels as descriptive
+  metadata. Surfaced while porting to Rust/Node.js (fix-the-spec).
 
 - **Proof-surface bundle witness** in `adapters/proof_surface_receipt.py`: a new
   `bundle <bundle.json>` subcommand that re-derives a content-addressed

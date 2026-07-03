@@ -21,7 +21,8 @@ import os, sys, json, tempfile, shutil, subprocess, hashlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "membrane.py"))
 VECT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, "vectors.json")
-SUBCMDS = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit", "selftest")
+SUBCMDS = ("anchor", "verify", "coherence", "refuse", "corroborate", "audit",
+           "selftest", "receipt", "check")
 CORPUS = os.path.abspath(os.path.join(HERE, "markers.corpus"))
 
 def invoke(tool):
@@ -47,8 +48,23 @@ def main():
                 + "\n  actual: " + actual + "\n  pinned: " + pinned
             )
     vectors = spec["vectors"]
+    # An implementation may not yet implement an optional capability (e.g. the
+    # portable witness receipt, SPEC s.17). Such an impl declares the capabilities
+    # it lacks in EMET_SKIP_CAPABILITIES (comma-separated); vectors tagged with a
+    # skipped capability are reported SKIP and excluded from the denominator, so a
+    # partial impl is scored honestly against what it DOES claim, never silently
+    # credited for what it omits. A vector with no "capability" is always run.
+    skip_caps = {c.strip() for c in os.environ.get("EMET_SKIP_CAPABILITIES", "").split(",") if c.strip()}
     npass = 0
+    ntotal = 0
+    nskip = 0
     for v in vectors:
+        cap = v.get("capability")
+        if cap is not None and cap in skip_caps:
+            print("SKIP " + v["id"] + " capability=" + cap)
+            nskip += 1
+            continue
+        ntotal += 1
         tmp = tempfile.mkdtemp(prefix="emet_conf_")
         try:
             for name, content in v.get("files", {}).items():
@@ -70,8 +86,9 @@ def main():
                 npass += 1
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
-    print("CONFORMANCE " + str(npass) + "/" + str(len(vectors)) + " vectors pass")
-    sys.exit(0 if npass == len(vectors) else 1)
+    tail = (" (" + str(nskip) + " skipped by capability)") if nskip else ""
+    print("CONFORMANCE " + str(npass) + "/" + str(ntotal) + " vectors pass" + tail)
+    sys.exit(0 if npass == ntotal else 1)
 
 if __name__ == "__main__":
     main()

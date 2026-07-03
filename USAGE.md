@@ -38,10 +38,11 @@ Optional second/third/fourth implementations (same conformance vectors, no packa
 managers):
 
 ```sh
-( cd impl/rust && rustc -O emet.rs -o emet ); python conformance/run.py impl/rust/emet   # Rust, no crates
-python conformance/run.py impl/js/emet.js                                                # Node.js, built-ins only
-( cd impl/go && go build -o emet emet.go ); python conformance/run.py impl/go/emet       # Go, stdlib only
-# each: expected CONFORMANCE 35/35 vectors pass
+( cd impl/rust && rustc -O emet.rs -o emet ); python conformance/run.py impl/rust/emet   # Rust, no crates: 40/40
+python conformance/run.py impl/js/emet.js                                                # Node.js, built-ins only: 40/40
+( cd impl/go && go build -o emet emet.go ); python conformance/run.py impl/go/emet       # Go, stdlib only: 35/40 (receipt/check not yet ported)
+# Python/Rust/Node.js: CONFORMANCE 40/40. Go passes the 35 core vectors; the 5
+# witness-receipt vectors (SPEC s.17) are not yet ported to Go.
 ```
 
 ## Commands
