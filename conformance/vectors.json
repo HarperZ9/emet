@@ -550,6 +550,79 @@
         "r.json",
         "--recompute-from-paths"
       ]
+    },
+    {
+      "capability": "rebind",
+      "expect_exit": 0,
+      "expect_substr": "result=MATCH",
+      "files": {
+        "manifest.json": "{\"format\": \"emet-rebind-manifest/v1\", \"issued_at\": \"2026-07-02T00:00:00Z\", \"manifest_id\": \"e8bb63f165b8096269eb682599021a358ae77a8331e13edc10f14ac512286654\", \"notes\": \"EMET rebind manifest: a portable set of known content anchors (digest -> identity). It carries facts of re-derivation, never authority, permission, or a release decision.\", \"records\": [{\"digest\": \"03e7926150a7fa18f114b4dd4e9cd6b7b4d30d948dcd17bf85555ca6ce407b1c\", \"identity\": \"photo-2026-001\"}]}",
+        "stripped.png": "original raw image bytes\n"
+      },
+      "id": "rebind-stripped-copy-matches",
+      "note": "SPEC s.18 (experimental): naked bytes whose embedded credential was stripped re-derive to a digest a known anchor records, so the artifact rebinds -> MATCH. Content-addressed rebinding needs no surviving in-band credential.",
+      "run": [
+        "rebind",
+        "stripped.png",
+        "--manifest",
+        "manifest.json"
+      ]
+    },
+    {
+      "capability": "rebind",
+      "expect_exit": 1,
+      "expect_substr": "result=DRIFT",
+      "files": {
+        "forged.png": "forged content\n",
+        "manifest.json": "{\"format\": \"emet-rebind-manifest/v1\", \"issued_at\": \"2026-07-02T00:00:00Z\", \"manifest_id\": \"e8bb63f165b8096269eb682599021a358ae77a8331e13edc10f14ac512286654\", \"notes\": \"EMET rebind manifest: a portable set of known content anchors (digest -> identity). It carries facts of re-derivation, never authority, permission, or a release decision.\", \"records\": [{\"digest\": \"03e7926150a7fa18f114b4dd4e9cd6b7b4d30d948dcd17bf85555ca6ce407b1c\", \"identity\": \"photo-2026-001\"}]}"
+      },
+      "id": "rebind-claim-wrong-bytes-drifts",
+      "literal": [
+        "photo-2026-001"
+      ],
+      "note": "SPEC s.18: the caller asserts the artifact IS an anchored identity (--claim) but the bytes hash differently -> DRIFT, a confirmed substitution. The verifier can FAIL; it is not a rubber stamp.",
+      "run": [
+        "rebind",
+        "forged.png",
+        "--manifest",
+        "manifest.json",
+        "--claim",
+        "photo-2026-001"
+      ]
+    },
+    {
+      "capability": "rebind",
+      "expect_exit": 2,
+      "expect_substr": "E_NO_ANCHOR",
+      "files": {
+        "manifest.json": "{\"format\": \"emet-rebind-manifest/v1\", \"issued_at\": \"2026-07-02T00:00:00Z\", \"manifest_id\": \"e8bb63f165b8096269eb682599021a358ae77a8331e13edc10f14ac512286654\", \"notes\": \"EMET rebind manifest: a portable set of known content anchors (digest -> identity). It carries facts of re-derivation, never authority, permission, or a release decision.\", \"records\": [{\"digest\": \"03e7926150a7fa18f114b4dd4e9cd6b7b4d30d948dcd17bf85555ca6ce407b1c\", \"identity\": \"photo-2026-001\"}]}",
+        "unknown.png": "never seen before\n"
+      },
+      "id": "rebind-unknown-is-unverifiable",
+      "note": "SPEC s.18: no anchor records these bytes and no claim was made, so the honest default is UNVERIFIABLE (exit 2) with reason E_NO_ANCHOR - an unknown artifact is unknown, never trusted.",
+      "run": [
+        "rebind",
+        "unknown.png",
+        "--manifest",
+        "manifest.json"
+      ]
+    },
+    {
+      "capability": "rebind",
+      "expect_exit": 2,
+      "expect_substr": "E_MANIFEST_TAMPERED",
+      "files": {
+        "manifest.json": "{\"format\": \"emet-rebind-manifest/v1\", \"issued_at\": \"2026-07-02T00:00:00Z\", \"manifest_id\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"notes\": \"EMET rebind manifest: a portable set of known content anchors (digest -> identity). It carries facts of re-derivation, never authority, permission, or a release decision.\", \"records\": [{\"digest\": \"03e7926150a7fa18f114b4dd4e9cd6b7b4d30d948dcd17bf85555ca6ce407b1c\", \"identity\": \"photo-2026-001\"}]}",
+        "stripped.png": "original raw image bytes\n"
+      },
+      "id": "rebind-tampered-manifest-unverifiable",
+      "note": "SPEC s.18: a manifest whose manifest_id no longer re-derives is a doctored anchor set; EMET refuses to rebind against it -> UNVERIFIABLE (E_MANIFEST_TAMPERED), never a MATCH off corruption.",
+      "run": [
+        "rebind",
+        "stripped.png",
+        "--manifest",
+        "manifest.json"
+      ]
     }
   ]
 }

@@ -61,6 +61,7 @@ python membrane.py coherence   <source> <view>   # is a presented view faithful 
 python membrane.py refuse      <file>            # detect + strip in-band authority claims
 python membrane.py corroborate <path>            # agreement across disjoint read paths
 python membrane.py audit                         # recompute the tamper-evident log chain
+python membrane.py rebind <naked> --manifest <m> # rebind stripped bytes (SPEC s.18, experimental)
 ```
 
 Add `--json` to any command for a machine-readable canonical-JSON envelope
@@ -192,6 +193,40 @@ $ python membrane.py verify --json report.md
 {"command": "verify", "emet_version": "1.0.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
 # exit 1
 ```
+
+### 6. rebind - re-establish a MATCH on stripped naked bytes (experimental)
+
+The C2PA failure mode: an image's embedded provenance is stripped by a re-encode
+or a screenshot, and the artifact is orphaned. EMET anchors the raw bytes out of
+band, so it rebinds by re-deriving the content hash and looking it up in a
+portable rebind manifest. Build the manifest from the originals you know, then
+rebind a stripped copy:
+
+```sh
+# 1. build a manifest of known anchors (each path's raw bytes -> an identity)
+$ python membrane.py rebind --build-manifest photo.png=photo-2026-001 > manifest.json
+
+# 2. a stripped/re-encoded copy with the SAME content bytes rebinds -> MATCH
+$ python membrane.py rebind stripped_copy.png --manifest manifest.json
+result=MATCH reason=rebound to anchor 'photo-2026-001' digest=9fa157c6439138b4
+# exit 0
+
+# 3. a caller asserting a known identity over substituted bytes -> DRIFT
+$ python membrane.py rebind forged.png --manifest manifest.json --claim photo-2026-001
+result=DRIFT reason=claim 'photo-2026-001' is anchored, but bytes hash ... (substituted bytes)
+# exit 1
+
+# 4. bytes no anchor records, no claim -> UNVERIFIABLE (the honest default)
+$ python membrane.py rebind unknown.png --manifest manifest.json
+result=UNVERIFIABLE reason=no known anchor records digest ... (E_NO_ANCHOR)
+# exit 2
+```
+
+`MATCH` is a fact of re-derivation, never trust; `UNVERIFIABLE` is never a pass. A
+rebind verdict seals into a witness receipt (`--json | receipt --from-json -`) so
+the fact travels off-machine where the stripped credential could not. The
+`emet-rebind-manifest/v1` shape is experimental (SPEC section 18); the
+cross-language port contract is [docs/REBIND-SPEC.md](docs/REBIND-SPEC.md).
 
 ## Optional: proof-surface receipt adapter
 

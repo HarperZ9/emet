@@ -4,6 +4,24 @@
 
 Added:
 
+- **Stripped-credential rebind** (SPEC section 18, EXPERIMENTAL): `emet rebind
+  <naked> --manifest <m.json> [--claim <identity>]` re-establishes a MATCH on
+  naked bytes whose embedded provenance was stripped (the C2PA failure mode). EMET
+  never bound to embedded metadata: it anchors the sha256 of the raw bytes out of
+  band, so rebind re-derives the naked bytes' content hash and rebinds it to a
+  known anchor in a portable, content-addressed rebind manifest
+  (`emet-rebind-manifest/v1`). Verdicts are the closed primary lattice: `MATCH`
+  (rebound to a known anchor) -> exit 0, `DRIFT` (a claimed identity with
+  substituted bytes, or right bytes under a wrong claimed name) -> 1,
+  `UNVERIFIABLE` (no known anchor - the honest default - or a manifest whose
+  `manifest_id` does not re-derive) -> 2. `MATCH` is a fact of re-derivation, never
+  trust, and maps to no authority word. A rebind verdict seals into a witness
+  receipt (section 17) unchanged, and rides the existing tamper-evident log. Build
+  manifests with `emet rebind --build-manifest <path>=<identity> ...`. Core in
+  `emet/rebind.py`; four `capability: "rebind"` conformance vectors; behavior tests
+  in `test_rebind.py`. Cross-language (Rust/Node/Go) parity is SPECced as follow-on
+  in `docs/REBIND-SPEC.md` and is NOT yet a required conformance capability.
+
 - **Portable witness receipt** (SPEC section 17): `emet receipt --from-json
   <file|->` turns a `verify`/`anchor`/`coherence`/`corroborate --json` envelope
   into a self-contained, content-addressed JSON receipt that a DIFFERENT party
