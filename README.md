@@ -6,8 +6,8 @@
 
 [![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
 ![python](https://img.shields.io/badge/python-3.x-blue.svg)
-![version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 [![PyPI](https://img.shields.io/pypi/v/emet.svg)](https://pypi.org/project/emet/)
+[![downloads](https://img.shields.io/pypi/dm/emet.svg?label=downloads)](https://pypi.org/project/emet/)
 [![CI](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
 ![deps: none](https://img.shields.io/badge/deps-none-success.svg)
 [![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
