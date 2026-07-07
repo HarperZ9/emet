@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emet"
-version = "1.0.0"
+version = "1.1.0"
 description = "A small external witness for AI oversight: re-derive the bytes, get MATCH / DRIFT / UNVERIFIABLE, trust nothing in-band."
 readme = "README.md"
 requires-python = ">=3.8"
