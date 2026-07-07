@@ -52,7 +52,7 @@ run it straight from a checkout or `pip install emet`.
 - **Zero dependencies, by construction.** Stdlib-only Python, no crates, no
   npm packages, no Go modules.
 
-## Install and quickstart
+## Usage
 
 ```sh
 pip install emet
@@ -117,7 +117,10 @@ on disk against the recorded digests. For every command with captured real
 output, the companion tools (`monitor.py`, `organs.py`), and a runnable demo,
 see [USAGE.md](USAGE.md) and [examples/](examples/).
 
-## Reproduce it
+## For developers
+
+The repo ships its own delivery contract; re-check it any time with
+`python test_forward_delivery_contract.py`.
 
 Each implementation declares the optional capabilities it does not yet claim
 (`EMET_SKIP_CAPABILITIES`), and the runner scores it only on what it does
@@ -155,7 +158,7 @@ cross-language port contract is [docs/REBIND-SPEC.md](docs/REBIND-SPEC.md).
 
 ## What it won't do
 
-It only reports facts. It can't say `TRUSTED`, doesn't decide whether a model
+EMET is an advisory integrity witness: it only reports facts. It can't say `TRUSTED`, doesn't decide whether a model
 is safe, runs outside whatever it audits, and never edits, signs, or blocks
 anything. Those constraints are the point, not limitations: see
 [SPEC.md](SPEC.md) section 6.
@@ -194,14 +197,14 @@ see [docs/spec-findings-from-go-impl.md](docs/spec-findings-from-go-impl.md).
 Claim a language in [Discussions](../../discussions) so effort isn't
 duplicated.
 
-## Why a witness, in one paragraph
+## Why it matters
 
 A model-facing view can drift from its source, a monitor can observe the wrong
 artifact, and a generated report can overstate what was checked. EMET is the
 small external witness for those seams: it re-derives the bytes and reports
 what matched, what drifted, and what could not be verified, without ever
-becoming an authority. Every verdict is a fact you can re-check yourself: same
-bytes, same answer. It composes with its peer tools
+becoming an authority. The public value is exactly that: every verdict is a
+fact anyone can re-check, same bytes, same answer. It composes with its peer tools
 [forum](https://github.com/HarperZ9/forum) (accountable multi-agent
 orchestration) and
 [accountable-surface](https://github.com/HarperZ9/accountable-surface) (live
