@@ -7,4 +7,4 @@ Re-derive the bytes, get one of three verdicts (MATCH / DRIFT / UNVERIFIABLE),
 trust nothing in-band. SPEC.md is the normative contract; this package is the
 Python reference implementation. Importing the package has no side effects.
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"

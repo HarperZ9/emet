@@ -194,7 +194,7 @@ can be `TRUSTED` (the closed lattice holds in JSON too).
 
 ```sh
 $ python membrane.py verify --json report.md
-{"command": "verify", "emet_version": "1.0.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
+{"command": "verify", "emet_version": "1.1.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
 # exit 1
 ```
 

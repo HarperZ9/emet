@@ -375,7 +375,7 @@ fn emit_envelope(command: &str, verdict: Option<&str>, exit_code: i32, fields: V
     }
     let mut pairs: Vec<(String, JV)> = Vec::new();
     pairs.push(("command".to_string(), JV::S(command.to_string())));
-    pairs.push(("emet_version".to_string(), JV::S("1.0.0".to_string())));
+    pairs.push(("emet_version".to_string(), JV::S("1.1.0".to_string())));
     pairs.push(("spec_version".to_string(), JV::S("1.0.0".to_string())));
     pairs.push(("exit_code".to_string(), JV::I(exit_code as i64)));
     if let Some(v) = verdict {

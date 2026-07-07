@@ -1,8 +1,30 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 - 2026-07-07 - Portable witness receipts, cross-language parity, experimental rebind
+
+Verdicts now travel: a receipt made on one machine re-derives on another, in
+three of the four implementations, with zero shared state. The spec contract
+stays frozen at 1.0.0 (`spec_version` is unchanged); this release adds
+sections 17 and 18 as new capabilities on top of it. Rebind is EXPERIMENTAL.
 
 Added:
+
+- **Portable witness receipt** (SPEC section 17): `emet receipt --from-json
+  <file|->` turns a `verify`/`anchor`/`coherence`/`corroborate --json` envelope
+  into a self-contained, content-addressed JSON receipt that a DIFFERENT party
+  re-derives and checks on their own machine with the new stateless verifier
+  `emet check <receipt.json> [--recompute-from-paths]` - zero shared state, zero
+  trust in the producer, zero network. This lifts the section 15 limit that the
+  anchor store is implementation-private so a verdict could not leave the machine
+  that made it. `receipt_id` content-addresses the receipt
+  (`sha256(canonical(receipt minus receipt_id, signature, and witness))`, s.17.2);
+  tampering any addressed field re-hashes to a different id. An optional HMAC-SHA256 `signature` keyed by
+  `EMET_RECEIPT_SIGNING_KEY` adds integrity when producer and verifier share a
+  key channel. The check emits the new closed `RECEIPT` lattice
+  (`RECEIPT_VALID` -> exit 0, `RECEIPT_TAMPERED` -> 1, `RECEIPT_UNVERIFIABLE` ->
+  2), which maps to no authority word. Core in `emet/witness_receipt.py`; optional
+  offline re-verifier convenience wrapper in
+  `adapters/witness_receipt_portable.py`.
 
 - **Stripped-credential rebind** (SPEC section 18, EXPERIMENTAL): `emet rebind
   <naked> --manifest <m.json> [--claim <identity>]` re-establishes a MATCH on
@@ -21,23 +43,6 @@ Added:
   `emet/rebind.py`; four `capability: "rebind"` conformance vectors; behavior tests
   in `test_rebind.py`. Cross-language (Rust/Node/Go) parity is SPECced as follow-on
   in `docs/REBIND-SPEC.md` and is NOT yet a required conformance capability.
-
-- **Portable witness receipt** (SPEC section 17): `emet receipt --from-json
-  <file|->` turns a `verify`/`anchor`/`coherence`/`corroborate --json` envelope
-  into a self-contained, content-addressed JSON receipt that a DIFFERENT party
-  re-derives and checks on their own machine with the new stateless verifier
-  `emet check <receipt.json> [--recompute-from-paths]` - zero shared state, zero
-  trust in the producer, zero network. This lifts the section 15 limit that the
-  anchor store is implementation-private so a verdict could not leave the machine
-  that made it. `receipt_id` content-addresses the receipt
-  (`sha256(canonical(receipt minus receipt_id, signature, and witness))`, s.17.2);
-  tampering any addressed field re-hashes to a different id. An optional HMAC-SHA256 `signature` keyed by
-  `EMET_RECEIPT_SIGNING_KEY` adds integrity when producer and verifier share a
-  key channel. The check emits the new closed `RECEIPT` lattice
-  (`RECEIPT_VALID` -> exit 0, `RECEIPT_TAMPERED` -> 1, `RECEIPT_UNVERIFIABLE` ->
-  2), which maps to no authority word. Core in `emet/witness_receipt.py`; optional
-  offline re-verifier convenience wrapper in
-  `adapters/witness_receipt_portable.py`.
 
 - **Cross-language receipt parity (Rust + Node.js).** `receipt`/`check` are now
   ported to the Rust (`impl/rust/emet.rs`) and Node.js (`impl/js/emet.js`)
@@ -76,6 +81,16 @@ Changed:
   entirely in EMET (it does not import proof-surface) and preserves the
   no-authority contract: an authority-shaped token anywhere in the manifest is
   refused and the verdict never becomes `TRUSTED`.
+
+Docs:
+
+- **Visual-identity refresh:** a spectrum banner (`.github/assets/banner.svg`)
+  now heads the README, and the static version badge is replaced with a live
+  PyPI downloads badge so the README never pins a stale version.
+- **README overhaul:** rewritten feature-first (a current introduction, what
+  the tool does before how it is built), while keeping the honest maturity
+  language: the different-author re-derivability bar (SPEC section 12) is
+  still open, and the delivery contract test now covers the new surface.
 
 ## 1.0.0 - 2026-06-30 - Frozen contract, four implementations
 
