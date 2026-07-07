@@ -1,27 +1,21 @@
-# EMET
+<p align="center"><img src=".github/assets/banner.svg" alt="emet: Byte-level integrity witness. Four independent implementations, one verdict lattice." width="100%"></p>
 
-> A small external witness for AI oversight: re-derive the bytes, get one of three verdicts, trust nothing in-band.
+**Byte-level integrity witness. Four independent implementations, one verdict lattice.**
 
-![EMET advisory integrity witness architecture](assets/emet-hero.png)
-
-[![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-blue.svg)](LICENSE)
-![python](https://img.shields.io/badge/python-3.x-blue.svg)
-[![PyPI](https://img.shields.io/pypi/v/emet.svg)](https://pypi.org/project/emet/)
-[![downloads](https://img.shields.io/pypi/dm/emet.svg?label=downloads)](https://pypi.org/project/emet/)
+[![PyPI](https://img.shields.io/pypi/v/emet?style=flat-square&labelColor=14041b&color=ff35aa)](https://pypi.org/project/emet/)
+[![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-8f8095?style=flat-square&labelColor=14041b)](LICENSE)
+[![downloads](https://img.shields.io/pypi/dm/emet?label=downloads&style=flat-square&labelColor=14041b)](https://pypi.org/project/emet/)
 [![CI](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
-![deps: none](https://img.shields.io/badge/deps-none-success.svg)
-[![part of: AI-accountability toolkit](https://img.shields.io/badge/part_of-AI--accountability_toolkit-7a5cff.svg)](https://harperz9.github.io)
+![python](https://img.shields.io/badge/python-3.x-8f8095?style=flat-square&labelColor=14041b)
+![deps: none](https://img.shields.io/badge/deps-none-8f8095?style=flat-square&labelColor=14041b)
 
-EMET is a small external witness for AI oversight and source/view consistency.
-It checks whether bytes reaching a model still match the source they claim to
-represent, then reports one of three deliberately limited verdicts: `MATCH`,
-`DRIFT`, or `UNVERIFIABLE`.
-
-It exists for the gap build-provenance tools do not cover by themselves: a
-system vouching for itself in-band, a presented view drifting away from source,
-or a monitor reading a different file than the one that actually runs. Trust
-comes from re-derivation - same bytes, same answer - not from authority. There
-is no `TRUSTED` verdict.
+EMET checks whether the bytes reaching a model still match the source they
+claim to represent, then emits one of three closed verdicts: `MATCH`, `DRIFT`,
+or `UNVERIFIABLE`. Four clean-room implementations, in stdlib-only Python,
+Rust, Node.js, and Go, load the same marker corpus and re-derive it
+identically against a shared conformance suite. Zero dependencies: run it
+straight from a checkout or `pip install emet`. Every verdict comes from
+re-derivation you can re-check: same bytes, same answer.
 
 `emet` is Hebrew for "truth."
 
