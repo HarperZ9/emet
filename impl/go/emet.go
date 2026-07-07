@@ -40,7 +40,7 @@ const (
 )
 
 const (
-	emetVersion = "1.0.0"
+	emetVersion = "1.1.0"
 	specVersion = "1.0.0"
 )
 

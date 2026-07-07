@@ -165,11 +165,11 @@ anything. Those constraints are the point, not limitations: see
 
 ## Status
 
-v1.0.0. The spec is **frozen and stable**. The byte-hash core, the exit-code
-split, the `--json` envelope, the marker path, and the audit chain re-derive
-across four languages and are checked in CI on every push. What 1.0.0 asserts
-is exactly two things: the **contract is frozen**, and the **reference
-implementations are production-grade**. It deliberately does **not** claim
+v1.1.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
+exit-code split, the `--json` envelope, the marker path, and the audit chain
+re-derive across four languages and are checked in CI on every push. What the
+1.x line asserts is exactly two things: the **contract is frozen**, and the
+**reference implementations are production-grade**. It deliberately does **not** claim
 re-derivability is *proven*: all four implementations share an author, and
 SPEC section 12's bar, an independent different-author implementation passing
 the vectors, is not yet met. For a tool whose only credential is reproduction,

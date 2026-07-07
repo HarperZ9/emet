@@ -2,7 +2,7 @@
 
 ## Supported
 
-EMET is at v1.0 (spec 1.0.0). The latest 1.x commit on the default branch is
+EMET is at v1.1 (spec 1.0.0). The latest 1.x commit on the default branch is
 supported; the frozen 1.0 contract governs all 1.x releases.
 
 ## Reporting a vulnerability

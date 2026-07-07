@@ -46,7 +46,7 @@ const EXIT_USAGE = 64;
 
 // --json envelope constants (SPEC s.13/s.14). Byte-identical governed keys
 // across conforming implementations for the same input.
-const EMET_VERSION = "1.0.0";
+const EMET_VERSION = "1.1.0";
 const SPEC_VERSION = "1.0.0";
 
 // Set true when a global --json flag is present (SPEC s.13). In JSON mode the

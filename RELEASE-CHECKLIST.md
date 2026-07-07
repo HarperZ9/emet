@@ -37,11 +37,11 @@ Bump in lockstep (they must agree): `SPEC.md` header, `README.md` version badge,
 ## Tag, push, release
 
 ```sh
-git tag -a v1.0.0 -m "EMET 1.0.0 - frozen contract, four implementations"
+git tag -a v1.1.0 -m "EMET 1.1.0 - portable witness receipts, cross-language parity, experimental rebind"
 git push origin main
-git push origin v1.0.0
+git push origin v1.1.0
 # GitHub release from the tag (gh):
-gh release create v1.0.0 --title "EMET 1.0.0" --notes-file <(sed -n '/## 1.0.0/,/## 2026-06-29/p' CHANGELOG.md)
+gh release create v1.1.0 --title "EMET 1.1.0" --notes-file <(sed -n '/## 1.1.0/,/## 1.0.0/p' CHANGELOG.md)
 ```
 
 ## PyPI (emet)
