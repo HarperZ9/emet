@@ -38,11 +38,15 @@ Optional second/third/fourth implementations (same conformance vectors, no packa
 managers):
 
 ```sh
-( cd impl/rust && rustc -O emet.rs -o emet ); python conformance/run.py impl/rust/emet   # Rust, no crates: 40/40
-python conformance/run.py impl/js/emet.js                                                # Node.js, built-ins only: 40/40
-( cd impl/go && go build -o emet emet.go ); python conformance/run.py impl/go/emet       # Go, stdlib only: 35/40 (receipt/check not yet ported)
-# Python/Rust/Node.js: CONFORMANCE 40/40. Go passes the 35 core vectors; the 5
-# witness-receipt vectors (SPEC s.17) are not yet ported to Go.
+( cd impl/rust && rustc -O emet.rs -o emet )
+EMET_SKIP_CAPABILITIES=rebind python conformance/run.py impl/rust/emet            # Rust, no crates: 40/40
+EMET_SKIP_CAPABILITIES=rebind python conformance/run.py impl/js/emet.js           # Node.js, built-ins only: 40/40
+( cd impl/go && go build -o emet emet.go )
+EMET_SKIP_CAPABILITIES=receipt,rebind python conformance/run.py impl/go/emet      # Go, stdlib only: 35/35 (core)
+# The suite is 44 vectors: 35 core + 5 receipt (SPEC s.17) + 4 rebind (SPEC s.18).
+# The Python reference passes 44/44. An implementation declares the capabilities
+# it does not yet claim in EMET_SKIP_CAPABILITIES and is scored only on what it
+# does claim (Rust/Node: receipt but not rebind; Go: core only), exactly as in CI.
 ```
 
 ## Commands
