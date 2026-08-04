@@ -23,6 +23,13 @@ classifiers = [
 ]
 dependencies = []
 
+# The installed byte-hash core stays ZERO-dependency. `deepeval` is an OPTIONAL
+# extra used ONLY by the out-of-core reporter adapters/deepeval_reporter.py, which
+# imports it lazily; `pip install emet[deepeval]` pulls it for anyone running the
+# eval-receipt wedge. Nothing here changes the core `dependencies` list above.
+[project.optional-dependencies]
+deepeval = ["deepeval"]
+
 [project.urls]
 Homepage = "https://github.com/HarperZ9/emet"
 Repository = "https://github.com/HarperZ9/emet"

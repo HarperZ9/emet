@@ -623,6 +623,64 @@
         "--manifest",
         "manifest.json"
       ]
+    },
+    {
+      "capability": "eval-receipt",
+      "expect_exit": 0,
+      "expect_substr": "RECEIPT_VALID",
+      "files": {
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"28768ad8dff97516b36cb12a0cbec60a9612cbd7cf33288c014973e955896c02\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"emet-eval-record.json\", \"sha256\": \"f315755a268e9da3f7e9f408effbc9c20686d3ee9870a3ca01d855f493de392a\"}], \"verdict_record\": [], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"65271de8331eacb5af3e7c567d8b83373440a61c96ad8b9c6b39ccb667b4c63d\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "eval-receipt-valid",
+      "note": "SPEC s.17.3 + the out-of-core DeepEval reporter: an emet witness receipt minted over a canonical eval record (model, dataset digest+count, metric/judge, per-case scores-as-strings, config) re-derives its own content address offline and checks RECEIPT_VALID. The receipt binds the record's INTEGRITY; its verdict_record is empty by design, so it makes no MATCH/DRIFT claim about eval quality.",
+      "run": [
+        "check",
+        "r.json"
+      ]
+    },
+    {
+      "capability": "eval-receipt",
+      "expect_exit": 1,
+      "expect_substr": "RECEIPT_TAMPERED",
+      "files": {
+        "r.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"28768ad8dff97516b36cb12a0cbec60a9612cbd7cf33288c014973e955896c02\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"emet-eval-record.json\", \"sha256\": \"0315755a268e9da3f7e9f408effbc9c20686d3ee9870a3ca01d855f493de392a\"}], \"verdict_record\": [], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"65271de8331eacb5af3e7c567d8b83373440a61c96ad8b9c6b39ccb667b4c63d\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "eval-receipt-tampered-record-field",
+      "note": "SPEC s.17.3: one hex char of the sealed record's subject digest was flipped while receipt_id was left intact, so the re-derived content address no longer matches -> RECEIPT_TAMPERED (exit 1). Corrupting one byte of the sealed record flips the verdict away from VALID; the verifier can FAIL.",
+      "run": [
+        "check",
+        "r.json"
+      ]
+    },
+    {
+      "capability": "eval-receipt",
+      "expect_exit": 1,
+      "expect_substr": "RECEIPT_TAMPERED",
+      "files": {
+        "emet-eval-receipt.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"receipt_id\": \"28768ad8dff97516b36cb12a0cbec60a9612cbd7cf33288c014973e955896c02\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"emet-eval-record.json\", \"sha256\": \"f315755a268e9da3f7e9f408effbc9c20686d3ee9870a3ca01d855f493de392a\"}], \"verdict_record\": [], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"65271de8331eacb5af3e7c567d8b83373440a61c96ad8b9c6b39ccb667b4c63d\", \"spec_version\": \"1.0.0\"}}",
+        "emet-eval-record.json": "{\"cases\": [{\"index\": \"0\", \"metrics\": [{\"judge_model\": \"gpt-4o\", \"name\": \"AnswerRelevancy\", \"passed\": \"true\", \"score\": \"0.92\", \"threshold\": \"0.7\"}], \"passed\": \"true\"}, {\"index\": \"1\", \"metrics\": [{\"judge_model\": \"gpt-4o\", \"name\": \"Faithfulness\", \"passed\": \"false\", \"score\": \"0.61\", \"threshold\": \"0.8\"}], \"passed\": \"false\"}], \"config\": {\"run\": \"nightly-2026-07-02\", \"temperature\": \"0\"}, \"dataset\": {\"algorithm\": \"sha256\", \"count\": 2, \"covers\": \"test_case_inputs\", \"digest\": \"11949d6c31725d2d61414c1e0b9bad684bd685a5119c8da5063bb6686f9eb382\"}, \"metric\": {\"harness\": \"deepeval\", \"harness_version\": \"3.6.4\", \"judge_models\": [\"gpt-4o\"], \"names\": [\"AnswerRelevancy\", \"Faithfulness\"]}, \"model\": \"Gpt-4o-2024-08-06\", \"schema\": \"emet-eval-record/v1\"}"
+      },
+      "id": "eval-receipt-tampered-record-bytes",
+      "note": "SPEC s.17.3 step 4: the sealed eval-record file on disk differs from the receipt's recorded digest by one byte, so --recompute-from-paths re-derivation diverges -> RECEIPT_TAMPERED. A receipt is a point-in-time snapshot of the record it sealed, not a blanket certificate.",
+      "run": [
+        "check",
+        "emet-eval-receipt.json",
+        "--recompute-from-paths"
+      ]
+    },
+    {
+      "capability": "eval-receipt",
+      "expect_exit": 2,
+      "expect_substr": "RECEIPT_UNVERIFIABLE",
+      "files": {
+        "bad.json": "{\"corpus_sha256\": null, \"corpus_version\": null, \"format\": \"emet-witness-receipt/v1\", \"issued_at\": \"2026-07-02T12:34:56Z\", \"notes\": \"EMET emits witness facts only. The receipt preserves the closed verdict lattice and carries no authority, permission, or release decision.\", \"re_derivation_method\": \"hash\", \"signature\": null, \"signature_algorithm\": \"hmac-sha256-optional\", \"subject\": [{\"path\": \"emet-eval-record.json\", \"sha256\": \"f315755a268e9da3f7e9f408effbc9c20686d3ee9870a3ca01d855f493de392a\"}], \"verdict_record\": [], \"witness\": {\"implementation\": \"emet-python-reference\", \"self_sha256\": \"65271de8331eacb5af3e7c567d8b83373440a61c96ad8b9c6b39ccb667b4c63d\", \"spec_version\": \"1.0.0\"}}"
+      },
+      "id": "eval-receipt-unverifiable-malformed",
+      "note": "SPEC s.17.3: an eval receipt with its receipt_id removed cannot be re-derived and is RECEIPT_UNVERIFIABLE (exit 2) with a stable reason code, never a stack trace -- an inability to check, not a detected difference.",
+      "run": [
+        "check",
+        "bad.json"
+      ]
     }
   ]
 }

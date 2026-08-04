@@ -28,7 +28,9 @@ jobs:
         run: python test_witness_receipt.py
       - name: stripped-credential rebind behavior proof (SPEC s.18)
         run: python test_rebind.py
-      - name: conformance, Python reference (expect 44 of 44)
+      - name: DeepEval eval-receipt reporter behavior proof (out-of-core adapter)
+        run: python test_deepeval_reporter.py
+      - name: conformance, Python reference (expect 48 of 48)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity (emet_self_sha256=)
         run: python membrane.py selftest
@@ -57,12 +59,13 @@ jobs:
         run: rustc -O impl/rust/emet.rs -o impl/rust/emet
       - name: rust receipt behavior tests (cargo test)
         run: cargo test --release --manifest-path impl/rust/Cargo.toml
-      # Rust implements receipt but not the experimental rebind (SPEC s.18); its 4
-      # capability-tagged vectors are skipped, leaving the 40 it claims.
-      - name: conformance, Rust second implementation (expect 40 of 40, rebind skipped)
+      # Rust implements receipt but not the experimental rebind (SPEC s.18) or the
+      # out-of-core eval-receipt profile; those 8 capability-tagged vectors are
+      # skipped, leaving the 40 it claims.
+      - name: conformance, Rust second implementation (expect 40 of 40, rebind+eval-receipt skipped)
         run: python conformance/run.py impl/rust/emet
         env:
-          EMET_SKIP_CAPABILITIES: rebind
+          EMET_SKIP_CAPABILITIES: rebind,eval-receipt
 
   js-third-implementation:
     runs-on: ubuntu-latest
@@ -76,12 +79,13 @@ jobs:
           python-version: "3.12"
       - name: node receipt behavior tests
         run: node --test impl/js/test_receipt.js
-      # Node implements receipt but not the experimental rebind (SPEC s.18); its 4
-      # capability-tagged vectors are skipped, leaving the 40 it claims.
-      - name: conformance, Node.js third implementation (expect 40 of 40, rebind skipped)
+      # Node implements receipt but not the experimental rebind (SPEC s.18) or the
+      # out-of-core eval-receipt profile; those 8 capability-tagged vectors are
+      # skipped, leaving the 40 it claims.
+      - name: conformance, Node.js third implementation (expect 40 of 40, rebind+eval-receipt skipped)
         run: python conformance/run.py impl/js/emet.js
         env:
-          EMET_SKIP_CAPABILITIES: rebind
+          EMET_SKIP_CAPABILITIES: rebind,eval-receipt
 
   go-fourth-implementation:
     runs-on: ubuntu-latest
@@ -96,13 +100,14 @@ jobs:
       - name: build go impl (standard library only, no modules)
         run: CGO_ENABLED=0 go build -o impl/go/emet impl/go/emet.go
       # The Go impl passes the 35 core vectors; the portable witness receipt
-      # (SPEC s.17, 5 vectors) and the experimental rebind (SPEC s.18, 4 vectors)
-      # are not yet ported to Go, so both are skipped by capability here. Drop the
-      # relevant token from EMET_SKIP_CAPABILITIES once Go implements each.
-      - name: conformance, Go fourth implementation (expect 35 of 35, receipt+rebind skipped)
+      # (SPEC s.17, 5 vectors), the experimental rebind (SPEC s.18, 4 vectors), and
+      # the out-of-core eval-receipt profile (4 vectors) are not yet ported to Go,
+      # so all three are skipped by capability here. Drop the relevant token from
+      # EMET_SKIP_CAPABILITIES once Go implements each.
+      - name: conformance, Go fourth implementation (expect 35 of 35, receipt+rebind+eval-receipt skipped)
         run: python conformance/run.py impl/go/emet
         env:
-          EMET_SKIP_CAPABILITIES: receipt,rebind
+          EMET_SKIP_CAPABILITIES: receipt,rebind,eval-receipt
 
   cross-lang-receipt-parity:
     # The load-bearing proof of this wave: the portable witness receipt
@@ -143,5 +148,5 @@ jobs:
         run: python -m pip install .
       - name: the installed emet console script re-derives its own identity
         run: emet selftest
-      - name: conformance against the INSTALLED emet console script (expect 44 of 44)
+      - name: conformance against the INSTALLED emet console script (expect 48 of 48)
         run: python conformance/run.py "$(python -c 'import shutil; print(shutil.which("emet"))')"
