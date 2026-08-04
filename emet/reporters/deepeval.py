@@ -3,13 +3,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
-deepeval_reporter.py - EMET DeepEval reporter: mint an emet-verifiable receipt
+emet.reporters.deepeval - EMET DeepEval reporter: mint an emet-verifiable receipt
 over a completed DeepEval evaluation.
 
-Optional, out-of-core, stdlib-only adapter. The minimal-TCB guarantee (SPEC
-section 10) applies to the emet/ named core ONLY, never to anything in this
-directory. Like the other adapters it EMITS DATA: it never signs on the
-operator's behalf, enforces, uploads, or actuates.
+Optional, out-of-core, stdlib-only reporter. It ships in the wheel as the
+`emet.reporters` subpackage but is NOT part of the minimal Trusted Computing Base:
+the minimal-TCB guarantee (SPEC section 10), the zero-dependency posture, and the
+selftest artifact-of-record (SPEC s.14) all apply to the emet/ named core ONLY
+(membrane, organs, monitor, corpus, verdict, report), never to this reporter. Like
+the emet adapters it EMITS DATA: it never signs on the operator's behalf, enforces,
+uploads, or actuates.
 
 Given a completed DeepEval evaluation, it gathers a STABLE eval record - model
 identifier, dataset digest (a hash of the test-case inputs, never the raw cases),
@@ -45,9 +48,9 @@ imports deepeval, and it raises a clear error if it is absent.
 
 Usage:
     pip install emet            # the zero-dep core; provides `emet check`
-    pip install deepeval        # or:  pip install emet[deepeval]
+    pip install emet[deepeval]  # or:  pip install deepeval
 
-    from adapters.deepeval_reporter import mint_receipt
+    from emet.reporters.deepeval import mint_receipt
     # `result` is whatever deepeval.evaluate(...) returned.
     receipt, record_path, receipt_path = mint_receipt(
         result, model="gpt-4o-2024-08-06",
@@ -62,7 +65,7 @@ Usage:
     # Any single-byte change to the sealed record flips RECEIPT_VALID away.
 
     # To run the evaluation AND mint in one step (needs deepeval installed):
-    from adapters.deepeval_reporter import evaluate_and_mint
+    from emet.reporters.deepeval import evaluate_and_mint
     receipt, record_path, receipt_path = evaluate_and_mint(
         test_cases, metrics, model="gpt-4o-2024-08-06", out_dir="eval-out")
 """
@@ -70,14 +73,11 @@ import hashlib
 import os
 import sys
 
-# Allow running both as `python adapters/deepeval_reporter.py` and as an imported
-# module from the test suite: ensure the repo root is importable (mirrors
-# adapters/witness_receipt_portable.py).
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
-
-from emet import report, witness_receipt  # noqa: E402
+# In-package imports: the reporter ships inside the emet wheel, so the named core
+# is importable with no sys.path manipulation. These are core modules (report is
+# the canonical-bytes renderer, witness_receipt the portable-receipt path); the
+# reporter adds NO dependency to them and the core never imports back the other way.
+from emet import report, witness_receipt
 
 EVAL_RECORD_SCHEMA = "emet-eval-record/v1"
 RECORD_FILENAME = "emet-eval-record.json"

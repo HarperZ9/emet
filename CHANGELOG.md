@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.2.0 - 2026-08-04 - DeepEval reporter ships in the wheel
+
+The DeepEval reporter now installs with the package. Through 1.1.0 it lived in
+`adapters/deepeval_reporter.py`, which was NOT in the wheel (`[tool.setuptools]
+packages = ["emet"]`), so `pip install emet[deepeval]` did not actually give a
+user the reporter file. It now ships and imports after a plain install. The spec
+contract stays frozen at 1.0.0 (`spec_version` unchanged); this is a
+distribution-and-packaging change, not a new capability.
+
+Changed:
+
+- **The reporter graduated to the shipped `emet.reporters` subpackage.**
+  `adapters/deepeval_reporter.py` moved to `emet/reporters/deepeval.py`, so the
+  public import is now `from emet.reporters.deepeval import mint_receipt,
+  build_eval_record, evaluate_and_mint`. The wheel enumerates the subpackage
+  explicitly (`packages = ["emet", "emet.reporters"]`); the old `sys.path` shim is
+  gone (the reporter is importable in-package). The eval receipts it mints and the
+  four `eval-receipt` conformance vectors are unchanged: they verify through `emet
+  check`, independent of the reporter's import path.
+
+- **The minimal-TCB boundary is preserved (SPEC section 10).** `emet.reporters` is
+  a separate, clearly-labeled OUT-OF-CORE package, not part of the named core
+  (membrane, organs, monitor, corpus, verdict, report). Core `dependencies` stay
+  `[]`; DeepEval stays the optional `deepeval` extra, imported LAZILY inside the
+  function that runs an evaluation; no core module imports the reporter; and the
+  reporter is excluded from the selftest artifact-of-record (`membrane.CORE_SRC`,
+  SPEC s.14), so the zero-dependency and self-hash guarantees are unchanged.
+  `emet/reporters/__init__.py` has no side effects and imports nothing heavy.
+
+- **Version bump to 1.2.0** across `pyproject.toml`, `emet/__init__.py`
+  `__version__`, and `emet/report.py` `EMET_VERSION` (the `--json` envelope's
+  `emet_version`). `SPEC_VERSION`/`spec_version` remain 1.0.0.
+
 ## 1.1.0 - 2026-07-07 - Portable witness receipts, cross-language parity, experimental rebind
 
 Verdicts now travel: a receipt made on one machine re-derives on another, in

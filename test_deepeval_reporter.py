@@ -2,7 +2,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Behavior proof for adapters/deepeval_reporter.py (the DeepEval reporter).
+"""Behavior proof for emet/reporters/deepeval.py (the DeepEval reporter).
 
 Constructs FAKE deepeval-shaped result objects - no deepeval install, no model,
 no network - and proves the wedge end to end: a completed evaluation becomes a
@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from adapters import deepeval_reporter as dr  # noqa: E402
+from emet.reporters import deepeval as dr  # noqa: E402
 from emet import report, witness_receipt  # noqa: E402
 
 NOW = "2026-07-02T12:34:56Z"

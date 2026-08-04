@@ -18,7 +18,7 @@ per-channel hashes - SPEC sections 4 and 15) may differ or be absent.
 """
 import sys, os, json, hashlib
 
-EMET_VERSION = "1.1.0"
+EMET_VERSION = "1.2.0"
 SPEC_VERSION = "1.0.0"
 
 # Set True by the CLI front-end when --json is present. Module-level so the
