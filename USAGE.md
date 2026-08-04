@@ -195,7 +195,7 @@ can be `TRUSTED` (the closed lattice holds in JSON too).
 
 ```sh
 $ python membrane.py verify --json report.md
-{"command": "verify", "emet_version": "1.1.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
+{"command": "verify", "emet_version": "1.2.0", "exit_code": 1, "results": [{"got": "9fc0ea6515ceadd9...", "path": "report.md", "verdict": "DRIFT", "want": "a948904f2f0f479b..."}], "spec_version": "1.0.0", "verdict": "DRIFT"}
 # exit 1
 ```
 
@@ -304,6 +304,39 @@ recorded digest no longer matches the file on disk (a view drifted from its
 recorded source). `UNVERIFIABLE` means a listed file is missing or unreadable, or
 `bundle.json` is malformed or off-schema. The witness runs entirely inside EMET and
 refuses authority tokens: nothing in the manifest can make the verdict `TRUSTED`.
+
+## Optional: DeepEval reporter (`emet.reporters.deepeval`)
+
+The DeepEval reporter ships in the wheel as the out-of-core `emet.reporters`
+subpackage; install it with the extra and import it directly:
+
+```sh
+pip install emet[deepeval]
+```
+
+```python
+from emet.reporters.deepeval import mint_receipt
+receipt, record_path, receipt_path = mint_receipt(
+    result,                              # whatever deepeval.evaluate(...) returned
+    model="gpt-4o-2024-08-06",
+    config={"temperature": "0", "run": "nightly"},
+    out_dir="eval-out",
+)
+# then, on any isolated machine, zero shared state:
+#   emet check eval-out/emet-eval-receipt.json                 -> RECEIPT_VALID
+#   emet check eval-out/emet-eval-receipt.json --recompute-from-paths
+```
+
+It seals a canonical eval record (model, dataset digest + count over the test-case
+inputs, metric/judge name + version, per-case pass/score as strings, config) and
+mints an emet receipt binding the record's integrity; corrupting one byte flips the
+verdict away from `RECEIPT_VALID`. The record carries no floats and the receipt's
+`verdict_record` is empty by design, so it asserts provenance and integrity, never
+model quality. DeepEval is a lazy import: `mint_receipt`/`build_eval_record` read an
+already-completed evaluation and need no DeepEval install; only `evaluate_and_mint`,
+which runs the evaluation, imports it. The reporter is out-of-core: excluded from
+the minimal TCB and the selftest artifact-of-record, and the byte-hash core keeps
+zero runtime dependencies.
 
 ## A runnable demo
 

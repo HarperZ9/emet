@@ -117,6 +117,40 @@ on disk against the recorded digests. For every command with captured real
 output, the companion tools (`monitor.py`, `organs.py`), and a runnable demo,
 see [USAGE.md](USAGE.md) and [examples/](examples/).
 
+## DeepEval reporter (`emet.reporters.deepeval`)
+
+An optional reporter turns a completed [DeepEval](https://github.com/confident-ai/deepeval)
+evaluation into a portable witness receipt. It ships in the wheel as the
+out-of-core `emet.reporters` subpackage and pulls DeepEval only as an extra:
+
+```sh
+pip install emet[deepeval]
+```
+
+```python
+from emet.reporters.deepeval import mint_receipt
+# `result` is whatever deepeval.evaluate(...) returned.
+receipt, record_path, receipt_path = mint_receipt(
+    result, model="gpt-4o-2024-08-06",
+    config={"temperature": "0", "run": "nightly"}, out_dir="eval-out")
+# then, on any isolated machine, zero shared state:
+#   emet check eval-out/emet-eval-receipt.json                 -> RECEIPT_VALID
+#   emet check eval-out/emet-eval-receipt.json --recompute-from-paths
+```
+
+It seals a canonical eval record (model, dataset digest + count over the
+test-case inputs, metric/judge name + version, per-case pass/score as strings,
+config) and mints an emet receipt that binds the record's integrity; corrupting
+one byte flips the verdict away from `RECEIPT_VALID`. The record carries no
+floats and the receipt's `verdict_record` is empty by design, so it asserts
+provenance and integrity, never model quality beyond the numbers the metrics
+already reported. DeepEval is a lazy import: `mint_receipt` and
+`build_eval_record` read an already-completed evaluation structurally and need
+no DeepEval install; only `evaluate_and_mint`, which runs the evaluation, imports
+it and raises a clear error when it is absent. The reporter stays out-of-core:
+it is excluded from the minimal TCB and the selftest artifact-of-record (SPEC
+section 10, s.14), and the byte-hash core keeps zero runtime dependencies.
+
 ## For developers
 
 The repo ships its own delivery contract; re-check it any time with
@@ -152,9 +186,9 @@ EMET_SKIP_CAPABILITIES=receipt,rebind,eval-receipt \
 | Go (`impl/go`) | yes | not yet ported | not yet | not yet |
 
 The eval-receipt vectors check an ordinary witness receipt minted by the
-out-of-core [DeepEval reporter](adapters/README.md) over an eval record; any
-receipt-capable implementation can re-verify them, and they are capability-tagged
-so a port that has not validated the profile skips them.
+out-of-core [DeepEval reporter](#deepeval-reporter-emetreportersdeepeval) over an
+eval record; any receipt-capable implementation can re-verify them, and they are
+capability-tagged so a port that has not validated the profile skips them.
 
 An unsigned receipt verifies on the content address alone; the HMAC-SHA256
 signature is optional and only strengthens integrity when producer and
@@ -170,7 +204,7 @@ anything. Those constraints are the point, not limitations: see
 
 ## Status
 
-v1.1.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
+v1.2.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
 exit-code split, the `--json` envelope, the marker path, and the audit chain
 re-derive across four languages and are checked in CI on every push. What the
 1.x line asserts is exactly two things: the **contract is frozen**, and the

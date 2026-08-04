@@ -235,7 +235,7 @@ class MembraneBehavior(unittest.TestCase):
         self.assertEqual(env["verdict"], "MATCH")
         self.assertEqual(env["exit_code"], 0)
         self.assertEqual(env["spec_version"], "1.0.0")
-        self.assertEqual(env["emet_version"], "1.1.0")
+        self.assertEqual(env["emet_version"], "1.2.0")
         self.assertEqual(code, 0)
 
     def test_json_envelope_drift_reports_exit_1(self):

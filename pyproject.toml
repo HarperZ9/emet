@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emet"
-version = "1.1.0"
+version = "1.2.0"
 description = "A small external witness for AI oversight: re-derive the bytes, get MATCH / DRIFT / UNVERIFIABLE, trust nothing in-band."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -24,7 +24,7 @@ classifiers = [
 dependencies = []
 
 # The installed byte-hash core stays ZERO-dependency. `deepeval` is an OPTIONAL
-# extra used ONLY by the out-of-core reporter adapters/deepeval_reporter.py, which
+# extra used ONLY by the out-of-core reporter emet/reporters/deepeval.py, which
 # imports it lazily; `pip install emet[deepeval]` pulls it for anyone running the
 # eval-receipt wedge. Nothing here changes the core `dependencies` list above.
 [project.optional-dependencies]
@@ -43,5 +43,12 @@ emet = "emet.cli:main"
 # it is NOT bundled in the wheel. The installed byte-hash core (anchor/verify/
 # coherence/corroborate/audit/selftest) needs no corpus; refuse/monitor require
 # EMET_CORPUS (or a source checkout) and otherwise report UNVERIFIABLE E_NO_CORPUS.
+#
+# `emet.reporters` ships the out-of-core reporters (SPEC s.10: optional adapters
+# live in a separate package from the named core). It is enumerated explicitly, not
+# auto-discovered, so a new sibling never lands in the wheel unreviewed. It adds NO
+# runtime dependency to the core (deepeval stays an optional extra, imported lazily)
+# and is excluded from the selftest artifact-of-record (membrane.CORE_SRC), so the
+# minimal-TCB and self-hash guarantees are unchanged by its presence.
 [tool.setuptools]
-packages = ["emet"]
+packages = ["emet", "emet.reporters"]

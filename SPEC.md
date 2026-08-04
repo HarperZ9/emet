@@ -224,6 +224,14 @@ dependencies but MUST live in separate packages; the minimal-TCB guarantee appli
 to the NAMED CORE only. Packaging (a console entry point, an sdist/wheel) is a
 distribution convenience and MUST NOT add a runtime dependency to the core.
 
+An out-of-core adapter MAY ship inside the distribution as a separate subpackage
+(e.g. `emet.reporters`, the DeepEval reporter) so a plain install exposes it. Such
+a subpackage is still NOT part of the named core: it MUST add no runtime dependency
+to the core (any heavy dependency stays an optional extra, imported lazily), MUST
+NOT be imported by any core module, and MUST be excluded from the section 14
+artifact-of-record. Its presence therefore leaves the zero-dependency and
+self-hash guarantees of the named core unchanged.
+
 ## 11. Honest limits (MUST be disclosed)
 
 - Denylist incompleteness -- marker detection is a known-signature denylist, not
