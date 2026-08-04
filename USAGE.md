@@ -39,14 +39,15 @@ managers):
 
 ```sh
 ( cd impl/rust && rustc -O emet.rs -o emet )
-EMET_SKIP_CAPABILITIES=rebind python conformance/run.py impl/rust/emet            # Rust, no crates: 40/40
-EMET_SKIP_CAPABILITIES=rebind python conformance/run.py impl/js/emet.js           # Node.js, built-ins only: 40/40
+EMET_SKIP_CAPABILITIES=rebind,eval-receipt python conformance/run.py impl/rust/emet   # Rust, no crates: 40/40
+EMET_SKIP_CAPABILITIES=rebind,eval-receipt python conformance/run.py impl/js/emet.js  # Node.js, built-ins only: 40/40
 ( cd impl/go && go build -o emet emet.go )
-EMET_SKIP_CAPABILITIES=receipt,rebind python conformance/run.py impl/go/emet      # Go, stdlib only: 35/35 (core)
-# The suite is 44 vectors: 35 core + 5 receipt (SPEC s.17) + 4 rebind (SPEC s.18).
-# The Python reference passes 44/44. An implementation declares the capabilities
-# it does not yet claim in EMET_SKIP_CAPABILITIES and is scored only on what it
-# does claim (Rust/Node: receipt but not rebind; Go: core only), exactly as in CI.
+EMET_SKIP_CAPABILITIES=receipt,rebind,eval-receipt python conformance/run.py impl/go/emet  # Go, stdlib only: 35/35 (core)
+# The suite is 48 vectors: 35 core + 5 receipt (SPEC s.17) + 4 rebind (SPEC s.18)
+# + 4 eval-receipt (the out-of-core DeepEval reporter). The Python reference passes
+# 48/48. An implementation declares the capabilities it does not yet claim in
+# EMET_SKIP_CAPABILITIES and is scored only on what it does claim (Rust/Node:
+# receipt but not rebind/eval-receipt; Go: core only), exactly as in CI.
 ```
 
 ## Commands

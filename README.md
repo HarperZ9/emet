@@ -43,9 +43,9 @@ run it straight from a checkout or `pip install emet`.
 - **Tamper-evident audit chain.** Every command appends to a hash-chained log;
   `emet audit` recomputes the chain and reports `INTACT` or `BROKEN`.
 - **Four implementations, one contract.** A frozen v1.0 spec, a
-  language-agnostic conformance suite (44 vectors: 35 core, 5 receipt, 4
-  rebind), and clean-room ports in Rust, Node.js, and Go, all scored in CI on
-  every push against exactly the capabilities each claims.
+  language-agnostic conformance suite (48 vectors: 35 core, 5 receipt, 4
+  rebind, 4 eval-receipt), and clean-room ports in Rust, Node.js, and Go, all
+  scored in CI on every push against exactly the capabilities each claims.
 - **Machine-readable everywhere.** `--json` on any command emits one
   canonical-JSON envelope; the governed fields are byte-identical across all
   four implementations and the exit code is unchanged.
@@ -128,28 +128,33 @@ claim, exactly as CI does:
 
 ```sh
 git clone https://github.com/HarperZ9/emet && cd emet
-python conformance/run.py membrane.py                # Python reference: 44/44
+python conformance/run.py membrane.py                # Python reference: 48/48
 
 ( cd impl/rust && rustc -O emet.rs -o emet )
-EMET_SKIP_CAPABILITIES=rebind \
+EMET_SKIP_CAPABILITIES=rebind,eval-receipt \
   python conformance/run.py impl/rust/emet           # Rust:    40/40
 
-EMET_SKIP_CAPABILITIES=rebind \
+EMET_SKIP_CAPABILITIES=rebind,eval-receipt \
   python conformance/run.py impl/js/emet.js          # Node.js: 40/40
 
 ( cd impl/go && go build -o emet emet.go )
-EMET_SKIP_CAPABILITIES=receipt,rebind \
+EMET_SKIP_CAPABILITIES=receipt,rebind,eval-receipt \
   python conformance/run.py impl/go/emet             # Go:      35/35 (core)
 ```
 
 ### Per-implementation capability matrix
 
-| Implementation | Core (35 vectors) | Receipt (5, SPEC s.17) | Rebind (4, SPEC s.18) |
-| --- | --- | --- | --- |
-| Python (reference) | yes | yes | yes |
-| Rust (`impl/rust`) | yes | yes (HMAC hand-composed over its own SHA-256, verified against RFC 4231) | not yet |
-| Node.js (`impl/js`) | yes | yes (native `crypto`) | not yet |
-| Go (`impl/go`) | yes | not yet ported | not yet |
+| Implementation | Core (35 vectors) | Receipt (5, SPEC s.17) | Rebind (4, SPEC s.18) | Eval-receipt (4, reporter) |
+| --- | --- | --- | --- | --- |
+| Python (reference) | yes | yes | yes | yes |
+| Rust (`impl/rust`) | yes | yes (HMAC hand-composed over its own SHA-256, verified against RFC 4231) | not yet | not yet |
+| Node.js (`impl/js`) | yes | yes (native `crypto`) | not yet | not yet |
+| Go (`impl/go`) | yes | not yet ported | not yet | not yet |
+
+The eval-receipt vectors check an ordinary witness receipt minted by the
+out-of-core [DeepEval reporter](adapters/README.md) over an eval record; any
+receipt-capable implementation can re-verify them, and they are capability-tagged
+so a port that has not validated the profile skips them.
 
 An unsigned receipt verifies on the content address alone; the HMAC-SHA256
 signature is optional and only strengthens integrity when producer and
