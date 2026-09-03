@@ -1,4 +1,4 @@
-<p align="center"><img src=".github/assets/zentropy-banner.png" alt="emet: Byte-level integrity witness. Four independent implementations, one verdict lattice." width="100%"></p>
+<p align="center"><img src="docs/art/emet-header.svg" alt="emet: byte-level integrity witness. A witness that reports what it found, and decides nothing." width="100%"></p>
 
 **Byte-level integrity witness. Four independent implementations, one verdict lattice.**
 
@@ -92,6 +92,8 @@ the answer is `UNVERIFIABLE reason=E_NO_CORPUS`, never a silent pass.
 
 ## Worked example: anchor, verify, let the verdict travel
 
+<p align="center"><img src="docs/art/witness-lane.svg" alt="The witness lane: subject, anchor, read paths, recompute, compare, markers, lattice, chain, ending in match, drift, or unverifiable." width="100%"></p>
+
 ```sh
 $ printf 'hello world\n' > report.md
 $ emet anchor report.md
@@ -105,6 +107,15 @@ $ emet verify report.md
 DRIFT report.md want=a948904f2f0f479b got=9fc0ea6515ceadd9     # exit 1
 ```
 
+Two things in that lane are worth naming, because they are what keep the rest of it
+honest. The closed lattice is structural rather than reviewed: every governed token
+leaves through `governed(channel, token)`, which raises inside the core when the token
+is not a member of its channel's set, and `TRUSTED` is pinned in a forbidden set on top
+of that. An unsanctioned verdict is a construction error before a byte reaches stdout,
+not a review miss afterward. And `corroborate` treats a single working read path as an
+inability, not as agreement: with nothing to disagree with, it reports `UNVERIFIABLE
+reason=E_NO_SECOND_READ_PATH` rather than `CORROBORATED`.
+
 Seal the verdict into a receipt and hand it to someone else:
 
 ```sh
@@ -116,6 +127,17 @@ Add `--recompute-from-paths` to `emet check` to also re-hash the subject bytes
 on disk against the recorded digests. For every command with captured real
 output, the companion tools (`monitor.py`, `organs.py`), and a runnable demo,
 see [USAGE.md](USAGE.md) and [examples/](examples/).
+
+<p align="center"><img src="docs/art/receipt-lane.svg" alt="The receipt lane: envelope, subjects, identity, canonical form, address, signature, re-derive, verdict, ending in receipt valid, receipt tampered, or receipt unverifiable." width="100%"></p>
+
+The address in the middle of that diagram is a hash of the receipt with its own
+`receipt_id`, `signature`, and per-implementation `witness` block removed, and the
+optional HMAC covers that same body. Both therefore describe exactly the same bytes, and
+a doctored field changes the address the receipt is stored under. Reading one back never
+trusts the stored id; it recomputes the address and compares. Two precedence rules follow
+the primary lattice: a confirmed divergence outranks an inability, so a changed subject
+reads `RECEIPT_TAMPERED` rather than `RECEIPT_UNVERIFIABLE`, and a receipt that carries a
+signature with no key available to check it reads `RECEIPT_UNVERIFIABLE`, never valid.
 
 ## DeepEval reporter (`emet.reporters.deepeval`)
 
