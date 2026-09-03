@@ -55,5 +55,36 @@
         {"label": "RECEIPT UNVERIFIABLE", "note": "malformed, or a subject that cannot be read", "tone": "none"}
       ]
     }
+  ],
+  "cards": [
+    {
+      "file": "verdict-lattice.svg",
+      "kicker": "the closed verdict set",
+      "title": "Every word emet may say, and nothing else",
+      "source": "emet <command> --json",
+      "heads": ["channel", "what it judges", "the tokens it may emit"],
+      "alt": "The nine channels of emet's closed verdict lattice, one to a row, with what each channel judges and the exact tokens it may emit. The primary lattice judges an anchored path re-read now and emits MATCH, DRIFT, or UNVERIFIABLE. Coherence judges a rendered view against the source bytes and emits COHERENT, VIEW_DIFFERS_FROM_SOURCE, or UNVERIFIABLE. Corroboration judges two read paths for one file and emits CORROBORATED, QUARANTINE_READ_PATH_DIVERGENCE, or UNVERIFIABLE. Audit judges the append-only chain of records and emits INTACT or BROKEN. The receipt channel judges a portable receipt offline and emits RECEIPT_VALID, RECEIPT_TAMPERED, or RECEIPT_UNVERIFIABLE. The monitor judges one watched file as MATCH, DRIFT, or MISSING, and the baseline it read from as INTACT or CHANGED. Perception judges a path between two observations as UNCHANGED, DRIFTED, NEW, or GONE. The revert channel judges whether a clean revert path exists and emits REVERTIBLE or NOT_REVERTIBLE. No channel admits a word that asserts authority.",
+      "footnote": "No count and no digest is drawn here. What is drawn is the shape of the set: nine channels, each one closed, and a union that contains no word asserting authority. The repository's own test holds every row against the frozen set in emet/verdict.py, so a token added to the code and not to the drawing fails the build, and so does a token drawn here that no channel will emit.",
+      "fields": [
+        {"key": "LATTICE", "value": "an anchored path, re-read now", "tone": "verified",
+         "note": "MATCH / DRIFT / UNVERIFIABLE. Absence of drift is a match or an inability to check, and never trust."},
+        {"key": "COHERENCE", "value": "a view against the source bytes", "tone": "none",
+         "note": "COHERENT / VIEW_DIFFERS_FROM_SOURCE / UNVERIFIABLE. What you are shown, held against what is on disk."},
+        {"key": "CORROBORATE", "value": "two read paths for one file", "tone": "none",
+         "note": "CORROBORATED / QUARANTINE_READ_PATH_DIVERGENCE / UNVERIFIABLE. Paths that disagree are quarantined, not resolved."},
+        {"key": "AUDIT", "value": "the append-only chain of records", "tone": "none",
+         "note": "INTACT / BROKEN. The chain re-links end to end, or it names the record it broke at."},
+        {"key": "RECEIPT", "value": "a portable receipt, offline", "tone": "none",
+         "note": "RECEIPT_VALID / RECEIPT_TAMPERED / RECEIPT_UNVERIFIABLE. Valid is a re-derivation, and not a release."},
+        {"key": "MONITOR_FILE", "value": "one watched file, per sweep", "tone": "none",
+         "note": "MATCH / DRIFT / MISSING. A file gone from the sweep is reported, never quietly skipped."},
+        {"key": "MONITOR_BASELINE", "value": "the baseline the sweep read", "tone": "none",
+         "note": "INTACT / CHANGED. The baseline is checked before anything is checked against it."},
+        {"key": "PERCEPTION", "value": "a path across two observations", "tone": "none",
+         "note": "UNCHANGED / DRIFTED / NEW / GONE. A path that appeared is news, and so is one that left."},
+        {"key": "REVERT", "value": "whether a clean revert exists", "tone": "none",
+         "note": "REVERTIBLE / NOT_REVERTIBLE. A fact about the version history, and not permission to act."}
+      ]
+    }
   ]
 }
