@@ -4,9 +4,10 @@
 """The front-page artwork is a pure function of docs/art/emet.art.json.
 
 A picture in a README is never diffed, so it drifts from the text silently.
-tools/check_repo_art.py re-renders every drawing, compares bytes, and runs
-eleven other gates besides, then emits a receipt. This asserts on that receipt
-the way the other root-level test scripts assert on their own surfaces.
+tools/check_repo_art.py re-renders every drawing, compares the result against
+what is committed, runs twelve other gates besides, then emits a receipt. This
+asserts on that receipt the way the other root-level test scripts assert on
+their own surfaces.
 """
 from __future__ import annotations
 
@@ -34,6 +35,7 @@ GATES = (
     "art.every_illustration_is_shown",
     "art.tagline_stays_inside_its_rule",
     "art.outcome_fits_its_box",
+    "art.the_gate_can_fail",
 )
 
 DRAWINGS = (
