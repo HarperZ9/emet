@@ -22,6 +22,8 @@ jobs:
         run: python test_organs.py
       - name: forward delivery contract
         run: python test_forward_delivery_contract.py
+      - name: front-page artwork re-renders to the committed bytes
+        run: python test_repo_art.py
       - name: proof surface receipt test
         run: python test_proof_surface_receipt.py
       - name: portable witness receipt behavior proof

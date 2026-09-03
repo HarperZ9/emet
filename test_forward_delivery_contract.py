@@ -60,7 +60,9 @@ class ForwardDeliveryContractTests(unittest.TestCase):
 
         for heading in ["## Why it matters", "## Usage", "## For developers"]:
             self.assertIn(heading, text)
-        self.assertIn(".github/assets/zentropy-banner.png", text)
+        # The front page leads with this repository's own generated mark, rendered
+        # from docs/art/emet.art.json and gated by test_repo_art.py.
+        self.assertIn("docs/art/emet-header.svg", text)
         self.assertIn("public value", text.lower())
         self.assertIn("advisory integrity witness", text.lower())
         self.assertIn("python test_forward_delivery_contract.py", text)
