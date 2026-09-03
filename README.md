@@ -219,6 +219,13 @@ cross-language port contract is [docs/REBIND-SPEC.md](docs/REBIND-SPEC.md).
 
 ## What it won't do
 
+<p align="center"><img src="docs/art/verdict-lattice.svg" alt="The nine channels of emet's closed verdict lattice, one to a row, with what each channel judges and the exact tokens it may emit. The primary lattice judges an anchored path re-read now and emits MATCH, DRIFT, or UNVERIFIABLE. Coherence judges a rendered view against the source bytes and emits COHERENT, VIEW_DIFFERS_FROM_SOURCE, or UNVERIFIABLE. Corroboration judges two read paths for one file and emits CORROBORATED, QUARANTINE_READ_PATH_DIVERGENCE, or UNVERIFIABLE. Audit judges the append-only chain of records and emits INTACT or BROKEN. The receipt channel judges a portable receipt offline and emits RECEIPT_VALID, RECEIPT_TAMPERED, or RECEIPT_UNVERIFIABLE. The monitor judges one watched file as MATCH, DRIFT, or MISSING, and the baseline it read from as INTACT or CHANGED. Perception judges a path between two observations as UNCHANGED, DRIFTED, NEW, or GONE. The revert channel judges whether a clean revert path exists and emits REVERTIBLE or NOT_REVERTIBLE. No channel admits a word that asserts authority." width="100%"></p>
+
+The set above is the whole vocabulary. Every governed verdict is emitted
+through `governed()` in [emet/verdict.py](emet/verdict.py), which raises on a
+token outside its channel, so an unsanctioned word fails at construction time
+rather than in review.
+
 EMET is an advisory integrity witness: it only reports facts. It can't say `TRUSTED`, doesn't decide whether a model
 is safe, runs outside whatever it audits, and never edits, signs, or blocks
 anything. Those constraints are the point, not limitations: see
