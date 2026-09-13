@@ -101,6 +101,7 @@ $verifyDir = Join-Path $env:TEMP "emet-verify-$stamp"
 python -m venv $verifyDir
 $verifyPy = Join-Path $verifyDir 'Scripts\python.exe'
 $verifyEmet = Join-Path $verifyDir 'Scripts\emet.exe'
+$conformanceRunner = (Resolve-Path 'conformance/run.py').Path
 & $verifyPy -m pip install --upgrade pip
 
 Push-Location $env:TEMP
@@ -123,7 +124,7 @@ assert emet_file == sys_prefix or sys_prefix in emet_file.parents
 print(emet_file)
 '@ | & $verifyPy -I -
   & $verifyEmet selftest
-  python conformance/run.py $verifyEmet
+  & $verifyPy $conformanceRunner $verifyEmet
 } finally {
   Pop-Location
 }
