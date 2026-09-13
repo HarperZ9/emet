@@ -32,6 +32,8 @@ jobs:
         run: python test_rebind.py
       - name: DeepEval eval-receipt reporter behavior proof (out-of-core adapter)
         run: python test_deepeval_reporter.py
+      - name: Flywheel evaluation artifact witness controls (out-of-core adapter)
+        run: python test_reporter_flywheel.py
       - name: conformance, Python reference (expect 48 of 48)
         run: python conformance/run.py membrane.py
       - name: selftest re-derives own identity (emet_self_sha256=)
