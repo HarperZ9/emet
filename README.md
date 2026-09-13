@@ -175,11 +175,18 @@ section 10, s.14), and the byte-hash core keeps zero runtime dependencies.
 
 ## Flywheel evaluation receipts (development)
 
-The optional `emet.reporters.flywheel` adapter binds a Flywheel Inspect evidence
-report or incident-simulation command result to its exact bytes and a small
-metadata record. It adds no runtime dependency and does not execute an evaluation.
-The receipt keeps `verdict_record` empty: an intact report can describe a failed
-task, and EMET does not decide whether that report is true.
+The optional `emet.reporters.flywheel` adapter binds Flywheel Inspect evidence,
+incident-simulation command results, and final process-audit packet bytes to a
+small metadata record. It adds no runtime dependency and does not execute an
+evaluation. The receipt keeps `verdict_record` empty: an intact report can
+describe a failed task, and EMET does not decide whether that report is true.
+
+For a process-audit packet, call `mint_packet_receipt(packet_bytes)` and retain
+the returned commitment's `receipt_sha256` whole-receipt hash, or the full
+commitment that contains it, outside the packet-local digest graph. `receipt_id`
+is useful supplementary context but does not bind the whole handoff.
+`write_packet_artifacts(...)` can persist fixed-name files and refuses to
+overwrite existing outputs, but it is not independent storage.
 
 See [the adapter contract and example](docs/FLYWHEEL-EVALUATION-RECEIPTS.md).
 The [review protocol](docs/FLYWHEEL-REVIEW-PROTOCOL.md) exercises an intact

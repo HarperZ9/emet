@@ -49,6 +49,13 @@ assert witness_receipt.check_receipt(
 print("Task: DRIFT; submitted report bytes: RECEIPT_VALID")
 ```
 
+
+For final process-audit packet handoff, prefer `mint_packet_receipt(packet_bytes)`
+and retain the returned commitment's `receipt_sha256` whole-receipt hash, or the
+full commitment that contains it, separately. `receipt_id` is supplementary and
+does not bind the whole handoff. The writer helper refuses to overwrite existing
+outputs, but it does not provide independent storage.
+
 Recheck the stored evidence with the installed command:
 
 ```text
