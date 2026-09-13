@@ -173,7 +173,7 @@ it and raises a clear error when it is absent. The reporter stays out-of-core:
 it is excluded from the minimal TCB and the selftest artifact-of-record (SPEC
 section 10, s.14), and the byte-hash core keeps zero runtime dependencies.
 
-## Flywheel evaluation receipts (development)
+## Flywheel evaluation receipts
 
 The optional `emet.reporters.flywheel` adapter binds Flywheel Inspect evidence,
 incident-simulation command results, and final process-audit packet bytes to a
@@ -254,7 +254,7 @@ anything. Those constraints are the point, not limitations: see
 
 ## Status
 
-v1.2.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
+v1.3.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
 exit-code split, the `--json` envelope, the marker path, and the audit chain
 re-derive across four languages and are checked in CI on every push. What the
 1.x line asserts is exactly two things: the **contract is frozen**, and the

@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.3.0 - 2026-09-13 - Flywheel evaluation receipts ship in the wheel
+
+The Flywheel reporter now ships in `emet.reporters.flywheel`. It binds exact
+Flywheel Inspect evidence reports, incident-simulation command outputs, and final
+process-audit packet bytes to bounded metadata records and EMET witness receipts.
+
+Added:
+
+- **Flywheel evaluation artifact witness reporter.** `mint_receipt(raw)` accepts
+  bounded UTF-8 JSON bytes for `flywheel.inspect-evidence/v1` and
+  `flywheel.incident-sim-command/v1`, returns an EMET witness receipt plus fixed
+  raw/metadata artifact bytes, and keeps `verdict_record` empty.
+- **Process-audit packet commitment helper.** `mint_packet_receipt(raw)` accepts
+  `flywheel.incident-sim-process-audit/v1` packet bytes and returns a receipt,
+  fixed artifact bytes, and a commitment containing the packet hash, record hash,
+  receipt id, and required whole-receipt SHA-256. The whole receipt hash, or a
+  full commitment containing it, must be retained outside the packet-local digest
+  graph; `receipt_id` is supplementary.
+- **Bounded writer convenience.** `write_packet_artifacts(...)` writes only fixed
+  packet artifact names, validates the artifact key set before creating the
+  output directory, refuses existing outputs including dangling links, and uses
+  exclusive creation so raced outputs fail closed. Partial reserved files may
+  remain for inspection.
+
+Boundaries:
+
+- EMET does not import Flywheel, run Inspect, execute incident simulations, call
+  scorers, access the network, independently store commitments, authenticate
+  producer identity, or certify semantic truth.
+- The adapter validates only the bounded projected fields it records. It is an
+  integrity/provenance witness over bytes and metadata, not an approval or
+  process-authority layer.
+- Core dependencies remain `[]`; `SPEC_VERSION` and `spec_version` remain
+  `1.0.0`; the byte-hash core and selftest TCB stay unchanged.
+
 ## 1.2.0 - 2026-08-04 - DeepEval reporter ships in the wheel
 
 The DeepEval reporter now installs with the package. Through 1.1.0 it lived in

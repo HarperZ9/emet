@@ -5,61 +5,137 @@ before a tag is cut, and the published artifacts must re-derive after upload.
 
 ## Pre-flight gates (all must pass)
 
-```sh
-# 1. The implementations agree on the vector suite.
-python conformance/run.py membrane.py                      # Python reference: 40/40
-( cd impl/rust && rustc -O emet.rs -o emet ) && python conformance/run.py impl/rust/emet   # 40/40
-python conformance/run.py impl/js/emet.js                  # Node.js: 40/40
-( cd impl/go && go build -o emet emet.go ) && python conformance/run.py impl/go/emet        # Go: 35/40 (receipt/check not yet ported; SPEC s.17)
+```powershell
+# 1. The implementations agree on the vector suite they claim.
+python conformance/run.py membrane.py
+
+rustc -O impl/rust/emet.rs -o "$env:TEMP\emet-rust.exe"
+$env:EMET_SKIP_CAPABILITIES='rebind,eval-receipt'
+python conformance/run.py "$env:TEMP\emet-rust.exe"
+Remove-Item Env:\EMET_SKIP_CAPABILITIES
+
+node --test impl/js/test_receipt.js
+$env:EMET_SKIP_CAPABILITIES='rebind,eval-receipt'
+python conformance/run.py impl/js/emet.js
+Remove-Item Env:\EMET_SKIP_CAPABILITIES
+
+go build -o "$env:TEMP\emet-go.exe" impl/go/emet.go
+$env:EMET_SKIP_CAPABILITIES='receipt,rebind,eval-receipt'
+python conformance/run.py "$env:TEMP\emet-go.exe"
+Remove-Item Env:\EMET_SKIP_CAPABILITIES
 
 # 2. The Python behavior + delivery suite.
-python -m pytest -q                                        # all green
+python -m pytest -q
+python test_reporter_flywheel.py
+python test_witness_receipt_cross_lang.py
 
 # 3. Identity + hygiene.
-python membrane.py selftest                                # emet_self_sha256= + legacy alias
-git diff --check                                           # no whitespace errors on changed lines
+python membrane.py selftest
+git diff --check
 ```
+
+Expected conformance counts: Python reference 48/48; Rust 40/40 with
+`rebind,eval-receipt` skipped; Node.js 40/40 with `rebind,eval-receipt` skipped;
+Go 35/35 with `receipt,rebind,eval-receipt` skipped. The installed-package CI job
+must also pass 48/48 against the installed `emet` console script.
 
 Confirm: no secrets or `.env` in the tree; runtime state (`anchors.json`,
 `*_log.jsonl`, `*.refused`) and build artifacts (`dist/`, `impl/**/emet*`) are
-gitignored; `SPEC.md`, `README.md`, and `CHANGELOG.md` state the version honestly;
-the independent, different-author re-derivability bar (SPEC section 12) is still
-described as open (1.0.0 does not claim it met).
+gitignored; `README.md`, `USAGE.md`, `SECURITY.md`, and `CHANGELOG.md` state the
+package version honestly; the independent, different-author re-derivability bar
+(SPEC section 12) is still described as open.
 
-## Version bump (single source per site)
+## Version bump surfaces
 
-Bump in lockstep (they must agree): `SPEC.md` header, `README.md` version badge,
-`SECURITY.md`, `COVERAGE.json`, `conformance/vectors.json` `spec_version`,
-`adapters/*.py` `SPEC_VERSION`, `USAGE.md` illustrative receipt, `pyproject.toml`
-`version`, `emet/report.py` `EMET_VERSION`/`SPEC_VERSION`, `emet/__init__.py`
-`__version__`, and `impl/rust/Cargo.toml`. Add a `CHANGELOG.md` entry.
+For a package-only 1.x release that does not change the frozen normative spec,
+bump in lockstep: `pyproject.toml` `version`, `emet/__init__.py` `__version__`,
+`emet/report.py` `EMET_VERSION`, README status text, the illustrative
+`emet_version` envelope in `USAGE.md`, `SECURITY.md` support wording, and
+`CHANGELOG.md`.
+
+Do not bump `SPEC.md` spec version, `conformance/vectors.json` `spec_version`,
+`COVERAGE.json` `spec_version`, adapter `SPEC_VERSION` constants, or the Rust
+crate version unless the release intentionally changes those surfaces.
 
 ## Tag, push, release
 
-```sh
-git tag -a v1.1.0 -m "EMET 1.1.0 - portable witness receipts, cross-language parity, experimental rebind"
+```powershell
+git tag -a vX.Y.Z -m "EMET X.Y.Z - <release summary>"
 git push origin main
-git push origin v1.1.0
-# GitHub release from the tag (gh):
-gh release create v1.1.0 --title "EMET 1.1.0" --notes-file <(sed -n '/## 1.1.0/,/## 1.0.0/p' CHANGELOG.md)
+git push origin vX.Y.Z
+
+# GitHub release from the tag. Use the matching CHANGELOG section as notes.
+gh release create vX.Y.Z --title "EMET X.Y.Z" --notes-file release-notes.md
 ```
+
+Only tag the exact commit whose source gates and GitHub push/PR checks passed.
 
 ## PyPI (emet)
 
-```sh
-python -m build                          # sdist + wheel into dist/
-python -m twine check dist/*             # metadata OK
-python -m twine upload dist/*            # requires a PyPI API token
+The repository publishes through GitHub Actions OIDC Trusted Publishing in
+`.github/workflows/release.yml` when a GitHub release is published. Do not run a
+manual API-token upload for the normal release path.
+
+Local artifact checks before publishing use a fresh output directory so older
+artifacts are preserved and not mistaken for the current candidate:
+
+```powershell
+$stamp = Get-Date -Format 'yyyyMMddTHHmmssZ'
+$artifactDir = Join-Path $PWD "dist-$stamp"
+python -m build --outdir $artifactDir
+$artifactPaths = (Get-ChildItem -LiteralPath $artifactDir -File).FullName
+python -m twine check $artifactPaths
+Get-FileHash $artifactPaths -Algorithm SHA256
 ```
+
+Those local hashes identify the pre-publish candidate that was checked on the
+operator's machine. The GitHub release workflow rebuilds the package artifacts;
+only claim byte equality with local artifacts after comparing the actual workflow
+outputs or PyPI files and recording the matching hashes.
 
 ## Post-publish re-derivation (the release verifies itself)
 
-```sh
-python -m venv /tmp/emet-verify && . /tmp/emet-verify/bin/activate
-pip install emet
-emet selftest                                                   # re-derives its identity
-python conformance/run.py "$(command -v emet)"                  # installed console script: 40/40
+```powershell
+$stamp = Get-Date -Format 'yyyyMMddTHHmmssZ'
+$verifyDir = Join-Path $env:TEMP "emet-verify-$stamp"
+python -m venv $verifyDir
+$verifyPy = Join-Path $verifyDir 'Scripts\python.exe'
+$verifyEmet = Join-Path $verifyDir 'Scripts\emet.exe'
+$conformanceRunner = (Resolve-Path 'conformance/run.py').Path
+& $verifyPy -m pip install --upgrade pip
+
+Push-Location $env:TEMP
+try {
+  & $verifyPy -m pip install -I --no-deps emet==X.Y.Z
+  @'
+import importlib.metadata as md
+import pathlib
+import sys
+
+import emet
+import emet.report as report
+
+emet_file = pathlib.Path(emet.__file__).resolve()
+sys_prefix = pathlib.Path(sys.prefix).resolve()
+assert md.version("emet") == "X.Y.Z"
+assert emet.__version__ == "X.Y.Z"
+assert report.SPEC_VERSION == "1.0.0"
+assert emet_file == sys_prefix or sys_prefix in emet_file.parents
+print(emet_file)
+'@ | & $verifyPy -I -
+  & $verifyEmet selftest
+  & $verifyPy $conformanceRunner $verifyEmet
+} finally {
+  Pop-Location
+}
 ```
+
+After upload, confirm PyPI shows both sdist and wheel for the new version, record
+their actual published hashes, and verify PyPI provenance points to the release
+tag and `release.yml` workflow run. Confirm the installed package imports from
+the verification environment, reports `emet.__version__ == "X.Y.Z"`, keeps
+`SPEC_VERSION == "1.0.0"` unless the normative spec changed, and passes the
+installed console conformance check.
 
 If the published artifact does not re-derive, the release is not done. EMET's only
 credential is reproduction; a release that cannot be reproduced refutes itself.
