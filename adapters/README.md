@@ -23,6 +23,11 @@ optional lazy import, and the reporter is excluded from the selftest
 artifact-of-record. See the [README](../README.md#deepeval-reporter-emetreportersdeepeval)
 for the current usage and import path.
 
+The **Flywheel reporter ships as `emet.reporters.flywheel`** as of 1.3.0. See
+the [README](../README.md#flywheel-evaluation-receipts-development) and
+[Flywheel evaluation receipts](../docs/FLYWHEEL-EVALUATION-RECEIPTS.md) for the
+current packet-commitment API, writer boundary, and false-success controls.
+
 The `bundle` witness re-derives a content-addressed proof-surface bundle: for
 every `files[]` entry in `bundle.json` it recomputes the sibling file's sha256 and
 compares it to the recorded digest. `MATCH` iff every file re-derives; `DRIFT` if a
