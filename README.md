@@ -173,6 +173,20 @@ it and raises a clear error when it is absent. The reporter stays out-of-core:
 it is excluded from the minimal TCB and the selftest artifact-of-record (SPEC
 section 10, s.14), and the byte-hash core keeps zero runtime dependencies.
 
+## Flywheel evaluation receipts (development)
+
+The optional `emet.reporters.flywheel` adapter binds a Flywheel Inspect evidence
+report or incident-simulation command result to its exact bytes and a small
+metadata record. It adds no runtime dependency and does not execute an evaluation.
+The receipt keeps `verdict_record` empty: an intact report can describe a failed
+task, and EMET does not decide whether that report is true.
+
+See [the adapter contract and example](docs/FLYWHEEL-EVALUATION-RECEIPTS.md).
+The [review protocol](docs/FLYWHEEL-REVIEW-PROTOCOL.md) exercises an intact
+receipt for a failed task, changed bytes and missing evidence.
+The Python API returns artifact bytes for the caller to store. Keep the original
+report private when it contains sensitive evidence; this adapter is not a redactor.
+
 ## For developers
 
 The repo ships its own delivery contract; re-check it any time with
