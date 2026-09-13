@@ -24,7 +24,7 @@ artifact-of-record. See the [README](../README.md#deepeval-reporter-emetreporter
 for the current usage and import path.
 
 The **Flywheel reporter ships as `emet.reporters.flywheel`** as of 1.3.0. See
-the [README](../README.md#flywheel-evaluation-receipts-development) and
+the [README](../README.md#flywheel-evaluation-receipts) and
 [Flywheel evaluation receipts](../docs/FLYWHEEL-EVALUATION-RECEIPTS.md) for the
 current packet-commitment API, writer boundary, and false-success controls.
 

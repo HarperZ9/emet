@@ -96,11 +96,37 @@ outputs or PyPI files and recording the matching hashes.
 ## Post-publish re-derivation (the release verifies itself)
 
 ```powershell
-python -m venv "$env:TEMP\emet-verify"
-& "$env:TEMP\emet-verify\Scripts\python.exe" -m pip install --upgrade pip
-& "$env:TEMP\emet-verify\Scripts\python.exe" -m pip install emet==X.Y.Z
-& "$env:TEMP\emet-verify\Scripts\emet.exe" selftest
-python conformance/run.py (Get-Command "$env:TEMP\emet-verify\Scripts\emet.exe").Source
+$stamp = Get-Date -Format 'yyyyMMddTHHmmssZ'
+$verifyDir = Join-Path $env:TEMP "emet-verify-$stamp"
+python -m venv $verifyDir
+$verifyPy = Join-Path $verifyDir 'Scripts\python.exe'
+$verifyEmet = Join-Path $verifyDir 'Scripts\emet.exe'
+& $verifyPy -m pip install --upgrade pip
+
+Push-Location $env:TEMP
+try {
+  & $verifyPy -m pip install -I --no-deps emet==X.Y.Z
+  @'
+import importlib.metadata as md
+import pathlib
+import sys
+
+import emet
+import emet.report as report
+
+emet_file = pathlib.Path(emet.__file__).resolve()
+sys_prefix = pathlib.Path(sys.prefix).resolve()
+assert md.version("emet") == "X.Y.Z"
+assert emet.__version__ == "X.Y.Z"
+assert report.SPEC_VERSION == "1.0.0"
+assert emet_file == sys_prefix or sys_prefix in emet_file.parents
+print(emet_file)
+'@ | & $verifyPy -I -
+  & $verifyEmet selftest
+  python conformance/run.py $verifyEmet
+} finally {
+  Pop-Location
+}
 ```
 
 After upload, confirm PyPI shows both sdist and wheel for the new version, record
