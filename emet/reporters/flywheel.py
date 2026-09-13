@@ -12,15 +12,25 @@ incident conclusions, or semantic truth.
 import hashlib
 import json
 import math
+import os
 
 from emet import report, witness_receipt
 
 RAW_REPORT_FILENAME = "flywheel-evaluation.json"
 RECORD_FILENAME = "flywheel-record.json"
 RECORD_SCHEMA = "emet-flywheel-evaluation-record/v1"
+PACKET_FILENAME = "flywheel-process-audit-packet.json"
+PACKET_RECORD_FILENAME = "flywheel-process-audit-record.json"
+PACKET_RECEIPT_FILENAME = "flywheel-process-audit-receipt.json"
+PACKET_COMMITMENT_FILENAME = "flywheel-process-audit-commitment.json"
+PACKET_RECORD_SCHEMA = "emet-flywheel-process-audit-packet-record/v1"
+PACKET_COMMITMENT_SCHEMA = "emet-flywheel-packet-commitment/v1"
 MAX_BYTES = 16 * 1024 * 1024
 MAX_DEPTH = 32
-_KNOWN_SCHEMAS = {"flywheel.inspect-evidence/v1", "flywheel.incident-sim-command/v1"}
+_PROCESS_AUDIT_SCHEMA = "flywheel.incident-sim-process-audit/v1"
+_PACKET_ARTIFACT_NAMES = frozenset({PACKET_FILENAME, PACKET_RECORD_FILENAME})
+_KNOWN_SCHEMAS = {"flywheel.inspect-evidence/v1", "flywheel.incident-sim-command/v1",
+                  _PROCESS_AUDIT_SCHEMA}
 _INSPECT_STATUSES = {"started", "success", "cancelled", "error"}
 _INSPECT_ASSESSMENTS = {"reported", "incomplete", "error"}
 _INSPECT_SEMANTIC = {"UNVERIFIABLE"}
@@ -132,6 +142,16 @@ def _inspect_projection(value):
     }
 
 
+def _overall_verdict_from(value):
+    evaluation = value.get("evaluation")
+    if not isinstance(evaluation, dict):
+        packet = value.get("audit_packet")
+        evaluation = packet.get("evaluation") if isinstance(packet, dict) else None
+    overall = evaluation.get("overall") if isinstance(evaluation, dict) else None
+    verdict = overall.get("verdict") if isinstance(overall, dict) else None
+    return _enum(verdict, _INCIDENT_VERDICTS)
+
+
 def _incident_projection(value):
     if not isinstance(value.get("sources"), dict):
         raise ValueError("E_SHAPE")
@@ -139,14 +159,19 @@ def _incident_projection(value):
         raise ValueError("E_SHAPE")
     if not _string_list(value.get("does_not_prove")):
         raise ValueError("E_SHAPE")
-    evaluation = value.get("evaluation")
-    if not isinstance(evaluation, dict):
-        packet = value.get("audit_packet")
-        evaluation = packet.get("evaluation") if isinstance(packet, dict) else None
-    overall = evaluation.get("overall") if isinstance(evaluation, dict) else None
-    verdict = overall.get("verdict") if isinstance(overall, dict) else None
-    verdict = _enum(verdict, _INCIDENT_VERDICTS)
-    return {"evaluation_overall_verdict": verdict}
+    return {"evaluation_overall_verdict": _overall_verdict_from(value)}
+
+
+def _process_audit_projection(value):
+    if not isinstance(value.get("receipts"), dict):
+        raise ValueError("E_SHAPE")
+    if not isinstance(value.get("receipt_verification"), dict):
+        raise ValueError("E_SHAPE")
+    if not isinstance(value.get("source_values"), list):
+        raise ValueError("E_SHAPE")
+    if not isinstance(value.get("independence"), dict):
+        raise ValueError("E_SHAPE")
+    return {"evaluation_overall_verdict": _overall_verdict_from(value)}
 
 
 def _projection(value):
@@ -157,15 +182,16 @@ def _projection(value):
         raise ValueError("E_SCHEMA")
     if schema == "flywheel.inspect-evidence/v1":
         return schema, _inspect_projection(value)
+    if schema == _PROCESS_AUDIT_SCHEMA:
+        return schema, _process_audit_projection(value)
     return schema, _incident_projection(value)
 
 
-def build_eval_record(raw):
-    """Build a canonical-safe metadata record for exact raw Flywheel bytes."""
+def _record(raw, record_schema, raw_name, record_name):
     value = _load(raw)
     producer_schema, producer_claims = _projection(value)
     return {
-        "schema": RECORD_SCHEMA,
+        "schema": record_schema,
         "producer_schema": producer_schema,
         "source": {
             "algorithm": "sha256",
@@ -174,8 +200,8 @@ def build_eval_record(raw):
         },
         "producer_claims": producer_claims,
         "artifact_names": {
-            "raw": RAW_REPORT_FILENAME,
-            "record": RECORD_FILENAME,
+            "raw": raw_name,
+            "record": record_name,
         },
         "semantic_conclusions_verified_by_emet": "UNVERIFIED",
         "does_not_prove": [
@@ -185,6 +211,19 @@ def build_eval_record(raw):
             "that reported actions actually executed",
         ],
     }
+
+
+def build_eval_record(raw):
+    """Build a canonical-safe metadata record for exact raw Flywheel bytes."""
+    return _record(raw, RECORD_SCHEMA, RAW_REPORT_FILENAME, RECORD_FILENAME)
+
+
+def build_packet_record(raw):
+    """Build metadata for exact Flywheel process-audit packet bytes."""
+    record = _record(raw, PACKET_RECORD_SCHEMA, PACKET_FILENAME, PACKET_RECORD_FILENAME)
+    if record["producer_schema"] != _PROCESS_AUDIT_SCHEMA:
+        raise ValueError("E_SCHEMA")
+    return record
 
 
 def mint_receipt(raw, now=None):
@@ -204,3 +243,136 @@ def mint_receipt(raw, now=None):
     }
     receipt = witness_receipt.emit_receipt(env, now=now)
     return receipt, artifacts
+
+
+
+def _receipt_bytes(receipt):
+    return report.canonical(receipt).encode("utf-8")
+
+
+def _commitment(raw, record_bytes, receipt):
+    receipt_bytes = _receipt_bytes(receipt)
+    return {
+        "schema": PACKET_COMMITMENT_SCHEMA,
+        "packet_artifact": PACKET_FILENAME,
+        "record_artifact": PACKET_RECORD_FILENAME,
+        "receipt_artifact": PACKET_RECEIPT_FILENAME,
+        "packet_sha256": _sha256(raw),
+        "record_sha256": _sha256(record_bytes),
+        "receipt_id": receipt["receipt_id"],
+        "receipt_sha256": _sha256(receipt_bytes),
+        "subject_paths": [row.get("path") for row in receipt.get("subject", [])],
+        "separate_retention_required": True,
+        "emet_stores_commitment_independently": False,
+        "does_not_prove": [
+            "independent storage or retention",
+            "incident truth or semantic correctness",
+            "that reported actions actually executed",
+            "reviewer approval, release readiness, or authority",
+        ],
+    }
+
+
+def _require_packet_artifacts(artifacts):
+    if not isinstance(artifacts, dict):
+        raise ValueError("E_ARTIFACTS")
+    if frozenset(artifacts) != _PACKET_ARTIFACT_NAMES:
+        raise ValueError("E_ARTIFACT_KEYS")
+    checked = {}
+    for name in (PACKET_FILENAME, PACKET_RECORD_FILENAME):
+        data = artifacts[name]
+        if not isinstance(data, bytes):
+            raise ValueError("E_ARTIFACT_BYTES")
+        checked[name] = data
+    return checked
+
+
+def _portable_output_name(name):
+    return (
+        isinstance(name, str)
+        and name
+        and name not in {".", ".."}
+        and not os.path.isabs(name)
+        and os.path.basename(name) == name
+        and "/" not in name
+        and "\\" not in name
+    )
+
+
+def _packet_outputs(receipt, artifacts, commitment):
+    checked = _require_packet_artifacts(artifacts)
+    outputs = {
+        PACKET_FILENAME: checked[PACKET_FILENAME],
+        PACKET_RECORD_FILENAME: checked[PACKET_RECORD_FILENAME],
+        PACKET_RECEIPT_FILENAME: _receipt_bytes(receipt),
+        PACKET_COMMITMENT_FILENAME: report.canonical(commitment).encode("utf-8"),
+    }
+    if not all(_portable_output_name(name) for name in outputs):
+        raise ValueError("E_OUTPUT_NAME")
+    return outputs
+
+
+def _write_exclusive(paths, outputs):
+    handles = {}
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        if hasattr(os, "O_BINARY"):
+            flags |= os.O_BINARY
+        for name, path in paths.items():
+            fd = None
+            try:
+                fd = os.open(path, flags, 0o666)
+                handles[name] = os.fdopen(fd, "wb")
+                fd = None
+            finally:
+                if fd is not None:
+                    os.close(fd)
+        for name, handle in handles.items():
+            handle.write(outputs[name])
+    finally:
+        for handle in handles.values():
+            handle.close()
+
+
+def mint_packet_receipt(raw, now=None):
+    """Return a packet receipt, fixed-name artifacts, and reviewer commitment.
+
+    The receipt witnesses exact packet bytes and a bounded metadata record. It does
+    not store the commitment independently; callers must retain the returned
+    receipt hash or commitment outside the packet-local digest graph.
+    """
+    record = build_packet_record(raw)
+    record_bytes = report.canonical(record).encode("utf-8")
+    artifacts = {
+        PACKET_FILENAME: raw,
+        PACKET_RECORD_FILENAME: record_bytes,
+    }
+    env = {
+        "command": "anchor",
+        "results": [
+            {"path": PACKET_FILENAME, "sha256": _sha256(raw)},
+            {"path": PACKET_RECORD_FILENAME, "sha256": _sha256(record_bytes)},
+        ],
+    }
+    receipt = witness_receipt.emit_receipt(env, now=now)
+    return receipt, artifacts, _commitment(raw, record_bytes, receipt)
+
+
+def write_packet_artifacts(out_dir, receipt, artifacts, commitment):
+    """Persist packet artifacts without clobbering existing files.
+
+    The caller controls storage. This helper validates the two caller-provided
+    artifact names before creating the directory, writes only fixed public
+    artifact names, and raises FileExistsError for existing outputs including
+    dangling links. If an output appears after preflight, exclusive creation
+    fails closed; already reserved files may remain for inspection and are not
+    cleaned up automatically.
+    """
+    outputs = _packet_outputs(receipt, artifacts, commitment)
+    os.makedirs(out_dir, exist_ok=True)
+    paths = {name: os.path.join(out_dir, name) for name in outputs}
+    for path in paths.values():
+        if os.path.lexists(path):
+            raise FileExistsError(path)
+    _write_exclusive(paths, outputs)
+    return paths
