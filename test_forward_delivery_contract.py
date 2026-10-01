@@ -48,7 +48,7 @@ class ForwardDeliveryContractTests(unittest.TestCase):
             ".github/FUNDING.yml",
             ".github/workflows/conformance.yml",
             "assets/emet-hero.png",
-            ".github/assets/zentropy-banner.png",
+            ".github/assets/banner.png",
         ]
 
         missing = [path for path in required if not (ROOT / path).is_file()]
