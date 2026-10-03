@@ -309,7 +309,16 @@ perceive/gate/actuate surface), and stands alone just as well.
 [COVERAGE.json](COVERAGE.json) · [SECURITY.md](SECURITY.md) ·
 [CONTRIBUTING.md](CONTRIBUTING.md)
 
-MPL-2.0.
+## License
+
+Text: CC BY 4.0. Code: MPL-2.0.
+
+The paper in [`papers/`](papers/), the rationale essays in
+[`docs/rationale/`](docs/rationale/) and the walkthrough transcripts are licensed
+CC BY 4.0, the same licence the paper's Zenodo deposit records. Share and adapt
+them with credit to Zain Dana Harper; the terms are in
+[`LICENSE-TEXT`](LICENSE-TEXT). The code and the software documentation are
+under MPL-2.0; see [LICENSE](LICENSE).
 
 ## What this believes
 
