@@ -1,13 +1,19 @@
-<p align="center"><img src="docs/art/emet-header.svg" alt="emet: byte-level integrity witness. A witness that reports what it found, and decides nothing." width="100%"></p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/HarperZ9/emet/main/docs/art/hero-dark.svg">
+  <img src="https://raw.githubusercontent.com/HarperZ9/emet/main/docs/art/hero-light.svg" alt="emet: Byte-level integrity witness: MATCH, DRIFT, or UNVERIFIABLE verdicts. A chain of small linked squares, each holding a few ruled lines, winds inward to a bright core." width="100%">
+</picture>
 
-**Byte-level integrity witness. Four independent implementations, one verdict lattice.**
+# emet
 
-[![PyPI](https://img.shields.io/pypi/v/emet?style=flat-square&labelColor=14041b&color=ff35aa)](https://pypi.org/project/emet/)
-[![license: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-8f8095?style=flat-square&labelColor=14041b)](LICENSE)
-[![downloads](https://img.shields.io/pypi/dm/emet?label=downloads&style=flat-square&labelColor=14041b)](https://pypi.org/project/emet/)
-[![CI](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml/badge.svg)](https://github.com/HarperZ9/emet/actions/workflows/conformance.yml)
-![python](https://img.shields.io/badge/python-3.x-8f8095?style=flat-square&labelColor=14041b)
-![deps: none](https://img.shields.io/badge/deps-none-8f8095?style=flat-square&labelColor=14041b)
+Byte-level integrity witness: MATCH, DRIFT, or UNVERIFIABLE verdicts.
+
+```
+pip install emet
+```
+
+[![version: 1.3.0](https://img.shields.io/badge/version-1.3.0-e6e1d6?style=flat-square&labelColor=1a1712)](https://pypi.org/project/emet/)
+[![license](https://img.shields.io/badge/license-MPL--2.0-e6e1d6?style=flat-square&labelColor=1a1712)](https://github.com/HarperZ9/emet/blob/main/LICENSE)
+![python 3.8+](https://img.shields.io/badge/python-3.8%2B-e6e1d6?style=flat-square&labelColor=1a1712)
 
 EMET checks whether the bytes reaching a model, a reviewer, or a pipeline still
 match the source they claim to represent, then emits one of three closed
