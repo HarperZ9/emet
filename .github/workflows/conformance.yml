@@ -154,3 +154,9 @@ jobs:
         run: emet selftest
       - name: conformance against the INSTALLED emet console script (expect 48 of 48)
         run: python conformance/run.py "$(python -c 'import shutil; print(shutil.which("emet"))')"
+  art-receipts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify art receipt digests
+        run: python3 scripts/check_art_receipts.py
