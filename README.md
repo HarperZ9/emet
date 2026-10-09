@@ -64,6 +64,54 @@ The [animated explainer](https://harperz9.github.io/repo-explainers/emet.html)
 walks through anchoring a file, verify reading MATCH, DRIFT and UNVERIFIABLE, a sealed receipt re-checked and then caught after an edit, in-band authority claims reported without being obeyed, and the corroborate and coherence checks. Every value on it is output from this repository. Its
 source is [docs/explainer/index.html](docs/explainer/index.html).
 
+## Watch
+
+[![Re-derive it. Don't take it on trust.: a narrated film, 2 min 5 s](https://harperz9.github.io/media/explainers/rederive/poster.jpg)](https://harperz9.github.io/explainers.html#rederive-h)
+
+**[Re-derive it. Don't take it on trust.](https://harperz9.github.io/explainers.html#rederive-h)** (2 min 5 s, narrated, captioned). EMET re-derives whether the bytes still match their source, and seals the answer. The film page carries the transcript, the sources and recall questions.
+
+Video walkthrough: coming with the next release.
+
+## Walkthrough
+
+Install it, run it once, then use the main feature. Each command below is real, and so is its output.
+
+1. **Install.** Install from PyPI, or run from a checkout. Python 3.8 or newer, no dependencies.
+
+   ```text
+   $ pip install emet
+   $ emet selftest
+   ```
+
+2. **First run: anchor and verify a file.** Anchor a file, then verify it.
+
+   ```text
+   $ printf 'hello world\n' > report.md
+   $ emet anchor report.md
+   $ emet verify report.md
+   MATCH report.md want=a948904f2f0f479b got=a948904f2f0f479b
+   ```
+
+3. **Seal the verdict.** Turn the verdict into a receipt and check it.
+
+   ```text
+   $ emet check receipt.json
+   result=RECEIPT_VALID reason=receipt re-derived
+   ```
+
+4. **Report authority claims.** Scan a prompt for text that claims authority. EMET reports each marker and obeys none.
+
+   ```text
+   $ emet refuse prompt.txt
+   corpus_version=1
+   in_band_authority_claims=4
+     REFUSED 'highest_scrutiny' offset=114
+     REFUSED 'ground truth canonical' offset=144
+     REFUSED 'authority-pill' offset=175
+     REFUSED 'consulting register' offset=199
+   clean_copy=prompt.txt.refused  (claims neutralized; obeyed: none)
+   ```
+
 ## Usage
 
 ```sh
