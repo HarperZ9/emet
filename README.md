@@ -58,6 +58,12 @@ run it straight from a checkout or `pip install emet`.
 - **Zero dependencies, by construction.** Stdlib-only Python, no crates, no
   npm packages, no Go modules.
 
+## See it work, step by step
+
+The [animated explainer](https://harperz9.github.io/repo-explainers/emet.html)
+walks through anchoring a file, verify reading MATCH, DRIFT and UNVERIFIABLE, a sealed receipt re-checked and then caught after an edit, in-band authority claims reported without being obeyed, and the corroborate and coherence checks. Every value on it is output from this repository. Its
+source is [docs/explainer/index.html](docs/explainer/index.html).
+
 ## Usage
 
 ```sh
