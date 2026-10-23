@@ -12,6 +12,14 @@ The adapter accepts UTF-8 JSON bytes for three supported schemas:
 - `flywheel.incident-sim-command/v1`
 - `flywheel.incident-sim-process-audit/v1` through the packet-specific API
 
+Each input carries a list of what it covers. Newer Flywheel output names that
+list `scope`; older output names it `does_not_prove`. The adapter reads either
+name. Its own records name their list `scope` and say what each record covers:
+the evaluation record and the packet record (schema version 2) cover the hash
+and length of the exact bytes and the producer fields copied from them; the
+packet commitment (version 2) covers the packet, record and receipt hashes.
+Version 1 records named the same list `does_not_prove`.
+
 It returns a portable EMET witness receipt plus two fixed-name byte artifacts for
 the caller to persist:
 

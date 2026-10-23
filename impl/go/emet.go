@@ -1266,8 +1266,8 @@ func cmdSelftest(jsonMode bool) int {
 	// binary. Hash our own executable bytes.
 	selfHash := "UNKNOWN"
 	notes := []jval{
-		"selftest proves EMET integrity only relative to an uncompromised substrate (SPEC s.11); an external verifier MUST be the check of record.",
-		"compiled artifact-of-record: the self-hash is build-dependent, not source-reproducible across rebuilds (SPEC s.14).",
+		"check this build with an external verifier; a self-check cannot detect a compromised machine (SPEC s.11).",
+		"compiled build: the self-hash changes with each rebuild (SPEC s.14).",
 	}
 	exe, err := os.Executable()
 	if err == nil {

@@ -16,13 +16,13 @@ from emet import report, witness_receipt
 
 RAW_REPORT_FILENAME = "flywheel-evaluation.json"
 RECORD_FILENAME = "flywheel-record.json"
-RECORD_SCHEMA = "emet-flywheel-evaluation-record/v1"
+RECORD_SCHEMA = "emet-flywheel-evaluation-record/v2"
 PACKET_FILENAME = "flywheel-process-audit-packet.json"
 PACKET_RECORD_FILENAME = "flywheel-process-audit-record.json"
 PACKET_RECEIPT_FILENAME = "flywheel-process-audit-receipt.json"
 PACKET_COMMITMENT_FILENAME = "flywheel-process-audit-commitment.json"
-PACKET_RECORD_SCHEMA = "emet-flywheel-process-audit-packet-record/v1"
-PACKET_COMMITMENT_SCHEMA = "emet-flywheel-packet-commitment/v1"
+PACKET_RECORD_SCHEMA = "emet-flywheel-process-audit-packet-record/v2"
+PACKET_COMMITMENT_SCHEMA = "emet-flywheel-packet-commitment/v2"
 MAX_BYTES = 16 * 1024 * 1024
 MAX_DEPTH = 32
 _PROCESS_AUDIT_SCHEMA = "flywheel.incident-sim-process-audit/v1"
@@ -118,6 +118,12 @@ def _string_list(value):
     return isinstance(value, list) and all(isinstance(item, str) for item in value)
 
 
+def _scope_list(value):
+    """The producer's scope list. Flywheel names it `scope`; older Flywheel
+    output names it `does_not_prove`. Either name is accepted."""
+    return value.get("scope", value.get("does_not_prove"))
+
+
 def _inspect_projection(value):
     if not isinstance(value.get("producer"), dict):
         raise ValueError("E_SHAPE")
@@ -125,7 +131,7 @@ def _inspect_projection(value):
         raise ValueError("E_SHAPE")
     if not isinstance(value.get("source_pointers"), list):
         raise ValueError("E_SHAPE")
-    if not _string_list(value.get("does_not_prove")):
+    if not _string_list(_scope_list(value)):
         raise ValueError("E_SHAPE")
     if not isinstance(value.get("invalidated"), bool):
         raise ValueError("E_SHAPE")
@@ -155,7 +161,7 @@ def _incident_projection(value):
         raise ValueError("E_SHAPE")
     if not isinstance(value.get("audit_packet"), dict):
         raise ValueError("E_SHAPE")
-    if not _string_list(value.get("does_not_prove")):
+    if not _string_list(_scope_list(value)):
         raise ValueError("E_SHAPE")
     return {"evaluation_overall_verdict": _overall_verdict_from(value)}
 
@@ -202,11 +208,9 @@ def _record(raw, record_schema, raw_name, record_name):
             "record": record_name,
         },
         "semantic_conclusions_verified_by_emet": "UNVERIFIED",
-        "does_not_prove": [
-            "Flywheel scorer correctness",
-            "model quality or safety",
-            "independent ground truth",
-            "that reported actions actually executed",
+        "scope": [
+            "the sha256 and byte length of the exact Flywheel bytes",
+            "the producer fields copied from those bytes as Flywheel reported them",
         ],
     }
 
@@ -262,11 +266,9 @@ def _commitment(raw, record_bytes, receipt):
         "subject_paths": [row.get("path") for row in receipt.get("subject", [])],
         "separate_retention_required": True,
         "emet_stores_commitment_independently": False,
-        "does_not_prove": [
-            "independent storage or retention",
-            "incident truth or semantic correctness",
-            "that reported actions actually executed",
-            "reviewer approval, release readiness, or authority",
+        "scope": [
+            "the sha256 of the packet, the record and the receipt",
+            "the receipt id and the subject paths it names",
         ],
     }
 

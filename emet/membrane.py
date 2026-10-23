@@ -280,11 +280,11 @@ def selftest():
     h = report.self_hash(os.path.dirname(os.path.abspath(__file__)), CORE_SRC)
     say("emet_self_sha256=" + h)
     say("membrane_self_sha256=" + h + "  (deprecated alias; removed at 2.0)")
-    say("note=this hash is my only credential; re-derive it from source to verify me.")
-    say("note=I assert no authority, grant no permission, decide no safety question.")
+    say("note=re-derive this hash from the source files to check this build.")
+    say("note=emet reports hashes and verdicts; it grants no permission.")
     emit("selftest", None, EXIT_OK, self_sha256=h,
-         notes=["this hash is my only credential; re-derive it from source to verify me.",
-                "I assert no authority, grant no permission, decide no safety question."])
+         notes=["re-derive this hash from the source files to check this build.",
+                "emet reports hashes and verdicts; it grants no permission."])
 
 RECEIPT_USAGE = (
     "usage: emet receipt --from-json <file|->   emit a portable witness receipt\n"
@@ -292,8 +292,8 @@ RECEIPT_USAGE = (
     "\n"
     "receipt reads a command envelope (verify/anchor/coherence/corroborate --json)\n"
     "from a file or stdin (-) and prints a self-contained, content-addressed\n"
-    "witness receipt (SPEC s.17) to stdout. A DIFFERENT party can re-derive and\n"
-    "check it on their own machine with `emet check`, zero shared state.\n"
+    "witness receipt (SPEC s.17) to stdout. Anyone can check it on their own\n"
+    "machine with `emet check`; no shared state is needed.\n"
 )
 
 def _receipt_signing_key():
@@ -360,8 +360,8 @@ REBIND_USAGE = (
     "\n"
     "rebind re-derives the content hash of stripped naked bytes and rebinds them to\n"
     "a KNOWN anchor recorded in a portable rebind manifest (SPEC s.18, EXPERIMENTAL),\n"
-    "emitting MATCH / DRIFT / UNVERIFIABLE. UNVERIFIABLE is the honest default when\n"
-    "no anchor records the bytes. --build-manifest constructs a manifest from\n"
+    "emitting MATCH / DRIFT / UNVERIFIABLE. UNVERIFIABLE means no anchor records\n"
+    "the bytes. --build-manifest constructs a manifest from\n"
     "path=identity pairs (each path's raw bytes are hashed into an anchor record).\n"
 )
 

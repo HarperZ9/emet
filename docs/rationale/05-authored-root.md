@@ -176,13 +176,13 @@ after printing the hash (lines 206–209):
 ```
 emet_self_sha256=<hex>
 membrane_self_sha256=<hex>  (deprecated alias; removed at 2.0)
-note=this hash is my only credential; re-derive it from source to verify me.
-note=I assert no authority, grant no permission, decide no safety question.
+note=re-derive this hash from the source files to check this build.
+note=emet reports hashes and verdicts; it grants no permission.
 ```
 
 Read those two notes as the answer to the objection, encoded in the running
-tool. The first sentence relocates the root *outward*: "re-derive it from source
-to verify me" -- the verification is something *you* do, from *outside*, against
+tool. The first sentence relocates the root *outward*: "re-derive this hash from
+the source files" -- the verification is something *you* do, from *outside*, against
 the source; the hash is a credential offered for external checking, not a verdict
 EMET renders on itself. The second sentence is the no-authority refusal: EMET
 does not, even here, even about itself, cross into asserting that the hash *ought*

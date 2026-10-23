@@ -1173,8 +1173,8 @@ fn cmd_selftest() -> i32 {
         "membrane_self_sha256={}  (deprecated alias; removed at 2.0)",
         h
     ));
-    say("note=this hash is my only credential; re-derive it from source to verify me.");
-    say("note=I assert no authority, grant no permission, decide no safety question.");
+    say("note=re-derive this hash from the source files to check this build.");
+    say("note=emet reports hashes and verdicts; it grants no permission.");
     // selftest reports an identity, not a judgement: no verdict field (SPEC s.13/s.14).
     emit_envelope(
         "selftest",
@@ -1185,8 +1185,8 @@ fn cmd_selftest() -> i32 {
             (
                 "notes",
                 JV::Arr(vec![
-                    JV::S("this hash is my only credential; re-derive it from source to verify me.".to_string()),
-                    JV::S("I assert no authority, grant no permission, decide no safety question.".to_string()),
+                    JV::S("re-derive this hash from the source files to check this build.".to_string()),
+                    JV::S("emet reports hashes and verdicts; it grants no permission.".to_string()),
                 ]),
             ),
         ],
