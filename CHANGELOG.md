@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1 - 2026-10-22 - README and package metadata
+
+No code or spec change. The README opening now says what emet does and who it
+is for, with a first run from PyPI, a comparison with sha256sum, Sigstore,
+in-toto and SLSA, and its limits. The `refuse` example sets `EMET_CORPUS`,
+because the wheel ships without the marker list. The PyPI summary matches the
+new description, and the package author is Zain Dana Harper with
+zaindharper@gmail.com.
+
 ## 1.3.0 - 2026-09-13 - Flywheel evaluation receipts ship in the wheel
 
 The Flywheel reporter now ships in `emet.reporters.flywheel`. It binds exact
