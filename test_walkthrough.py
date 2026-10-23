@@ -1,4 +1,4 @@
-# This Source Code Form is subject to the terms of the MPL, v. 2.0.
+# SPDX-License-Identifier: AGPL-3.0-only
 import subprocess, sys, pathlib
 
 RENDER = pathlib.Path(__file__).parent / "docs" / "rationale" / "walkthrough" / "render.py"

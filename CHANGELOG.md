@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased - 2026-10-23 - Licence change to AGPL-3.0-only
+
+The code and the software documentation move from MPL-2.0 to the GNU Affero
+General Public License, version 3 only (AGPL-3.0-only), on the author's
+decision of 2026-10-23. Every commit in the history is the author's own, so
+the author can make this change alone.
+
+Released versions keep their licence. Version 1.3.1 and every earlier release,
+on PyPI and as GitHub tags, stay under MPL-2.0. AGPL-3.0-only applies from the
+next release. The written works listed in `LICENSE-TEXT` stay CC BY 4.0.
+
+Changed: `LICENSE`, the SPDX headers in source files, `license` in
+`pyproject.toml` and `impl/rust/Cargo.toml`, the PyPI classifier, and the
+licence lines in `README.md`, `SPEC.md`, `CONTRIBUTING.md`, `LICENSE-TEXT` and
+the explainer page. Dated plans under `docs/superpowers/` and the deposited
+paper keep their original wording as records.
+
 ## 1.3.1 - 2026-10-22 - README and package metadata
 
 No code or spec change. The README opening now says what emet does and who it

@@ -1,6 +1,4 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: AGPL-3.0-only
 """Back-compat shim. The shared marker-corpus loader now lives in emet/corpus.py.
 Re-exported here so `import corpus` (and importlib.reload on it) keeps working;
 corpus_path() reads EMET_CORPUS at call time, so behaviour is unchanged."""
