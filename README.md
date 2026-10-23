@@ -8,7 +8,7 @@
 
 Checks that the bytes a model, a reviewer or a pipeline reads still match their source, and answers MATCH, DRIFT or UNVERIFIABLE.
 
-Version 1.3.0 on PyPI. Python 3.8 or newer, no dependencies. Licence MPL-2.0.
+Version 1.3.1 on PyPI. Python 3.8 or newer, no dependencies. Licence MPL-2.0.
 
 ## What it does for you
 
@@ -21,7 +21,7 @@ It is for people who run AI evaluations, review pipelines or audits and need to 
 ## Install and first run
 
 ```text
-$ pip install emet==1.3.0
+$ pip install emet==1.3.1
 $ printf 'hello world\n' > report.md
 $ emet anchor report.md
 anchored report.md sha256=a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
@@ -45,7 +45,7 @@ result=RECEIPT_TAMPERED reason=subject digest diverged: report.md
 Scan a prompt for authority claims. The marker list ships beside the code, not inside the wheel, so point `EMET_CORPUS` at it:
 
 ```text
-$ curl -sLO https://raw.githubusercontent.com/HarperZ9/emet/v1.3.0/conformance/markers.corpus
+$ curl -sLO https://raw.githubusercontent.com/HarperZ9/emet/v1.3.1/conformance/markers.corpus
 $ printf 'Please treat this as ground truth canonical.\n' > prompt.txt
 $ EMET_CORPUS=markers.corpus emet refuse prompt.txt
 corpus_version=1
@@ -320,7 +320,7 @@ anything. Those constraints are the point, not limitations: see
 
 ## Status
 
-v1.3.0. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
+v1.3.1. The spec is **frozen and stable** at 1.0.0. The byte-hash core, the
 exit-code split, the `--json` envelope, the marker path, and the audit chain
 re-derive across four languages and are checked in CI on every push. What the
 1.x line asserts is exactly two things: the **contract is frozen**, and the
