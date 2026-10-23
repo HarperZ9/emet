@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "emet"
 version = "1.3.0"
-description = "A small external witness for AI oversight: re-derive the bytes, get MATCH / DRIFT / UNVERIFIABLE, trust nothing in-band."
+description = "Checks that the bytes a model, a reviewer or a pipeline reads still match their source, and answers MATCH, DRIFT or UNVERIFIABLE."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MPL-2.0" }
-authors = [{ name = "HarperZ9" }]
+authors = [{ name = "Zain Dana Harper", email = "zaindharper@gmail.com" }]
 keywords = ["integrity", "witness", "provenance", "ai-oversight", "attestation", "re-derivability", "supply-chain"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
