@@ -1,39 +1,38 @@
 # An Introduction to EMET
 
-EMET is a byte-level integrity witness. Point it at files and it answers one
-narrow question with re-derivable facts: do these bytes still match the source
-they claim to represent? The answer is always one of three closed verdicts,
-`MATCH`, `DRIFT`, or `UNVERIFIABLE`, and every verdict comes from a hash
-computation you can repeat yourself. Same bytes, same answer.
+EMET checks whether a file still matches the SHA-256 you recorded for it. The
+answer is `MATCH`, `DRIFT` or `UNVERIFIABLE`.
 
-It is a single stdlib-only Python tool with zero dependencies, plus three
-clean-room ports (Rust, Node.js, Go) that pass the same language-agnostic
-conformance suite in CI. Install it with `pip install emet` or run it straight
-from a checkout with `python membrane.py`.
+```sh
+pip install emet
+emet anchor report.md     # record the hash
+emet verify report.md     # MATCH, or DRIFT after an edit
+```
 
-## Why it exists
+It is a single stdlib-only Python tool with no dependencies, plus ports in
+Rust, Node.js and Go that pass the same conformance suite in CI. You can also
+run it from a checkout with `python membrane.py`.
 
-Modern pipelines are full of seams where a copy quietly stops being the
-original: a model-facing view drifts from its source file, a monitor observes
-the wrong artifact, a re-encode strips an embedded provenance credential, a
-generated report overstates what was actually checked. EMET sits outside those
-seams as a small external witness. It never says `TRUSTED`, never grants
-permission, and never edits, signs, or blocks anything. It reports what
-matched, what drifted, and what it could not verify, and it makes each of
-those reports cheap for anyone else to re-derive.
+## What it is for
+
+A model-facing view can drift from its source file, a monitor can watch the
+wrong file, and a re-encode can strip an embedded credential. EMET runs outside
+those steps and reports what matched, what drifted and what it could not check.
+It never edits, signs or blocks a file, and anyone can rerun a check on their
+own machine.
 
 ## Core concepts
 
-**The closed verdict lattice.** Every command resolves to `MATCH`, `DRIFT`, or
-`UNVERIFIABLE` (plus a few closed auxiliaries like `COHERENT` and
-`CORROBORATED`). There is deliberately no `TRUSTED`, `SAFE`, or `APPROVED`.
-`UNVERIFIABLE` is an honest answer, never a silent pass: it always carries a
-stable reason code such as `E_NO_ANCHOR` or `E_NO_CORPUS`.
+**Verdicts.** Every command resolves to `MATCH`, `DRIFT` or `UNVERIFIABLE`,
+plus a few fixed extras such as `COHERENT` and `CORROBORATED`. There is no
+`TRUSTED`, `SAFE` or `APPROVED`. `UNVERIFIABLE` always carries a reason code
+such as `E_NO_ANCHOR` or `E_NO_CORPUS`, and it exits 2, so a script never reads
+it as a pass.
 
-**Anchors.** `emet anchor` pins the SHA-256 of a file's exact raw bytes into a
+**Anchors.** `emet anchor` stores the SHA-256 of a file's raw bytes in a
 local `anchors.json`. `emet verify` recomputes the hash later and compares.
-That is the whole trust model: out-of-band content hashes, not embedded
-metadata, not signatures from an authority.
+The hash is kept outside the file, so it survives a copy that strips embedded
+metadata.
 
 **Exit codes are part of the contract** (SPEC section 5): `0` held, `1` a
 difference found, `2` unverifiable, `3` authority markers found, `64` usage.
