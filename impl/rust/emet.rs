@@ -1,6 +1,4 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // EMET -- Rust second implementation. Pure Rust, no external crates.
 // Written against SPEC.md + conformance/vectors.json only. SHA-256 is hand-rolled;

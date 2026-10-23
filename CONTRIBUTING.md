@@ -52,4 +52,4 @@ See [SECURITY.md](SECURITY.md). Do not open a public issue for an unfixed vulner
 
 Parts of this project were developed with AI assistance and are committed with
 `Co-Authored-By` trailers. Contributions are accepted under the project license
-([MPL-2.0](LICENSE)).
+([AGPL-3.0-only](LICENSE)).

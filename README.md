@@ -8,7 +8,7 @@
 
 Checks that the bytes a model, a reviewer or a pipeline reads still match their source, and answers MATCH, DRIFT or UNVERIFIABLE.
 
-Version 1.3.1 on PyPI. Python 3.8 or newer, no dependencies. Licence MPL-2.0.
+Version 1.3.1 on PyPI. Python 3.8 or newer, no dependencies. Licence AGPL-3.0-only from the next release; 1.3.1 and earlier stay MPL-2.0.
 
 ## What it does for you
 
@@ -377,14 +377,18 @@ perceive/gate/actuate surface), and stands alone just as well.
 
 ## License
 
-Text: CC BY 4.0. Code: MPL-2.0.
+Text: CC BY 4.0. Code: AGPL-3.0-only.
 
 The paper in [`papers/`](papers/), the rationale essays in
 [`docs/rationale/`](docs/rationale/) and the walkthrough transcripts are licensed
 CC BY 4.0, the same licence the paper's Zenodo deposit records. Share and adapt
 them with credit to Zain Dana Harper; the terms are in
 [`LICENSE-TEXT`](LICENSE-TEXT). The code and the software documentation are
-under MPL-2.0; see [LICENSE](LICENSE).
+under the GNU Affero General Public License, version 3 only (AGPL-3.0-only); see
+[LICENSE](LICENSE). If you run a changed version as a network service, you must
+offer its users the source of that version. Releases up to and including 1.3.1
+were published under MPL-2.0 and keep that licence; AGPL-3.0-only applies from
+the next release.
 
 ## What this believes
 

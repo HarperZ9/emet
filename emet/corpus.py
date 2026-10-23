@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+# SPDX-License-Identifier: AGPL-3.0-only
 """corpus.py - EMET marker corpus loader and matcher (shared core).
 
 The marker denylist is a versioned, sha-pinned DATA artifact (SPEC sections 8 and

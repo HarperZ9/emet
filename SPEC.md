@@ -2,7 +2,7 @@
 
 - Spec version: 1.0.0
 - Status: STABLE -- frozen and normative for the v1.0 reference implementations
-- License: MPL-2.0
+- License: AGPL-3.0-only (MPL-2.0 for releases up to 1.3.1)
 
 EMET is an externally-anchored integrity layer for AI oversight, attribution,
 and accountability. This document is normative: an implementation conforms if

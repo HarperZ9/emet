@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# This Source Code Form is subject to the terms of the MPL, v. 2.0.
+# SPDX-License-Identifier: AGPL-3.0-only
 """Regenerate the EMET rationale walkthrough transcript, deterministically.
 
 Runs the real EMET commands against input.txt in an isolated temp sandbox and
