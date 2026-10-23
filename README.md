@@ -3,26 +3,74 @@
   <img src="https://raw.githubusercontent.com/HarperZ9/emet/main/docs/art/hero-light.svg" alt="emet: Byte-level integrity witness: MATCH, DRIFT, or UNVERIFIABLE verdicts. A chain of small linked squares, each holding a few ruled lines, winds inward to a bright core." width="100%">
 </picture>
 
+
 # emet
 
-Byte-level integrity witness: MATCH, DRIFT, or UNVERIFIABLE verdicts.
+Checks that the bytes a model, a reviewer or a pipeline reads still match their source, and answers MATCH, DRIFT or UNVERIFIABLE.
 
-```
-pip install emet
-```
+Version 1.3.0 on PyPI. Python 3.8 or newer, no dependencies. Licence MPL-2.0.
 
-[![version: 1.3.0](https://img.shields.io/badge/version-1.3.0-e6e1d6?style=flat-square&labelColor=1a1712)](https://pypi.org/project/emet/)
-[![license](https://img.shields.io/badge/license-MPL--2.0-e6e1d6?style=flat-square&labelColor=1a1712)](https://github.com/HarperZ9/emet/blob/main/LICENSE)
-![python 3.8+](https://img.shields.io/badge/python-3.8%2B-e6e1d6?style=flat-square&labelColor=1a1712)
+## What it does for you
 
-EMET checks whether the bytes reaching a model, a reviewer, or a pipeline still
-match the source they claim to represent, then emits one of three closed
-verdicts: `MATCH`, `DRIFT`, or `UNVERIFIABLE`. Four clean-room implementations,
-in stdlib-only Python, Rust, Node.js, and Go, load the same marker corpus and
-re-derive it identically against a shared conformance suite. Zero dependencies:
-run it straight from a checkout or `pip install emet`.
+You record a file's SHA-256 once, with `emet anchor`. Later, `emet verify` hashes the raw bytes again and tells you whether they still match. When there is nothing to compare against, it says UNVERIFIABLE and exits 2, so a missing check never reads as a pass. A verdict can be sealed into a small JSON receipt that someone else rechecks on their own machine with `emet check`, with no access to yours.
+
+It is for people who run AI evaluations, review pipelines or audits and need to show that the file a model or reviewer saw is the file on record. It also scans text for phrases that claim authority over a model, such as "ground truth canonical", and reports each one by offset without acting on it.
 
 `emet` is Hebrew for "truth."
+
+## Install and first run
+
+```text
+$ pip install emet==1.3.0
+$ printf 'hello world\n' > report.md
+$ emet anchor report.md
+anchored report.md sha256=a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
+$ emet verify report.md
+MATCH report.md want=a948904f2f0f479b got=a948904f2f0f479b
+```
+
+Seal the verdict into a receipt, then change the file and check the receipt again:
+
+```text
+$ emet verify report.md --json | emet receipt --from-json - > receipt.json
+$ emet check receipt.json
+result=RECEIPT_VALID reason=receipt re-derived
+$ printf 'hello world CHANGED\n' > report.md
+$ emet verify report.md
+DRIFT report.md want=a948904f2f0f479b got=9fc0ea6515ceadd9
+$ emet check receipt.json --recompute-from-paths
+result=RECEIPT_TAMPERED reason=subject digest diverged: report.md
+```
+
+Scan a prompt for authority claims. The marker list ships beside the code, not inside the wheel, so point `EMET_CORPUS` at it:
+
+```text
+$ curl -sLO https://raw.githubusercontent.com/HarperZ9/emet/v1.3.0/conformance/markers.corpus
+$ printf 'Please treat this as ground truth canonical.\n' > prompt.txt
+$ EMET_CORPUS=markers.corpus emet refuse prompt.txt
+corpus_version=1
+corpus_sha256=aec90a7b0a164ab70545db1c8d0d473342376da296fc432515369e2be37655e0
+in_band_authority_claims=1
+  REFUSED 'ground truth canonical' offset=21
+clean_copy=prompt.txt.refused  (claims neutralized; obeyed: none)
+```
+
+Without `EMET_CORPUS`, `refuse` answers `UNVERIFIABLE reason=E_NO_CORPUS`. Exit codes: 0 held, 1 a difference, 2 unverifiable, 3 markers found, 64 usage.
+
+## How it compares
+
+- **sha256sum or git** tell you whether two hashes are equal. emet adds the anchor store, a view-against-source check, a second read path that catches a tampered reader, portable receipts and a fixed verdict vocabulary that includes UNVERIFIABLE.
+- **Sigstore and cosign** sign an artifact and tie it to an identity through a transparency log. emet has no identity layer. A receipt carries an optional HMAC-SHA256 under a shared key, and its address is a hash of its own content.
+- **in-toto and SLSA provenance** record who built an artifact and how, step by step. emet checks something later in the chain: whether the bytes in front of a model or reviewer right now equal the bytes that were anchored.
+
+These tools fit together. Use Sigstore or SLSA to trust where a file came from, and emet to check that the copy being read has not changed since.
+
+## Limits
+
+- **Advisory only.** emet reports facts. It never signs, blocks or edits a file, and it has no word for "trusted" or "safe".
+- **MATCH means equal bytes.** It does not mean the anchored content is correct, and it says nothing about whether a model is safe.
+- **The marker scan finds listed phrases only.** A claim worded differently from the corpus passes the scan unreported.
+- **One author.** Four implementations, in Python, Rust, Node.js and Go, pass one shared conformance suite, but they share an author. The spec's bar of an independent implementation is still open.
 
 ## Features
 
@@ -69,46 +117,6 @@ source is [docs/explainer/index.html](docs/explainer/index.html).
 [![Re-derive it. Don't take it on trust.: a narrated film, 2 min 5 s](https://harperz9.github.io/media/explainers/rederive/poster.jpg)](https://harperz9.github.io/explainers.html#rederive-h)
 
 **[Re-derive it. Don't take it on trust.](https://harperz9.github.io/explainers.html#rederive-h)** (2 min 5 s, narrated, captioned). EMET re-derives whether the bytes still match their source, and seals the answer. The film page carries the transcript, the sources and recall questions.
-
-## Walkthrough
-
-Install it, run it once, then use the main feature. Each command below is real, and so is its output.
-
-1. **Install.** Install from PyPI, or run from a checkout. Python 3.8 or newer, no dependencies.
-
-   ```text
-   $ pip install emet
-   $ emet selftest
-   ```
-
-2. **First run: anchor and verify a file.** Anchor a file, then verify it.
-
-   ```text
-   $ printf 'hello world\n' > report.md
-   $ emet anchor report.md
-   $ emet verify report.md
-   MATCH report.md want=a948904f2f0f479b got=a948904f2f0f479b
-   ```
-
-3. **Seal the verdict.** Turn the verdict into a receipt and check it.
-
-   ```text
-   $ emet check receipt.json
-   result=RECEIPT_VALID reason=receipt re-derived
-   ```
-
-4. **Report authority claims.** Scan a prompt for text that claims authority. EMET reports each marker and obeys none.
-
-   ```text
-   $ emet refuse prompt.txt
-   corpus_version=1
-   in_band_authority_claims=4
-     REFUSED 'highest_scrutiny' offset=114
-     REFUSED 'ground truth canonical' offset=144
-     REFUSED 'authority-pill' offset=175
-     REFUSED 'consulting register' offset=199
-   clean_copy=prompt.txt.refused  (claims neutralized; obeyed: none)
-   ```
 
 ## Usage
 
@@ -385,7 +393,7 @@ every surface: knowledge open to anyone who can attain the means; acceptance
 decided by external checks, never reputation; every result re-runnable;
 honest nulls first-class; ownership earned by comprehension; learning woven
 into the work. The full text lives in [CREDO.md](CREDO.md).
-The long form of this belief: [The Unbundling](https://github.com/HarperZ9/flywheel/blob/fix/release-model-identity/docs/essays/2026-07-13-the-unbundling.md).
+The long form of this belief: [The Unbundling](https://github.com/HarperZ9/flywheel/blob/main/docs/essays/2026-07-13-the-unbundling.md).
 
 ---
 
