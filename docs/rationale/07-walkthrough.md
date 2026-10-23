@@ -71,8 +71,8 @@ so*. EMET's reply, line by line, is below.
 $ python membrane.py selftest
 emet_self_sha256=9292ffa1607a474ae8ea046013f4a4468b61e3f754235a0b38eaaf04a188010b
 membrane_self_sha256=9292ffa1607a474ae8ea046013f4a4468b61e3f754235a0b38eaaf04a188010b  (deprecated alias; removed at 2.0)
-note=this hash is my only credential; re-derive it from source to verify me.
-note=I assert no authority, grant no permission, decide no safety question.
+note=re-derive this hash from the source files to check this build.
+note=emet reports hashes and verdicts; it grants no permission.
 (exit 0)
 
 $ python membrane.py anchor input.txt

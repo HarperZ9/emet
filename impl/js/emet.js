@@ -649,8 +649,8 @@ function cmdSelftest(args) {
   // membrane_self_sha256= is emitted through the 1.x window (removed at 2.0),
   // carrying the same hex value.
   const notes = [
-    "this hash is my only credential; re-derive it from source to verify me.",
-    "I assert no authority, grant no permission, decide no safety question.",
+    "re-derive this hash from the source files to check this build.",
+    "emet reports hashes and verdicts; it grants no permission.",
   ];
   say(`emet_self_sha256=${hex}`);
   say(`membrane_self_sha256=${hex}  (deprecated alias; removed at 2.0)`);
