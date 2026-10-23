@@ -13,7 +13,20 @@ permissions:
   contents: read
 
 jobs:
+  discover:
+    # Blocks the release when the repository is missing what search and
+    # registries read. Report and fixes: the job log. Tool: HarperZ9/discover.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: HarperZ9/discover@v0.1.1
+        with:
+          mode: repo
+
   pypi-publish:
+    needs: discover
     name: build and publish emet (trusted publishing)
     runs-on: ubuntu-latest
     environment:
