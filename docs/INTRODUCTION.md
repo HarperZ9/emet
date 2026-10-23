@@ -9,17 +9,17 @@ emet anchor report.md     # record the hash
 emet verify report.md     # MATCH, or DRIFT after an edit
 ```
 
-It is a single stdlib-only Python tool with no dependencies, plus ports in
+It is one Python file that runs on the standard library, plus ports in
 Rust, Node.js and Go that pass the same conformance suite in CI. You can also
 run it from a checkout with `python membrane.py`.
 
 ## What it is for
 
 A model-facing view can drift from its source file, a monitor can watch the
-wrong file, and a re-encode can strip an embedded credential. EMET runs outside
+wrong file, and a re-encode can strip an embedded credential. EMET runs beside
 those steps and reports what matched, what drifted and what it could not check.
-It never edits, signs or blocks a file, and anyone can rerun a check on their
-own machine.
+It reads files and writes reports, and anyone can rerun a check on their own
+machine.
 
 ## Core concepts
 
@@ -56,8 +56,9 @@ artifact shipped separately from the wheel; without it, `refuse` reports
 
 **Rebind** (SPEC s.18, experimental). When a re-encode or screenshot strips an
 embedded C2PA-style credential, `emet rebind` re-derives the naked bytes'
-content hash and rebinds them to a known anchor from a portable manifest,
-because EMET never depended on the embedded metadata in the first place.
+content hash and rebinds them to a known anchor from a portable manifest.
+This works because EMET hashes the content bytes and keeps the anchor outside
+the file.
 
 ## Your first ten minutes
 
@@ -117,20 +118,18 @@ command end-to-end in a scratch directory.
 
 ## The four implementations
 
-The Python reference lives at the repo root. `impl/rust/emet.rs` (no crates),
-`impl/js/emet.js` (built-in modules only), and `impl/go/emet.go` (standard
-library only) are clean-room ports written from the spec. The conformance
+The Python reference lives at the repo root. `impl/rust/emet.rs` (Rust standard library),
+`impl/js/emet.js` (Node.js built-in modules), and `impl/go/emet.go` (Go standard
+library) are clean-room ports written from the spec. The conformance
 suite (`conformance/vectors.json`, 44 vectors) scores each implementation on
 exactly the capabilities it claims: Python passes 44/44, Rust and Node.js pass
-40/40 (rebind not yet ported), Go passes the 35 core vectors (receipt and
-rebind not yet ported). CI runs all of this, plus a cross-language receipt
-parity gate with deliberate tamper negatives, on every push.
+40/40 (core plus receipt vectors), and Go passes the 35 core vectors. CI runs all of this on every push, plus a
+cross-language receipt parity gate that feeds in tampered receipts on purpose.
 
-One honest caveat, stated in the spec itself: all four implementations share
-an author, so their agreement shows the spec is implementable from its text,
-not yet that it is independently re-derivable. An independent, different-author
-implementation passing the vectors is the standing call for contribution (SPEC
-section 12).
+All four implementations share one author, so their agreement shows the spec
+can be implemented from its text. SPEC section 12 asks for an implementation
+by a different author that passes the vectors; that is the next test of the
+spec.
 
 ## Where to go next
 
