@@ -103,13 +103,13 @@ def test_process_audit_packet_receipt_returns_reviewer_commitment():
     assert receipt["verdict_record"] == []
     assert [row["path"] for row in receipt["subject"]] == [
         fw.PACKET_FILENAME, fw.PACKET_RECORD_FILENAME]
-    assert commitment["schema"] == "emet-flywheel-packet-commitment/v1"
+    assert commitment["schema"] == "emet-flywheel-packet-commitment/v2"
     assert commitment["packet_sha256"] == hashlib.sha256(raw).hexdigest()
     assert commitment["receipt_id"] == receipt["receipt_id"]
     assert commitment["receipt_sha256"] == hashlib.sha256(
         report.canonical(receipt).encode("utf-8")).hexdigest()
     assert commitment["separate_retention_required"] is True
-    assert commitment["does_not_prove"]
+    assert commitment["scope"] and "does_not_prove" not in commitment
     record = json.loads(artifacts[fw.PACKET_RECORD_FILENAME].decode("utf-8"))
     assert record["producer_schema"] == "flywheel.incident-sim-process-audit/v1"
     assert record["producer_claims"] == {"evaluation_overall_verdict": "MATCH"}
@@ -323,7 +323,7 @@ def test_inspect_record_is_bounded_projection_without_raw_source_values():
     record = fw.build_eval_record(raw)
     record_bytes = report.canonical(record).encode("utf-8")
 
-    assert record["schema"] == "emet-flywheel-evaluation-record/v1"
+    assert record["schema"] == "emet-flywheel-evaluation-record/v2"
     assert record["producer_schema"] == "flywheel.inspect-evidence/v1"
     assert record["source"] == {
         "algorithm": "sha256",
@@ -338,6 +338,17 @@ def test_inspect_record_is_bounded_projection_without_raw_source_values():
     }
     assert record["semantic_conclusions_verified_by_emet"] == "UNVERIFIED"
     assert b"C:/private" not in record_bytes
+
+
+def test_inspect_input_reads_scope_or_the_older_does_not_prove_name():
+    newer = _inspect_report()
+    newer["scope"] = newer.pop("does_not_prove")
+    older = _inspect_report()
+    claims_newer = fw.build_eval_record(_bytes(newer))["producer_claims"]
+    claims_older = fw.build_eval_record(_bytes(older))["producer_claims"]
+    assert claims_newer == claims_older
+    record = fw.build_eval_record(_bytes(older))
+    assert record["scope"] and "does_not_prove" not in record
 
 
 def test_mint_receipt_addresses_raw_and_metadata_and_recomputes_valid():

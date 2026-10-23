@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased - 2026-10-23 - Plain notes and a scope list
+
+The selftest notes and the rebind and receipt usage text use plain words. The
+Flywheel reporter's records name their coverage list `scope` and say what each
+record covers: emet-flywheel-evaluation-record, the process-audit packet record
+and the packet commitment move to version 2. Version 1 records named the same
+list `does_not_prove`. The reporter reads Flywheel input that names the list
+either `scope` or `does_not_prove`.
+
 ## Unreleased - 2026-10-23 - Licence change to AGPL-3.0-only
 
 The code and the software documentation move from MPL-2.0 to the GNU Affero
